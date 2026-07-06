@@ -1,0 +1,233 @@
+[gd_resource type="Resource" script_class="TwberModelResource" format=3]
+
+[ext_resource type="Script" path="res://model/twber_animation_resource.gd" id="1_1cvxb"]
+[ext_resource type="Script" path="res://model/twber_layer_resource.gd" id="2_jv6w0"]
+[ext_resource type="Script" path="res://model/twber_model_resource.gd" id="3_v7hcf"]
+[ext_resource type="Texture2D" path="res://test assets/mist_1.png" id="4_0u6bf"]
+[ext_resource type="Texture2D" path="res://test assets/mist_2.png" id="5_hrmj1"]
+[ext_resource type="Texture2D" path="res://test assets/arm_l.png" id="6_mgg33"]
+[ext_resource type="Texture2D" path="res://test assets/arm_r.png" id="7_2d7tk"]
+[ext_resource type="Texture2D" path="res://test assets/bell_l.png" id="8_t80hg"]
+[ext_resource type="Texture2D" path="res://test assets/bell_r.png" id="9_v8aym"]
+[ext_resource type="Texture2D" path="res://test assets/coat_b.png" id="10_86oyd"]
+[ext_resource type="Texture2D" path="res://test assets/coat_f.png" id="11_5mp0e"]
+[ext_resource type="Texture2D" path="res://test assets/coat_m.png" id="12_i10jm"]
+[ext_resource type="Texture2D" path="res://test assets/forearm_l.png" id="13_y4rkb"]
+[ext_resource type="Texture2D" path="res://test assets/forearm_r.png" id="14_knebr"]
+[ext_resource type="Texture2D" path="res://test assets/hat_b.png" id="15_mmpcv"]
+[ext_resource type="Texture2D" path="res://test assets/hat_f.png" id="16_a3haj"]
+[ext_resource type="Texture2D" path="res://test assets/eye_angry.png" id="17_hrmj1"]
+[ext_resource type="Texture2D" path="res://test assets/eye_happy.png" id="17_nkkc4"]
+[ext_resource type="Texture2D" path="res://test assets/eye_happy_blink.png" id="18_0hod0"]
+[ext_resource type="Texture2D" path="res://test assets/eye_angry_blink.png" id="18_mgg33"]
+[ext_resource type="Texture2D" path="res://test assets/mask_1.png" id="19_6hdqc"]
+[ext_resource type="Texture2D" path="res://test assets/mask_2.png" id="20_hty5x"]
+[ext_resource type="Texture2D" path="res://test assets/eye_idle.png" id="21_2d7tk"]
+[ext_resource type="Texture2D" path="res://test assets/mask_3.png" id="21_7qe5c"]
+[ext_resource type="Texture2D" path="res://test assets/eye_idle_blink.png" id="22_t80hg"]
+[ext_resource type="Texture2D" path="res://test assets/mask_4.png" id="22_wer7n"]
+
+[sub_resource type="Resource" id="Resource_hrmj1"]
+script = ExtResource("2_jv6w0")
+id = "layer_001"
+name = "HatB"
+type = 1
+texture_id = "texture_001"
+
+[sub_resource type="Resource" id="Resource_mgg33"]
+script = ExtResource("2_jv6w0")
+id = "layer_002"
+name = "CoatB"
+type = 1
+texture_id = "texture_002"
+
+[sub_resource type="Resource" id="Resource_2d7tk"]
+script = ExtResource("1_1cvxb")
+frame_texture_ids = Array[String](["texture_003", "texture_004"])
+frame_durations = Array[float]([1.0, 1.0])
+
+[sub_resource type="Resource" id="Resource_t80hg"]
+script = ExtResource("2_jv6w0")
+id = "layer_003"
+name = "Mist1"
+type = 2
+animations = Array[Resource]([SubResource("Resource_2d7tk")])
+
+[sub_resource type="Resource" id="Resource_v8aym"]
+script = ExtResource("2_jv6w0")
+id = "layer_004"
+name = "ForearmL"
+type = 1
+children = Array[String](["layer_005", "layer_006"])
+texture_id = "texture_005"
+
+[sub_resource type="Resource" id="Resource_86oyd"]
+script = ExtResource("2_jv6w0")
+id = "layer_005"
+name = "ArmL"
+type = 1
+texture_id = "texture_006"
+
+[sub_resource type="Resource" id="Resource_5mp0e"]
+script = ExtResource("2_jv6w0")
+id = "layer_006"
+name = "ForearmR"
+type = 1
+children = Array[String](["layer_007"])
+texture_id = "texture_007"
+
+[sub_resource type="Resource" id="Resource_i10jm"]
+script = ExtResource("2_jv6w0")
+id = "layer_007"
+name = "ArmR"
+type = 1
+texture_id = "texture_008"
+
+[sub_resource type="Resource" id="Resource_y4rkb"]
+script = ExtResource("2_jv6w0")
+id = "layer_008"
+name = "CoatM"
+type = 1
+texture_id = "texture_009"
+
+[sub_resource type="Resource" id="Resource_knebr"]
+script = ExtResource("2_jv6w0")
+id = "layer_009"
+name = "CoatF"
+type = 1
+texture_id = "texture_010"
+
+[sub_resource type="Resource" id="Resource_mmpcv"]
+script = ExtResource("2_jv6w0")
+id = "layer_010"
+name = "HatF"
+type = 1
+children = Array[String](["layer_011", "layer_012"])
+texture_id = "texture_011"
+
+[sub_resource type="Resource" id="Resource_a3haj"]
+script = ExtResource("2_jv6w0")
+id = "layer_011"
+name = "BellL"
+type = 1
+texture_id = "texture_012"
+
+[sub_resource type="Resource" id="Resource_nkkc4"]
+script = ExtResource("2_jv6w0")
+id = "layer_012"
+name = "BellR"
+type = 1
+texture_id = "texture_013"
+
+[sub_resource type="Resource" id="Resource_0hod0"]
+script = ExtResource("1_1cvxb")
+name = "angry"
+frame_texture_ids = Array[String](["texture_014", "texture_015"])
+frame_durations = Array[float]([1.0, 1.0])
+
+[sub_resource type="Resource" id="Resource_6hdqc"]
+script = ExtResource("1_1cvxb")
+name = "happy"
+frame_texture_ids = Array[String](["texture_016", "texture_017"])
+frame_durations = Array[float]([1.0, 1.0])
+
+[sub_resource type="Resource" id="Resource_hty5x"]
+script = ExtResource("1_1cvxb")
+name = "idle"
+frame_texture_ids = Array[String](["texture_018", "texture_019"])
+frame_durations = Array[float]([1.0, 1.0])
+
+[sub_resource type="Resource" id="Resource_7qe5c"]
+script = ExtResource("2_jv6w0")
+id = "layer_013"
+name = "EyeHappy"
+type = 2
+children = Array[String](["layer_014", "layer_015", "layer_016", "layer_017"])
+clip_children = 1
+current_animation = "idle"
+animations = Array[Resource]([SubResource("Resource_0hod0"), SubResource("Resource_6hdqc"), SubResource("Resource_hty5x")])
+
+[sub_resource type="Resource" id="Resource_wer7n"]
+script = ExtResource("2_jv6w0")
+id = "layer_014"
+name = "Mask1"
+type = 1
+texture_id = "texture_020"
+
+[sub_resource type="Resource" id="Resource_lac74"]
+script = ExtResource("2_jv6w0")
+id = "layer_015"
+name = "Mask2"
+type = 1
+texture_id = "texture_021"
+
+[sub_resource type="Resource" id="Resource_e5q5a"]
+script = ExtResource("2_jv6w0")
+id = "layer_016"
+name = "Mask3"
+type = 1
+texture_id = "texture_022"
+
+[sub_resource type="Resource" id="Resource_r0nlr"]
+script = ExtResource("2_jv6w0")
+id = "layer_017"
+name = "Mask4"
+type = 1
+texture_id = "texture_023"
+
+[resource]
+script = ExtResource("3_v7hcf")
+root_position = Vector2(704.71295, 327.46396)
+root_scale = Vector2(0.14641038, 0.14641038)
+root_layer_ids = Array[String](["layer_001", "layer_002", "layer_003", "layer_004", "layer_008", "layer_009", "layer_010", "layer_013"])
+layers = Array[Resource]([SubResource("Resource_hrmj1"), SubResource("Resource_mgg33"), SubResource("Resource_t80hg"), SubResource("Resource_v8aym"), SubResource("Resource_86oyd"), SubResource("Resource_5mp0e"), SubResource("Resource_i10jm"), SubResource("Resource_y4rkb"), SubResource("Resource_knebr"), SubResource("Resource_mmpcv"), SubResource("Resource_a3haj"), SubResource("Resource_nkkc4"), SubResource("Resource_7qe5c"), SubResource("Resource_wer7n"), SubResource("Resource_lac74"), SubResource("Resource_e5q5a"), SubResource("Resource_r0nlr")])
+textures = {
+"texture_001": ExtResource("15_mmpcv"),
+"texture_002": ExtResource("10_86oyd"),
+"texture_003": ExtResource("4_0u6bf"),
+"texture_004": ExtResource("5_hrmj1"),
+"texture_005": ExtResource("13_y4rkb"),
+"texture_006": ExtResource("6_mgg33"),
+"texture_007": ExtResource("14_knebr"),
+"texture_008": ExtResource("7_2d7tk"),
+"texture_009": ExtResource("12_i10jm"),
+"texture_010": ExtResource("11_5mp0e"),
+"texture_011": ExtResource("16_a3haj"),
+"texture_012": ExtResource("8_t80hg"),
+"texture_013": ExtResource("9_v8aym"),
+"texture_014": ExtResource("17_hrmj1"),
+"texture_015": ExtResource("18_mgg33"),
+"texture_016": ExtResource("17_nkkc4"),
+"texture_017": ExtResource("18_0hod0"),
+"texture_018": ExtResource("21_2d7tk"),
+"texture_019": ExtResource("22_t80hg"),
+"texture_020": ExtResource("19_6hdqc"),
+"texture_021": ExtResource("20_hty5x"),
+"texture_022": ExtResource("21_7qe5c"),
+"texture_023": ExtResource("22_wer7n")
+}
+texture_sources = {
+"texture_001": "res://test assets/hat_b.png",
+"texture_002": "res://test assets/coat_b.png",
+"texture_003": "res://test assets/mist_1.png",
+"texture_004": "res://test assets/mist_2.png",
+"texture_005": "res://test assets/forearm_l.png",
+"texture_006": "res://test assets/arm_l.png",
+"texture_007": "res://test assets/forearm_r.png",
+"texture_008": "res://test assets/arm_r.png",
+"texture_009": "res://test assets/coat_m.png",
+"texture_010": "res://test assets/coat_f.png",
+"texture_011": "res://test assets/hat_f.png",
+"texture_012": "res://test assets/bell_l.png",
+"texture_013": "res://test assets/bell_r.png",
+"texture_014": "res://test assets/eye_angry.png",
+"texture_015": "res://test assets/eye_angry_blink.png",
+"texture_016": "res://test assets/eye_happy.png",
+"texture_017": "res://test assets/eye_happy_blink.png",
+"texture_018": "res://test assets/eye_idle.png",
+"texture_019": "res://test assets/eye_idle_blink.png",
+"texture_020": "res://test assets/mask_1.png",
+"texture_021": "res://test assets/mask_2.png",
+"texture_022": "res://test assets/mask_3.png",
+"texture_023": "res://test assets/mask_4.png"
+}

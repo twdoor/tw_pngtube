@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://ddb8cptjj4uo7"]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_ycap1"]
+[ext_resource type="PackedScene" uid="uid://bx7gr0sqb4jj4" path="res://editor/editor_placer.tscn" id="2_fjngd"]
+[ext_resource type="Script" uid="uid://ua2bonrxhh82" path="res://editor/model_preview.gd" id="3_oi4dq"]
+[ext_resource type="Script" uid="uid://c5md0tempy73i" path="res://editor/editor.gd" id="4_tpbm2"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q7cji"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_dttc0"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kga4s"]
+bg_color = Color(0.6255971, 0.6255971, 0.62559694, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_j1obv"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_kts1f"]
+
+[node name="Editor" type="CanvasLayer" unique_id=1738089725]
+script = ExtResource("4_tpbm2")
+
+[node name="ModelPreview" type="CanvasLayer" parent="." unique_id=97363867]
+unique_name_in_owner = true
+layer = 0
+script = ExtResource("3_oi4dq")
+
+[node name="Background" type="ColorRect" parent="ModelPreview" unique_id=1592007252]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.288518, 0.28851798, 0.28851798, 1)
+
+[node name="Textures" type="Node2D" parent="ModelPreview" unique_id=1130443414]
+position = Vector2(960, 360)
+scale = Vector2(0.1, 0.1)
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=535779734]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=651395537]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1805257327]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=141574330]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer" unique_id=953955515]
+layout_mode = 2
+
+[node name="FileMenuButton" type="MenuButton" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/HBoxContainer" unique_id=2115291158]
+unique_name_in_owner = true
+custom_maximum_size = Vector2(-1, 24)
+layout_mode = 2
+theme_override_constants/icon_max_width = 12
+theme_override_fonts/font = ExtResource("1_ycap1")
+theme_override_font_sizes/font_size = 12
+text = "File
+"
+expand_icon = true
+item_count = 3
+popup/item_0/text = "Open"
+popup/item_0/id = 1
+popup/item_1/text = "Save"
+popup/item_1/id = 2
+popup/item_2/text = "Export"
+popup/item_2/id = 3
+
+[node name="Menus" type="TabContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=213659694]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_selected_color = Color(0, 0, 0, 1)
+theme_override_constants/side_margin = 0
+theme_override_constants/tab_separation = 4
+theme_override_fonts/font = ExtResource("1_ycap1")
+theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
+theme_override_styles/tab_unselected = SubResource("StyleBoxEmpty_q7cji")
+theme_override_styles/tab_hovered = SubResource("StyleBoxEmpty_dttc0")
+theme_override_styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
+theme_override_styles/tab_disabled = SubResource("StyleBoxEmpty_j1obv")
+theme_override_styles/tab_focus = SubResource("StyleBoxEmpty_kts1f")
+current_tab = 0
+tabs_position = 1
+switch_on_drag_hover = false
+tab_0/title = "[Place]"
+
+[node name="EditorPlacer" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=795151654 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("2_fjngd")]
+layout_mode = 2
+_preview_layer = NodePath("../../../../../ModelPreview")
+_new_model_root_position = Vector2(960, 360)

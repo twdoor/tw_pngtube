@@ -1,0 +1,221 @@
+[gd_scene format=3 uid="uid://bx7gr0sqb4jj4"]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_a7f0c"]
+[ext_resource type="Script" uid="uid://cdm7xuk1eoqj5" path="res://editor/editor_placer.gd" id="2_luu17"]
+[ext_resource type="Texture2D" uid="uid://b6q4pf07yi3em" path="res://shared/assets/Icon_PictoIcon_Plus.Png" id="3_3ohd4"]
+[ext_resource type="Texture2D" uid="uid://bh66mgoqqcsab" path="res://shared/assets/Icon_PictoIcon_Bin.Png" id="4_3ohd4"]
+[ext_resource type="Texture2D" uid="uid://dy03qucgek3jq" path="res://shared/assets/Icon_PictoIcon_Pencil.Png" id="5_10tqb"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_hdak6"]
+size = Vector2(100, 100)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
+
+[node name="EditorPlacer" type="HSplitContainer" unique_id=795151654]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+split_offsets = PackedInt32Array(256)
+split_offset = 256
+script = ExtResource("2_luu17")
+metadata/_tab_index = 0
+metadata/_tab_name = "[Place]"
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=949789036]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=2065358272]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1890395530]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="NodeButtons" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1124470363]
+layout_mode = 2
+columns = 3
+
+[node name="LayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Layer"
+
+[node name="AnimationLayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Animated"
+
+[node name="EmptyButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Empty"
+
+[node name="Tree" type="Tree" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=863067424]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/draw_guides = 0
+theme_override_constants/relationship_line_width = 0
+theme_override_constants/parent_hl_line_width = 0
+theme_override_constants/children_hl_line_width = 0
+theme_override_fonts/font = ExtResource("1_a7f0c")
+theme_override_fonts/title_button_font = ExtResource("1_a7f0c")
+select_mode = 2
+auto_tooltip = false
+scroll_horizontal_enabled = false
+tile_scroll_hint = true
+
+[node name="Inspector" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=254131739]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector" unique_id=807286800]
+layout_mode = 2
+
+[node name="LayerActions" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer" unique_id=1912698500]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions" unique_id=485429546]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer" unique_id=1003794142]
+layout_mode = 2
+
+[node name="ChangeTextureButton" type="TextureButton" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer" unique_id=395165107]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(90, 90)
+custom_maximum_size = Vector2(90, 90)
+layout_mode = 2
+texture_normal = SubResource("PlaceholderTexture2D_hdak6")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer" unique_id=1918318913]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1612645138]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Set Opacity"
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="ClipOptionButton" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=335308101]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Clip Children"
+item_count = 3
+popup/item_0/text = "Disabled"
+popup/item_0/id = 0
+popup/item_1/text = "Clip only"
+popup/item_1/id = 1
+popup/item_2/text = "Clip + Draw"
+popup/item_2/id = 2
+
+[node name="AnimationFrameRate" type="SpinBox" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1107324547]
+unique_name_in_owner = true
+layout_mode = 2
+value = 5.0
+alignment = 2
+update_on_text_changed = true
+suffix = "FPS"
+
+[node name="AnimationsBox" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer" unique_id=247197106]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AnimationsOptionButton" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/AnimationsBox" unique_id=2104509724]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NewAnimationButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/AnimationsBox" unique_id=2139158317]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "New Animation"
+icon = ExtResource("3_3ohd4")
+icon_alignment = 1
+expand_icon = true
+
+[node name="DeleteAnimationButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/AnimationsBox" unique_id=1089784691]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Delete Animation"
+theme_override_colors/icon_normal_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
+icon = ExtResource("4_3ohd4")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RenameAnimationButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/AnimationsBox" unique_id=425793803]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Rename Animation"
+icon = ExtResource("5_10tqb")
+icon_alignment = 1
+expand_icon = true
+
+[node name="GeneralActions" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer" unique_id=1897332904]
+layout_mode = 2
+
+[node name="DuplicateButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/GeneralActions" unique_id=402775417]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Duplicate"
+
+[node name="DeleteButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/GeneralActions" unique_id=1597951933]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_normal_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Delete"
+
+[node name="Panel" type="Panel" parent="." unique_id=2142597381]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+mouse_behavior_recursive = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
