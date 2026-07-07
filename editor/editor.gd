@@ -10,6 +10,8 @@ const TwberModelCodecScript := preload("res://model/twber_model_codec.gd")
 @onready var _file_menu_button: MenuButton = %FileMenuButton
 @onready var _model_root: Node2D = $ModelPreview/Textures
 @onready var _editor_placer: EditorPlacer = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer
+@onready var _editor_mesher = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorMesher
+@onready var _menus: TabContainer = $PanelContainer/MarginContainer/VBoxContainer/Menus
 
 var _current_resource_path := ""
 
@@ -18,6 +20,8 @@ func _ready() -> void:
 	var popup := _file_menu_button.get_popup()
 	popup.set_item_disabled(popup.get_item_index(MENU_SAVE), false)
 	popup.id_pressed.connect(_on_file_menu_id_pressed)
+	_menus.tab_changed.connect(_on_tab_changed)
+	_editor_mesher.model_tree_changed.connect(_on_mesher_model_tree_changed)
 
 
 func _on_file_menu_id_pressed(id: int) -> void:
@@ -77,6 +81,7 @@ func _open_model(path: String) -> void:
 
 	TwberModelCodecScript.apply_to_model_root(model, _model_root)
 	_editor_placer.reload_from_preview()
+	_editor_mesher.reload_from_preview()
 
 	if path.get_extension().to_lower() == TwberModelCodecScript.TWBER_EXTENSION:
 		_current_resource_path = ""
@@ -99,6 +104,18 @@ func _export_model(path: String) -> void:
 	var error: Error = TwberModelCodecScript.export_twber(model, path)
 	if error != OK:
 		push_error("Could not export Twber model: %s" % error_string(error))
+
+
+func _on_tab_changed(tab_index: int) -> void:
+	var tab := _menus.get_child(tab_index)
+	if tab == _editor_placer:
+		_editor_placer.reload_from_preview()
+	elif tab == _editor_mesher:
+		_editor_mesher.reload_from_preview()
+
+
+func _on_mesher_model_tree_changed() -> void:
+	_editor_placer.reload_from_preview()
 
 
 func _create_file_dialog(file_mode: FileDialog.FileMode, title: String) -> FileDialog:

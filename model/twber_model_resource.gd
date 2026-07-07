@@ -1,6 +1,6 @@
 class_name TwberModelResource extends Resource
 
-const FORMAT_VERSION := 1
+const FORMAT_VERSION := 2
 
 @export var format_version := FORMAT_VERSION
 @export var root_position := Vector2.ZERO

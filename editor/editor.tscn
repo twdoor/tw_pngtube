@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://bx7gr0sqb4jj4" path="res://editor/editor_placer.tscn" id="2_fjngd"]
 [ext_resource type="Script" uid="uid://ua2bonrxhh82" path="res://editor/model_preview.gd" id="3_oi4dq"]
 [ext_resource type="Script" uid="uid://c5md0tempy73i" path="res://editor/editor.gd" id="4_tpbm2"]
+[ext_resource type="PackedScene" uid="uid://j875asnw84w1" path="res://editor/editor_mesher.tscn" id="5_6j37k"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
@@ -80,13 +81,18 @@ theme_override_font_sizes/font_size = 12
 text = "File
 "
 expand_icon = true
-item_count = 3
-popup/item_0/text = "Open"
-popup/item_0/id = 1
-popup/item_1/text = "Save"
-popup/item_1/id = 2
-popup/item_2/text = "Export"
-popup/item_2/id = 3
+switch_on_hover = true
+item_count = 5
+popup/item_0/text = "New"
+popup/item_0/id = 4
+popup/item_1/text = "Open"
+popup/item_1/id = 1
+popup/item_2/text = "Save"
+popup/item_2/id = 2
+popup/item_3/text = "Export"
+popup/item_3/id = 3
+popup/item_4/text = "Settings"
+popup/item_4/id = 3
 
 [node name="Menus" type="TabContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=213659694]
 layout_mode = 2
@@ -105,8 +111,14 @@ current_tab = 0
 tabs_position = 1
 switch_on_drag_hover = false
 tab_0/title = "[Place]"
+tab_1/title = "[Mesh]"
 
 [node name="EditorPlacer" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=795151654 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("2_fjngd")]
 layout_mode = 2
 _preview_layer = NodePath("../../../../../ModelPreview")
 _new_model_root_position = Vector2(960, 360)
+
+[node name="EditorMesher" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=1026952844 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("5_6j37k")]
+visible = false
+layout_mode = 2
+_preview_layer = NodePath("../../../../../ModelPreview")

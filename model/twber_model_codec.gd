@@ -5,8 +5,11 @@ const TWBER_EXTENSION := "twber"
 const LAYER_TYPE_EMPTY := 0
 const LAYER_TYPE_SPRITE := 1
 const LAYER_TYPE_ANIMATED_SPRITE := 2
+const LAYER_TYPE_MESH_SPRITE := 3
 const TwberAnimationResourceScript := preload("res://model/twber_animation_resource.gd")
 const TwberLayerResourceScript := preload("res://model/twber_layer_resource.gd")
+const TwberMeshResourceScript := preload("res://model/twber_mesh_resource.gd")
+const TwberMeshSprite2DScript := preload("res://model/twber_mesh_sprite_2d.gd")
 const TwberModelResourceScript := preload("res://model/twber_model_resource.gd")
 
 
@@ -20,6 +23,10 @@ static func _is_layer_resource(resource: Variant) -> bool:
 
 static func _is_animation_resource(resource: Variant) -> bool:
 	return resource is Resource and resource.get_script() == TwberAnimationResourceScript
+
+
+static func _is_mesh_resource(resource: Variant) -> bool:
+	return resource is Resource and resource.get_script() == TwberMeshResourceScript
 
 
 static func from_model_root(model_root: Node2D) -> Resource:
@@ -194,7 +201,16 @@ static func _layer_from_node(node: Node2D, model: Resource, state: Dictionary) -
 		layer.modulate = canvas_item.modulate
 		layer.clip_children = canvas_item.clip_children
 
-	if node is AnimatedSprite2D:
+	if node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = node
+		layer.texture_id = _get_or_store_texture(mesh_sprite.texture, model, state)
+		if mesh_sprite.has_mesh_points():
+			layer.type = LAYER_TYPE_MESH_SPRITE
+			if mesh_sprite.mesh_data != null:
+				layer.mesh = mesh_sprite.mesh_data.duplicate(true)
+		else:
+			layer.type = LAYER_TYPE_SPRITE
+	elif node is AnimatedSprite2D:
 		var animated_sprite: AnimatedSprite2D = node
 		layer.type = LAYER_TYPE_ANIMATED_SPRITE
 		layer.current_animation = String(animated_sprite.animation)
@@ -257,6 +273,17 @@ static func _node_from_layer(layer: Resource, model: Resource) -> Node2D:
 			var sprite := Sprite2D.new()
 			sprite.texture = _get_texture(model, layer.texture_id)
 			node = sprite
+		LAYER_TYPE_MESH_SPRITE:
+			var mesh_sprite := TwberMeshSprite2DScript.new()
+			mesh_sprite.texture = _get_texture(model, layer.texture_id)
+			if _is_mesh_resource(layer.mesh):
+				mesh_sprite.mesh_data = layer.mesh.duplicate(true)
+			else:
+				mesh_sprite.mesh_data = TwberMeshResourceScript.new()
+				if mesh_sprite.texture != null:
+					mesh_sprite.reset_texture_origin_from_texture()
+			mesh_sprite.sync_mesh()
+			node = mesh_sprite
 		LAYER_TYPE_ANIMATED_SPRITE:
 			var animated_sprite := AnimatedSprite2D.new()
 			animated_sprite.sprite_frames = _sprite_frames_from_layer(layer, model)
@@ -376,7 +403,7 @@ static func _layer_to_dictionary(layer: Resource) -> Dictionary:
 		if _is_animation_resource(animation_resource):
 			animations.append(_animation_to_dictionary(animation_resource))
 
-	return {
+	var output := {
 		"id": layer.id,
 		"name": layer.name,
 		"type": layer.type,
@@ -391,6 +418,11 @@ static func _layer_to_dictionary(layer: Resource) -> Dictionary:
 		"current_animation": layer.current_animation,
 		"animations": animations,
 	}
+
+	if _is_mesh_resource(layer.mesh):
+		output["mesh"] = _mesh_to_dictionary(layer.mesh)
+
+	return output
 
 
 static func _layer_from_dictionary(data: Dictionary) -> Resource:
@@ -407,6 +439,7 @@ static func _layer_from_dictionary(data: Dictionary) -> Resource:
 	layer.clip_children = int(data.get("clip_children", CanvasItem.CLIP_CHILDREN_DISABLED))
 	layer.texture_id = String(data.get("texture_id", ""))
 	layer.current_animation = String(data.get("current_animation", "default"))
+	layer.mesh = _mesh_from_dictionary(data.get("mesh", {}))
 
 	var animations_data: Array = data.get("animations", [])
 	for animation_data: Variant in animations_data:
@@ -434,6 +467,41 @@ static func _animation_from_dictionary(data: Dictionary) -> Resource:
 	animation.frame_texture_ids = _array_to_string_array(data.get("frame_texture_ids", []))
 	animation.frame_durations = _array_to_float_array(data.get("frame_durations", []))
 	return animation
+
+
+static func _mesh_to_dictionary(mesh: Resource) -> Dictionary:
+	if not _is_mesh_resource(mesh):
+		return {}
+
+	return {
+		"texture_origin": _vector2_to_array(mesh.texture_origin),
+		"rest_vertices": _packed_vector2_array_to_array(mesh.rest_vertices),
+		"vertices": _packed_vector2_array_to_array(mesh.vertices),
+		"uvs": _packed_vector2_array_to_array(mesh.uvs),
+		"triangles": _packed_int32_array_to_array(mesh.triangles),
+	}
+
+
+static func _mesh_from_dictionary(data: Variant) -> Resource:
+	if data is not Dictionary:
+		return null
+
+	var mesh = TwberMeshResourceScript.new()
+	mesh.texture_origin = _array_to_vector2(data.get("texture_origin", []), Vector2.ZERO)
+	mesh.rest_vertices = _array_to_packed_vector2_array(data.get("rest_vertices", []))
+	mesh.vertices = _array_to_packed_vector2_array(data.get("vertices", []))
+	mesh.uvs = _array_to_packed_vector2_array(data.get("uvs", []))
+	mesh.triangles = _array_to_packed_int32_array(data.get("triangles", []))
+
+	if mesh.rest_vertices.size() != mesh.vertices.size():
+		mesh.rest_vertices = mesh.vertices.duplicate()
+
+	if mesh.uvs.size() != mesh.vertices.size():
+		mesh.uvs = PackedVector2Array()
+		for vertex: Vector2 in mesh.vertices:
+			mesh.uvs.append(vertex - mesh.texture_origin)
+
+	return mesh
 
 
 static func _texture_to_base64_png(texture: Texture2D) -> String:
@@ -480,6 +548,40 @@ static func _array_to_vector2(value: Variant, fallback: Vector2) -> Vector2:
 		return fallback
 
 	return Vector2(float(value[0]), float(value[1]))
+
+
+static func _packed_vector2_array_to_array(values: PackedVector2Array) -> Array:
+	var output: Array = []
+	for value: Vector2 in values:
+		output.append(_vector2_to_array(value))
+	return output
+
+
+static func _array_to_packed_vector2_array(values: Variant) -> PackedVector2Array:
+	var output := PackedVector2Array()
+	if values is not Array:
+		return output
+
+	for value: Variant in values:
+		output.append(_array_to_vector2(value, Vector2.ZERO))
+	return output
+
+
+static func _packed_int32_array_to_array(values: PackedInt32Array) -> Array[int]:
+	var output: Array[int] = []
+	for value: int in values:
+		output.append(value)
+	return output
+
+
+static func _array_to_packed_int32_array(values: Variant) -> PackedInt32Array:
+	var output := PackedInt32Array()
+	if values is not Array:
+		return output
+
+	for value: Variant in values:
+		output.append(int(value))
+	return output
 
 
 static func _color_to_array(value: Color) -> Array[float]:

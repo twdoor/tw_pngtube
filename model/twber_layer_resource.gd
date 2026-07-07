@@ -4,6 +4,7 @@ enum LayerType {
 	EMPTY,
 	SPRITE,
 	ANIMATED_SPRITE,
+	MESH_SPRITE,
 }
 
 @export var id := ""
@@ -19,3 +20,4 @@ enum LayerType {
 @export var texture_id := ""
 @export var current_animation := "default"
 @export var animations: Array[Resource] = []
+@export var mesh: Resource

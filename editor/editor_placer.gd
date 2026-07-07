@@ -80,7 +80,7 @@ func _ready() -> void:
 	_tree.columns = 1
 	_tree.hide_root = true
 	_tree.set_column_expand(TREE_COLUMN, true)
-	_tree.drop_mode_flags = Tree.DROP_MODE_ON_ITEM | Tree.DROP_MODE_INBETWEEN
+	_tree.drop_mode_flags = Tree.DROP_MODE_DISABLED
 	_tree.set_drag_forwarding(_get_tree_drag_data, _can_drop_tree_data, _drop_tree_data)
 	_tree.item_selected.connect(_on_tree_item_selected)
 	_tree.multi_selected.connect(_on_tree_multi_selected)
@@ -95,6 +95,11 @@ func _ready() -> void:
 	_visibility_hide_icon = _make_tree_icon(HIDE_ICON)
 	_hide_inspector()
 	_rebuild_tree()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END and _tree != null:
+		_tree.drop_mode_flags = Tree.DROP_MODE_DISABLED
 
 
 func _on_add_item_pressed(item_type: int) -> void:
@@ -145,13 +150,12 @@ func _get_tree_drag_data(at_position: Vector2) -> Variant:
 
 
 func _can_drop_tree_data(at_position: Vector2, data: Variant) -> bool:
-	_tree.drop_mode_flags = Tree.DROP_MODE_ON_ITEM | Tree.DROP_MODE_INBETWEEN
-
 	var dragged_ids := _get_dragged_layer_ids(data)
 	if dragged_ids.is_empty():
 		_tree.drop_mode_flags = Tree.DROP_MODE_DISABLED
 		return false
 
+	_tree.drop_mode_flags = Tree.DROP_MODE_ON_ITEM | Tree.DROP_MODE_INBETWEEN
 	var target_item := _tree.get_item_at_position(at_position)
 	var target_id := _get_layer_id_from_item(target_item)
 	var drop_section := _tree.get_drop_section_at_position(at_position)
@@ -335,6 +339,10 @@ func _on_replacement_texture_selected(layer_id: int, path: String) -> void:
 	var model_node: Node = layer["node"]
 	if model_node is Sprite2D:
 		model_node.texture = texture
+	elif model_node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = model_node
+		mesh_sprite.texture = texture
+		mesh_sprite.sync_mesh()
 
 	if layer_id == _selected_layer_id:
 		_refresh_inspector()
@@ -549,13 +557,17 @@ func _can_selected_layer_use_texture() -> bool:
 
 func _can_layer_use_texture(layer: Dictionary) -> bool:
 	var model_node: Node = layer["node"]
-	return model_node is Sprite2D or model_node is AnimatedSprite2D
+	return model_node is Sprite2D or model_node is AnimatedSprite2D or model_node is TwberMeshSprite2D
 
 
 func _get_layer_texture(layer: Dictionary) -> Texture2D:
 	var model_node: Node = layer["node"]
 	if model_node is Sprite2D:
 		return model_node.texture
+
+	if model_node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = model_node
+		return mesh_sprite.texture
 
 	if model_node is AnimatedSprite2D:
 		var animated_sprite: AnimatedSprite2D = model_node
@@ -895,6 +907,11 @@ func _duplicate_model_node_without_children(source_node: Node2D) -> Node2D:
 
 	if duplicated_node is AnimatedSprite2D and duplicated_node.sprite_frames != null:
 		duplicated_node.sprite_frames = duplicated_node.sprite_frames.duplicate(true)
+	elif duplicated_node is TwberMeshSprite2D:
+		var duplicated_mesh_sprite: TwberMeshSprite2D = duplicated_node
+		if duplicated_mesh_sprite.mesh_data != null:
+			duplicated_mesh_sprite.mesh_data = duplicated_mesh_sprite.mesh_data.duplicate(true)
+			duplicated_mesh_sprite.sync_mesh()
 
 	return duplicated_node
 
@@ -1107,6 +1124,8 @@ func _import_model_children(parent_node: Node, parent_id: int, child_ids: Array)
 func _get_item_type_from_model_node(node: Node) -> int:
 	if node is AnimatedSprite2D:
 		return PlacerItemType.ANIMATION_LAYER
+	if node is TwberMeshSprite2D:
+		return PlacerItemType.LAYER
 	if node is Sprite2D:
 		return PlacerItemType.LAYER
 	return PlacerItemType.EMPTY
