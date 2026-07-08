@@ -78,13 +78,13 @@ theme_override_constants/margin_bottom = 8
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1805257327]
 layout_mode = 2
 
-[node name="PanelContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=141574330]
+[node name="Toolbar" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=141574330]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer" unique_id=953955515]
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar" unique_id=953955515]
 layout_mode = 2
 
-[node name="FileMenuButton" type="MenuButton" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/HBoxContainer" unique_id=2115291158]
+[node name="FileMenuButton" type="MenuButton" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/HBoxContainer" unique_id=2115291158]
 unique_name_in_owner = true
 custom_maximum_size = Vector2(-1, 24)
 layout_mode = 2
@@ -105,7 +105,7 @@ popup/item_2/id = 2
 popup/item_3/text = "Export"
 popup/item_3/id = 3
 popup/item_4/text = "Settings"
-popup/item_4/id = 3
+popup/item_4/id = 5
 
 [node name="Menus" type="TabContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=213659694]
 layout_mode = 2

@@ -2,6 +2,7 @@ class_name TwberModelCodec extends RefCounted
 
 const FORMAT_NAME := "twber_model"
 const TWBER_EXTENSION := "twber"
+const TEXTURE_SOURCE_PATH_META := &"twber_source_path"
 
 static func _is_model_resource(resource: Variant) -> bool:
 	return resource is TwberModelResource
@@ -356,7 +357,7 @@ static func _get_or_store_texture(texture: Texture2D, model: Resource, state: Di
 	var texture_id := _next_texture_id(state)
 	texture_ids_by_key[texture_key] = texture_id
 	model.textures[texture_id] = texture
-	model.texture_sources[texture_id] = texture.resource_path
+	model.texture_sources[texture_id] = _get_texture_source_path(texture)
 	return texture_id
 
 
@@ -372,10 +373,18 @@ static func _get_texture(model: Resource, texture_id: String) -> Texture2D:
 
 
 static func _get_texture_key(texture: Texture2D) -> String:
-	if not texture.resource_path.is_empty():
-		return "path:%s" % texture.resource_path
+	var source_path := _get_texture_source_path(texture)
+	if not source_path.is_empty():
+		return "path:%s" % source_path
 
 	return "object:%s" % texture.get_instance_id()
+
+
+static func _get_texture_source_path(texture: Texture2D) -> String:
+	if texture.has_meta(TEXTURE_SOURCE_PATH_META):
+		return String(texture.get_meta(TEXTURE_SOURCE_PATH_META, ""))
+
+	return texture.resource_path
 
 
 static func _next_layer_id(state: Dictionary) -> String:
@@ -509,6 +518,11 @@ static func _texture_to_base64_png(texture: Texture2D) -> String:
 	var image := texture.get_image()
 	if image == null:
 		return ""
+	if image.is_compressed():
+		var decompressed_image := image.duplicate()
+		if decompressed_image.decompress() != OK:
+			return ""
+		image = decompressed_image
 
 	return Marshalls.raw_to_base64(image.save_png_to_buffer())
 
@@ -530,11 +544,27 @@ static func _texture_from_dictionary(data: Dictionary) -> Texture2D:
 
 	var source_path := String(data.get("source", ""))
 	if not source_path.is_empty():
-		var texture := load(source_path)
-		if texture is Texture2D:
-			return texture
+		return _load_texture_from_source_path(source_path)
 
 	return null
+
+
+static func _load_texture_from_source_path(source_path: String) -> Texture2D:
+	if source_path.begins_with("res://") or source_path.begins_with("uid://"):
+		var resource := load(source_path)
+		if resource is Texture2D:
+			return resource
+		return null
+
+	var image := Image.new()
+	var error := image.load(source_path)
+	if error != OK:
+		return null
+
+	var image_texture := ImageTexture.create_from_image(image)
+	image_texture.resource_name = source_path.get_file().get_basename()
+	image_texture.set_meta(TEXTURE_SOURCE_PATH_META, source_path)
+	return image_texture
 
 
 static func _vector2_to_array(value: Vector2) -> Array[float]:

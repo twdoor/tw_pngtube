@@ -6,6 +6,13 @@ const ROOT_LAYER_ID := 0
 const INVALID_LAYER_ID := -1
 const IMAGE_FILTER := "*.png, *.jpg, *.jpeg, *.webp ; Image files"
 const MODEL_ROOT_NAME := "Textures"
+const TEXTURE_PREVIEW_ALPHA_THRESHOLD := 0.001
+const TEXTURE_IMPORT_PARAMS_SECTION := "params"
+const TEXTURE_IMPORT_COMPRESS_MODE_KEY := "compress/mode"
+const TEXTURE_IMPORT_DEFAULT_COMPRESS_MODE := 0
+const TEXTURE_IMPORT_VRAM_COMPRESS_MODE := 2
+const TEXTURE_RUNTIME_COMPRESS_MODE := Image.COMPRESS_S3TC
+const TEXTURE_RUNTIME_COMPRESS_SOURCE := Image.COMPRESS_SOURCE_GENERIC
 
 enum PlacerItemType {
 	LAYER,
@@ -39,6 +46,7 @@ var _root_item: TreeItem
 var _selected_layer_id := INVALID_LAYER_ID
 var _texture_button_placeholder: Texture2D
 var _texture_preview_cache: Dictionary = {}
+var _editor_settings: TwberEditorSettings
 var _updating_inspector := false
 var _model_root: Node2D
 var _next_item_id := 1
@@ -107,6 +115,12 @@ func reload_from_preview() -> void:
 	_load_model_tree_from_preview()
 	_rebuild_tree()
 	_set_selected_layer(INVALID_LAYER_ID)
+
+
+func set_editor_settings(settings: TwberEditorSettings) -> void:
+	_editor_settings = settings
+	_texture_preview_cache.clear()
+	_refresh_inspector()
 
 
 func _get_tree_drag_data(at_position: Vector2) -> Variant:
@@ -299,9 +313,8 @@ func _on_replacement_texture_selected(layer_id: int, path: String) -> void:
 	if not _layers_by_id.has(layer_id):
 		return
 
-	var texture := load(path)
-	if texture is not Texture2D:
-		push_warning("Selected file is not a Texture2D: %s" % path)
+	var texture := _load_texture_from_path(path)
+	if texture == null:
 		return
 
 	var layer: Dictionary = _layers_by_id[layer_id]
@@ -588,10 +601,14 @@ func _get_texture_button_preview(texture: Texture2D) -> Texture2D:
 	if _texture_preview_cache.has(cache_key):
 		return _texture_preview_cache[cache_key]
 
+	if _editor_settings != null and _editor_settings.should_vram_compress_texture(texture):
+		_texture_preview_cache[cache_key] = texture
+		return texture
+
 	var preview_texture: Texture2D = texture
 	var image := texture.get_image()
 	if image != null:
-		var used_rect := image.get_used_rect()
+		var used_rect := _get_texture_alpha_used_rect(image)
 		if used_rect.size.x > 0 and used_rect.size.y > 0:
 			var atlas_texture := AtlasTexture.new()
 			atlas_texture.atlas = texture
@@ -600,6 +617,33 @@ func _get_texture_button_preview(texture: Texture2D) -> Texture2D:
 
 	_texture_preview_cache[cache_key] = preview_texture
 	return preview_texture
+
+
+func _get_texture_alpha_used_rect(image: Image) -> Rect2i:
+	if image.is_compressed():
+		return Rect2i()
+
+	var image_width := image.get_width()
+	var image_height := image.get_height()
+	var min_x := image_width
+	var min_y := image_height
+	var max_x := -1
+	var max_y := -1
+
+	for y: int in image_height:
+		for x: int in image_width:
+			if image.get_pixel(x, y).a <= TEXTURE_PREVIEW_ALPHA_THRESHOLD:
+				continue
+
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+
+	if max_x < min_x or max_y < min_y:
+		return Rect2i()
+
+	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
 
 
 func _replace_animated_sprite_animation_frames(animated_sprite: AnimatedSprite2D, textures: Array[Texture2D]) -> void:
@@ -738,9 +782,8 @@ func _open_animation_texture_dialog() -> void:
 
 
 func _on_texture_selected(path: String) -> void:
-	var texture := load(path)
-	if texture is not Texture2D:
-		push_warning("Selected file is not a Texture2D: %s" % path)
+	var texture := _load_texture_from_path(path)
+	if texture == null:
 		return
 
 	_create_layer(PlacerItemType.LAYER, _make_name_from_path(path), [texture])
@@ -763,11 +806,9 @@ func _on_animation_textures_selected(paths: PackedStringArray) -> void:
 func _load_textures_from_paths(paths: PackedStringArray) -> Array[Texture2D]:
 	var textures: Array[Texture2D] = []
 	for path: String in paths:
-		var texture := load(path)
-		if texture is Texture2D:
+		var texture := _load_texture_from_path(path)
+		if texture != null:
 			textures.append(texture)
-		else:
-			push_warning("Selected file is not a Texture2D: %s" % path)
 
 	return textures
 
@@ -775,7 +816,7 @@ func _load_textures_from_paths(paths: PackedStringArray) -> Array[Texture2D]:
 func _create_texture_file_dialog(file_mode: FileDialog.FileMode, title: String) -> FileDialog:
 	var dialog := FileDialog.new()
 	dialog.title = title
-	dialog.access = FileDialog.ACCESS_RESOURCES
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
 	dialog.file_mode = file_mode
 	dialog.filters = PackedStringArray([IMAGE_FILTER])
 	dialog.use_native_dialog = false
@@ -783,6 +824,116 @@ func _create_texture_file_dialog(file_mode: FileDialog.FileMode, title: String) 
 	dialog.canceled.connect(dialog.queue_free)
 	add_child(dialog)
 	return dialog
+
+
+func _load_texture_from_path(selected_path: String) -> Texture2D:
+	var path := _normalize_texture_path(selected_path)
+	if path.begins_with("res://") or path.begins_with("uid://"):
+		var resource := load(path)
+		if resource is Texture2D:
+			var resource_texture: Texture2D = resource
+			_apply_texture_import_preferences(path, resource_texture)
+			return _runtime_compress_texture_if_needed(path, resource_texture)
+
+		push_warning("Selected file is not a Texture2D: %s" % selected_path)
+		return null
+
+	var image := Image.new()
+	var error := image.load(path)
+	if error != OK:
+		push_warning("Could not load image file %s: %s" % [selected_path, error_string(error)])
+		return null
+
+	_runtime_compress_image_if_needed(path, image)
+	var image_texture := ImageTexture.create_from_image(image)
+	image_texture.resource_name = _make_name_from_path(path)
+	image_texture.set_meta(TwberModelCodec.TEXTURE_SOURCE_PATH_META, path)
+	return image_texture
+
+
+func _normalize_texture_path(path: String) -> String:
+	if path.begins_with("res://") or path.begins_with("uid://") or path.begins_with("user://"):
+		return path
+
+	var project_root := ProjectSettings.globalize_path("res://").replace("\\", "/")
+	var normalized_path := path.replace("\\", "/")
+	if not project_root.ends_with("/"):
+		project_root += "/"
+
+	if normalized_path.begins_with(project_root):
+		return "res://%s" % normalized_path.substr(project_root.length())
+
+	return path
+
+
+func _apply_texture_import_preferences(path: String, texture: Texture2D) -> void:
+	if _editor_settings == null or not _editor_settings.should_vram_compress_texture(texture):
+		return
+	if not path.begins_with("res://"):
+		return
+
+	var import_path := "%s.import" % path
+	if not FileAccess.file_exists(import_path):
+		return
+
+	var config := ConfigFile.new()
+	var error := config.load(import_path)
+	if error != OK:
+		push_warning("Could not read texture import settings for %s: %s" % [path, error_string(error)])
+		return
+
+	var current_mode := int(config.get_value(
+		TEXTURE_IMPORT_PARAMS_SECTION,
+		TEXTURE_IMPORT_COMPRESS_MODE_KEY,
+		TEXTURE_IMPORT_DEFAULT_COMPRESS_MODE
+	))
+	if current_mode == TEXTURE_IMPORT_VRAM_COMPRESS_MODE:
+		return
+
+	config.set_value(
+		TEXTURE_IMPORT_PARAMS_SECTION,
+		TEXTURE_IMPORT_COMPRESS_MODE_KEY,
+		TEXTURE_IMPORT_VRAM_COMPRESS_MODE
+	)
+	error = config.save(import_path)
+	if error != OK:
+		push_warning("Could not save texture import settings for %s: %s" % [path, error_string(error)])
+		return
+
+
+func _runtime_compress_texture_if_needed(path: String, texture: Texture2D) -> Texture2D:
+	if _editor_settings == null or not _editor_settings.should_vram_compress_texture(texture):
+		return texture
+
+	var image := texture.get_image()
+	if image == null:
+		return texture
+	if image.is_compressed():
+		return texture
+
+	if not _runtime_compress_image_if_needed(path, image):
+		return texture
+
+	var compressed_texture := ImageTexture.create_from_image(image)
+	compressed_texture.resource_name = texture.resource_name
+	compressed_texture.set_meta(TwberModelCodec.TEXTURE_SOURCE_PATH_META, path)
+	return compressed_texture
+
+
+func _runtime_compress_image_if_needed(path: String, image: Image) -> bool:
+	if _editor_settings == null:
+		return false
+	if image.is_compressed():
+		return false
+	if not _editor_settings.should_vram_compress_size(image.get_width(), image.get_height()):
+		return false
+
+	var error := image.compress(TEXTURE_RUNTIME_COMPRESS_MODE, TEXTURE_RUNTIME_COMPRESS_SOURCE)
+	if error != OK:
+		push_warning("Could not runtime-compress texture %s: %s" % [path, error_string(error)])
+		return false
+
+	return true
 
 
 func _create_layer(item_type: int, layer_name: String = "", textures: Array = []) -> void:
