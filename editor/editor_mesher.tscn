@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://bkf1qprjek3rf" path="res://shared/assets/Icon_PictoIcon_Delete.Png" id="3_y85c4"]
 [ext_resource type="Texture2D" uid="uid://d4i2kp1y7vona" path="res://shared/assets/Icon_PictoIcon_Pen.Png" id="4_sjag6"]
 [ext_resource type="Texture2D" uid="uid://c2k0bywavr8j3" path="res://shared/assets/Icon_PictoIcon_Sword.Png" id="6_35l0w"]
+[ext_resource type="Texture2D" uid="uid://dy03qucgek3jq" path="res://shared/assets/Icon_PictoIcon_Pencil.Png" id="7_qqpn1"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_j3ejx"]
 
@@ -90,11 +91,25 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Cut face"
+tooltip_text = "Cut edge"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
 icon = ExtResource("6_35l0w")
+icon_alignment = 1
+expand_icon = true
+
+[node name="JoinButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=113688921]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Join vertices"
+theme_override_fonts/font = ExtResource("2_sjag6")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_j3ejx")
+icon = ExtResource("7_qqpn1")
 icon_alignment = 1
 expand_icon = true
 

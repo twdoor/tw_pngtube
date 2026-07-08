@@ -54,7 +54,7 @@ mouse_filter = 2
 color = Color(0.288518, 0.28851798, 0.28851798, 1)
 
 [node name="Textures" type="Node2D" parent="ModelPreview" unique_id=1130443414]
-position = Vector2(960, 360)
+position = Vector2(720, 360)
 scale = Vector2(0.1, 0.1)
 
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=535779734]

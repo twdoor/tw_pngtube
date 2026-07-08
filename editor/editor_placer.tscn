@@ -121,7 +121,7 @@ layout_mode = 2
 [node name="VisibleCheckBox" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1192239371]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_text = "Visible"
+tooltip_text = "Visibility toggle"
 theme_override_fonts/font = ExtResource("1_a7f0c")
 
 [node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1612645138]

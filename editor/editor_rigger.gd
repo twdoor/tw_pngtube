@@ -21,6 +21,7 @@ enum RigMode {
 	TRANSFORM_LAYER,
 	ROTATE_LAYER,
 	SCALE_LAYER,
+	CHANGE_PIVOT,
 	DEFORM_VERTEX,
 	RECTANGLE_SELECT,
 	LASSO_SELECT,
@@ -30,6 +31,7 @@ enum RigMode {
 @onready var _transform_button: Button = %TransformButton
 @onready var _rotate_button: Button = %RotateButton
 @onready var _scale_button: Button = %ScaleButton
+@onready var _change_pivot_button: Button = %ChangePivotButton
 @onready var _deform_button: Button = %DeformButton
 @onready var _rectangle_select_button: Button = %RectangleSelectButton
 @onready var _lasso_select_button: Button = %LassoSelectButton
@@ -179,6 +181,8 @@ func _handle_mouse_button(event: InputEventMouseButton, viewport_position: Vecto
 	match _get_mode():
 		RigMode.TRANSFORM_LAYER, RigMode.ROTATE_LAYER, RigMode.SCALE_LAYER:
 			_begin_layer_transform_at(viewport_position, _get_mode())
+		RigMode.CHANGE_PIVOT:
+			_change_pivot_at(viewport_position)
 		RigMode.DEFORM_VERTEX:
 			_begin_deform_at(viewport_position, event.shift_pressed)
 		RigMode.RECTANGLE_SELECT:
@@ -260,6 +264,17 @@ func _update_layer_transform(canvas_position: Vector2) -> void:
 			var scale_factor := mouse_distance / _layer_transform_start_mouse_distance
 			_selected_node.scale = _layer_transform_start_scale * scale_factor
 
+	_queue_overlay_redraw()
+
+
+func _change_pivot_at(canvas_position: Vector2) -> void:
+	if _selected_node == null:
+		return
+
+	_stop_pointer_interaction()
+	_selecting_vertices = false
+	_clear_vertex_selection()
+	_change_node_pivot(_selected_node, canvas_position)
 	_queue_overlay_redraw()
 
 
@@ -558,6 +573,7 @@ func _reset_layer_to_initial_state(node: Node2D) -> void:
 	node.scale = state["scale"]
 	node.visible = state["visible"]
 	node.self_modulate = state["self_modulate"]
+	_restore_layer_content_state(node, state)
 
 	if node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
@@ -576,12 +592,79 @@ func _remember_initial_layer_state(node: Node2D) -> void:
 		"scale": node.scale,
 		"visible": node.visible,
 		"self_modulate": node.self_modulate,
+		"content": _capture_layer_content_state(node),
+		"child_positions": _capture_direct_child_positions(node),
 	}
 
 
 func _get_initial_layer_state(node: Node2D) -> Dictionary:
 	_remember_initial_layer_state(node)
 	return _initial_layer_states_by_node_id[node.get_instance_id()]
+
+
+func _capture_layer_content_state(node: Node2D) -> Dictionary:
+	var state := {}
+	if node is Sprite2D:
+		var sprite: Sprite2D = node
+		state["sprite_offset"] = sprite.offset
+	elif node is AnimatedSprite2D:
+		var animated_sprite: AnimatedSprite2D = node
+		state["animated_offset"] = animated_sprite.offset
+	elif node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = node
+		if mesh_sprite.mesh_data != null:
+			mesh_sprite.mesh_data.ensure_rest_vertices()
+			state["mesh_texture_origin"] = mesh_sprite.mesh_data.texture_origin
+			state["mesh_vertices"] = mesh_sprite.mesh_data.vertices.duplicate()
+			state["mesh_rest_vertices"] = mesh_sprite.mesh_data.rest_vertices.duplicate()
+			state["mesh_uvs"] = mesh_sprite.mesh_data.uvs.duplicate()
+
+	return state
+
+
+func _restore_layer_content_state(node: Node2D, state: Dictionary) -> void:
+	var content: Dictionary = state.get("content", {})
+	if node is Sprite2D and content.has("sprite_offset"):
+		var sprite: Sprite2D = node
+		sprite.offset = content["sprite_offset"]
+	elif node is AnimatedSprite2D and content.has("animated_offset"):
+		var animated_sprite: AnimatedSprite2D = node
+		animated_sprite.offset = content["animated_offset"]
+	elif node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = node
+		if mesh_sprite.mesh_data != null:
+			if content.has("mesh_texture_origin"):
+				mesh_sprite.mesh_data.texture_origin = content["mesh_texture_origin"]
+			if content.has("mesh_vertices"):
+				mesh_sprite.mesh_data.vertices = content["mesh_vertices"].duplicate()
+			if content.has("mesh_rest_vertices"):
+				mesh_sprite.mesh_data.rest_vertices = content["mesh_rest_vertices"].duplicate()
+			if content.has("mesh_uvs"):
+				mesh_sprite.mesh_data.uvs = content["mesh_uvs"].duplicate()
+			mesh_sprite.sync_mesh()
+
+	_restore_direct_child_positions(node, state.get("child_positions", {}))
+
+
+func _capture_direct_child_positions(node: Node2D) -> Dictionary:
+	var child_positions := {}
+	for child: Node in node.get_children():
+		if child is not Node2D:
+			continue
+
+		child_positions[child.get_instance_id()] = child.position
+
+	return child_positions
+
+
+func _restore_direct_child_positions(node: Node2D, child_positions: Dictionary) -> void:
+	for child: Node in node.get_children():
+		if child is not Node2D:
+			continue
+
+		var child_id := child.get_instance_id()
+		if child_positions.has(child_id):
+			child.position = child_positions[child_id]
 
 
 func _begin_vertex_drag(mesh_sprite: TwberMeshSprite2D, vertex_index: int, canvas_position: Vector2) -> void:
@@ -814,6 +897,32 @@ func _get_node_canvas_origin(node: Node2D) -> Vector2:
 	return node.get_global_transform_with_canvas().origin
 
 
+func _change_node_pivot(node: Node2D, canvas_origin: Vector2) -> void:
+	var old_transform := node.get_global_transform_with_canvas()
+	var next_transform := old_transform
+	next_transform.origin = canvas_origin
+	var local_shift := next_transform.affine_inverse() * old_transform.origin
+
+	_set_node_canvas_origin(node, canvas_origin)
+	_shift_node_local_content(node, local_shift)
+
+
+func _shift_node_local_content(node: Node2D, local_shift: Vector2) -> void:
+	if node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = node
+		mesh_sprite.shift_local_geometry(local_shift)
+	elif node is Sprite2D:
+		var sprite: Sprite2D = node
+		sprite.offset += local_shift
+	elif node is AnimatedSprite2D:
+		var animated_sprite: AnimatedSprite2D = node
+		animated_sprite.offset += local_shift
+
+	for child: Node in node.get_children():
+		if child is Node2D:
+			child.position += local_shift
+
+
 func _set_node_canvas_origin(node: Node2D, canvas_origin: Vector2) -> void:
 	var parent := node.get_parent()
 	if parent is CanvasItem:
@@ -834,6 +943,8 @@ func _get_mode() -> int:
 		return RigMode.ROTATE_LAYER
 	if _scale_button.button_pressed:
 		return RigMode.SCALE_LAYER
+	if _change_pivot_button.button_pressed:
+		return RigMode.CHANGE_PIVOT
 	if _deform_button.button_pressed:
 		return RigMode.DEFORM_VERTEX
 	if _rectangle_select_button.button_pressed:

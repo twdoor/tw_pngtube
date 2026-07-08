@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://qyw4ob470cht" path="res://shared/assets/Icon_PictoIcon_Reload.Png" id="4_lxu5c"]
 [ext_resource type="Texture2D" uid="uid://cq8l3ixq0c7kb" path="res://shared/assets/Icon_PictoIcon_Crop.Png" id="5_bwxmh"]
 [ext_resource type="Texture2D" uid="uid://bfdsk2dx2fe2d" path="res://shared/assets/Icon_PictoIcon_Reset.Png" id="5_reset"]
+[ext_resource type="Texture2D" uid="uid://polce8mf26ha" path="res://shared/assets/Icon_PictoIcon_Earth.Png" id="6_lxu5c"]
 [ext_resource type="Texture2D" uid="uid://bjwltalmnvmi0" path="res://shared/assets/Icon_PictoIcon_Hashtag.Png" id="7_qpxpf"]
 [ext_resource type="Texture2D" uid="uid://cwomok7hxilfr" path="res://shared/assets/Icon_PictoIcon_Gender_Female.Png" id="8_yrcqg"]
 
@@ -84,6 +85,20 @@ theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
 icon = ExtResource("5_bwxmh")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ChangePivotButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=686973141]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Change pivot"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("6_lxu5c")
 icon_alignment = 1
 expand_icon = true
 
@@ -189,7 +204,7 @@ layout_mode = 2
 [node name="VisibleCheckBox" type="CheckBox" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1772296358]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_text = "Visible"
+tooltip_text = "Visibility toggle"
 theme_override_fonts/font = ExtResource("2_2ael8")
 
 [node name="OpacitySlider" type="HSlider" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1538126739]

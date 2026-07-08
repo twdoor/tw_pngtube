@@ -5,7 +5,6 @@ const MENU_SAVE := 2
 const MENU_EXPORT := 3
 const MODEL_RESOURCE_FILTER := "*.tres, *.res ; Editable model resources"
 const EXPORTED_MODEL_FILTER := "*.twber ; Twber model packages"
-const TwberModelCodecScript := preload("res://model/twber_model_codec.gd")
 
 @onready var _file_menu_button: MenuButton = %FileMenuButton
 @onready var _model_root: Node2D = $ModelPreview/Textures
@@ -76,24 +75,24 @@ func _export_model_dialog() -> void:
 
 
 func _open_model(path: String) -> void:
-	var model = TwberModelCodecScript.load_model(path)
+	var model = TwberModelCodec.load_model(path)
 	if model == null:
 		return
 
-	TwberModelCodecScript.apply_to_model_root(model, _model_root)
+	TwberModelCodec.apply_to_model_root(model, _model_root)
 	_editor_placer.reload_from_preview()
 	_editor_mesher.reload_from_preview()
 	_editor_rigger.reload_from_preview()
 
-	if path.get_extension().to_lower() == TwberModelCodecScript.TWBER_EXTENSION:
+	if path.get_extension().to_lower() == TwberModelCodec.TWBER_EXTENSION:
 		_current_resource_path = ""
 	else:
 		_current_resource_path = path
 
 
 func _save_model_resource(path: String) -> void:
-	var model = TwberModelCodecScript.from_model_root(_model_root)
-	var error: Error = TwberModelCodecScript.save_resource(model, path)
+	var model = TwberModelCodec.from_model_root(_model_root)
+	var error: Error = TwberModelCodec.save_resource(model, path)
 	if error != OK:
 		push_error("Could not save model resource: %s" % error_string(error))
 		return
@@ -102,8 +101,8 @@ func _save_model_resource(path: String) -> void:
 
 
 func _export_model(path: String) -> void:
-	var model = TwberModelCodecScript.from_model_root(_model_root)
-	var error: Error = TwberModelCodecScript.export_twber(model, path)
+	var model = TwberModelCodec.from_model_root(_model_root)
+	var error: Error = TwberModelCodec.export_twber(model, path)
 	if error != OK:
 		push_error("Could not export Twber model: %s" % error_string(error))
 
@@ -146,10 +145,10 @@ func _normalize_resource_path(path: String) -> String:
 
 
 func _normalize_export_path(path: String) -> String:
-	if path.get_extension().to_lower() == TwberModelCodecScript.TWBER_EXTENSION:
+	if path.get_extension().to_lower() == TwberModelCodec.TWBER_EXTENSION:
 		return path
 
 	if path.get_extension().is_empty():
-		return "%s.%s" % [path, TwberModelCodecScript.TWBER_EXTENSION]
+		return "%s.%s" % [path, TwberModelCodec.TWBER_EXTENSION]
 
-	return "%s.%s" % [path.get_basename(), TwberModelCodecScript.TWBER_EXTENSION]
+	return "%s.%s" % [path.get_basename(), TwberModelCodec.TWBER_EXTENSION]

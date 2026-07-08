@@ -12,23 +12,25 @@ const EDGE_HIT_RADIUS := 12.0
 const TRIANGLE_COLOR := Color(0.19, 0.75, 1.0, 0.8)
 const EDGE_COLOR := Color(0.9, 0.95, 1.0, 0.75)
 const CUT_EDGE_COLOR := Color(1.0, 0.28, 0.2, 0.95)
+const JOIN_EDGE_COLOR := Color(0.42, 1.0, 0.5, 0.95)
 const HANDLE_COLOR := Color(1.0, 1.0, 1.0, 0.95)
 const SELECTED_HANDLE_COLOR := Color(1.0, 0.78, 0.22, 1.0)
 const SOURCE_TEXTURE_COLOR := Color(1.0, 1.0, 1.0, 0.42)
 const UNSUPPORTED_COLOR := Color(1.0, 0.35, 0.25, 0.75)
-const TwberMeshResourceScript := preload("res://model/twber_mesh_resource.gd")
 
 enum MeshMode {
 	ADD_POINT,
 	REMOVE_POINT,
 	EDIT_POINT,
 	CUT_EDGE,
+	JOIN_EDGE,
 }
 
 @onready var _add_point_button: Button = %AddPointButton
 @onready var _remove_point_button: Button = %RemovePointButton
 @onready var _edit_point_button: Button = %EditPointButton
 @onready var _cut_button: Button = %CutButton
+@onready var _join_button: Button = %JoinButton
 @onready var _tree: Tree = %Tree
 @onready var _edit_panel: Control = $Panel
 @export var _preview_layer: CanvasLayer
@@ -38,6 +40,7 @@ var _model_root: Node2D
 var _selected_layer_id := INVALID_LAYER_ID
 var _selected_node: Node2D
 var _selected_vertex_index := -1
+var _join_first_vertex_index := -1
 var _dragging_vertex := false
 var _holding_remove := false
 var _holding_cut := false
@@ -139,15 +142,21 @@ func _handle_mouse_button(event: InputEventMouseButton, viewport_position: Vecto
 
 	match _get_mode():
 		MeshMode.ADD_POINT:
+			_join_first_vertex_index = -1
 			_add_point_at(viewport_position)
 		MeshMode.REMOVE_POINT:
+			_join_first_vertex_index = -1
 			_holding_remove = true
 			_remove_point_at(viewport_position)
 		MeshMode.EDIT_POINT:
+			_join_first_vertex_index = -1
 			_begin_edit_point_at(viewport_position)
 		MeshMode.CUT_EDGE:
+			_join_first_vertex_index = -1
 			_holding_cut = true
 			_cut_edge_at(viewport_position)
+		MeshMode.JOIN_EDGE:
+			_join_edge_at(viewport_position)
 
 	_overlay.accept_event()
 
@@ -201,6 +210,7 @@ func _remove_point_at(canvas_position: Vector2) -> void:
 	if vertex_index == -1:
 		return
 
+	_join_first_vertex_index = -1
 	mesh_sprite.remove_vertex(vertex_index)
 	if mesh_sprite.get_vertex_count() == 0:
 		_holding_remove = false
@@ -235,13 +245,39 @@ func _cut_edge_at(canvas_position: Vector2) -> void:
 		return
 
 	var mesh_sprite: TwberMeshSprite2D = _selected_node
-	var triangle_start := _find_triangle_edge_at_canvas_position(mesh_sprite, canvas_position)
-	if triangle_start == -1:
+	var edge := _find_edge_at_canvas_position(mesh_sprite, canvas_position)
+	if edge.is_empty():
 		return
 
-	_remove_triangle(mesh_sprite, triangle_start)
+	mesh_sprite.cut_edge(int(edge[0]), int(edge[1]))
 	_selected_vertex_index = -1
-	mesh_sprite.sync_mesh()
+	_queue_overlay_redraw()
+
+
+func _join_edge_at(canvas_position: Vector2) -> void:
+	if not (_selected_node is TwberMeshSprite2D):
+		return
+
+	var mesh_sprite: TwberMeshSprite2D = _selected_node
+	var vertex_index := _find_vertex_at_canvas_position(mesh_sprite, canvas_position)
+	if vertex_index == -1:
+		return
+
+	if _join_first_vertex_index == -1:
+		_join_first_vertex_index = vertex_index
+		_selected_vertex_index = vertex_index
+		_queue_overlay_redraw()
+		return
+
+	if _join_first_vertex_index == vertex_index:
+		_join_first_vertex_index = -1
+		_selected_vertex_index = vertex_index
+		_queue_overlay_redraw()
+		return
+
+	mesh_sprite.join_edge(_join_first_vertex_index, vertex_index)
+	_selected_vertex_index = vertex_index
+	_join_first_vertex_index = -1
 	_queue_overlay_redraw()
 
 
@@ -258,7 +294,7 @@ func _ensure_selected_mesh_sprite() -> TwberMeshSprite2D:
 func _convert_sprite_to_mesh(sprite: Sprite2D) -> TwberMeshSprite2D:
 	var mesh_sprite := TwberMeshSprite2D.new()
 	mesh_sprite.texture = sprite.texture
-	mesh_sprite.mesh_data = TwberMeshResourceScript.new()
+	mesh_sprite.mesh_data = TwberMeshResource.new()
 	mesh_sprite.mesh_data.texture_origin = _get_sprite_texture_origin(sprite)
 	_copy_canvas_item_state(sprite, mesh_sprite)
 	_replace_node(sprite, mesh_sprite)
@@ -345,14 +381,14 @@ func _find_vertex_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_posi
 	return best_index
 
 
-func _find_triangle_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_position: Vector2) -> int:
+func _find_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_position: Vector2) -> PackedInt32Array:
 	if mesh_sprite.mesh_data == null:
-		return -1
+		return PackedInt32Array()
 
 	var editor_position := _canvas_to_editor_position(canvas_position)
 	var vertices := mesh_sprite.mesh_data.vertices
 	var triangles := mesh_sprite.mesh_data.triangles
-	var best_triangle_start := -1
+	var best_edge := PackedInt32Array()
 	var best_distance := EDGE_HIT_RADIUS
 
 	for triangle_start: int in range(0, triangles.size() - 2, 3):
@@ -365,36 +401,37 @@ func _find_triangle_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canv
 		var point_a := _node_to_editor_position(mesh_sprite, vertices[a])
 		var point_b := _node_to_editor_position(mesh_sprite, vertices[b])
 		var point_c := _node_to_editor_position(mesh_sprite, vertices[c])
-		var edge_distance := minf(
-				_get_distance_to_segment(editor_position, point_a, point_b),
-				minf(
-						_get_distance_to_segment(editor_position, point_b, point_c),
-						_get_distance_to_segment(editor_position, point_c, point_a)
-				)
-		)
+		var distance_ab := _get_distance_to_segment(editor_position, point_a, point_b)
+		if distance_ab <= best_distance:
+			best_distance = distance_ab
+			best_edge = PackedInt32Array([a, b])
 
-		if edge_distance <= best_distance:
-			best_distance = edge_distance
-			best_triangle_start = triangle_start
+		var distance_bc := _get_distance_to_segment(editor_position, point_b, point_c)
+		if distance_bc <= best_distance:
+			best_distance = distance_bc
+			best_edge = PackedInt32Array([b, c])
 
-	return best_triangle_start
+		var distance_ca := _get_distance_to_segment(editor_position, point_c, point_a)
+		if distance_ca <= best_distance:
+			best_distance = distance_ca
+			best_edge = PackedInt32Array([c, a])
 
-
-func _remove_triangle(mesh_sprite: TwberMeshSprite2D, triangle_start: int) -> void:
-	if mesh_sprite.mesh_data == null:
-		return
-
-	var triangles := mesh_sprite.mesh_data.triangles
-	var next_triangles := PackedInt32Array()
-	for index: int in range(0, triangles.size() - 2, 3):
-		if index == triangle_start:
+	for edge_index: int in range(0, mesh_sprite.mesh_data.joined_edges.size() - 1, 2):
+		var joined_a := int(mesh_sprite.mesh_data.joined_edges[edge_index])
+		var joined_b := int(mesh_sprite.mesh_data.joined_edges[edge_index + 1])
+		if joined_a >= vertices.size() or joined_b >= vertices.size():
 			continue
 
-		next_triangles.append(triangles[index])
-		next_triangles.append(triangles[index + 1])
-		next_triangles.append(triangles[index + 2])
+		var joined_distance := _get_distance_to_segment(
+				editor_position,
+				_node_to_editor_position(mesh_sprite, vertices[joined_a]),
+				_node_to_editor_position(mesh_sprite, vertices[joined_b])
+		)
+		if joined_distance <= best_distance:
+			best_distance = joined_distance
+			best_edge = PackedInt32Array([joined_a, joined_b])
 
-	mesh_sprite.mesh_data.triangles = next_triangles
+	return best_edge
 
 
 func _get_distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
@@ -418,6 +455,8 @@ func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
 	var edge_color := TRIANGLE_COLOR
 	if _get_mode() == MeshMode.CUT_EDGE:
 		edge_color = CUT_EDGE_COLOR
+	elif _get_mode() == MeshMode.JOIN_EDGE:
+		edge_color = JOIN_EDGE_COLOR
 	for index: int in range(0, triangles.size() - 2, 3):
 		var a := int(triangles[index])
 		var b := int(triangles[index + 1])
@@ -441,10 +480,24 @@ func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
 					1.0
 			)
 
+	for index: int in range(0, mesh_sprite.mesh_data.joined_edges.size() - 1, 2):
+		var vertex_a := int(mesh_sprite.mesh_data.joined_edges[index])
+		var vertex_b := int(mesh_sprite.mesh_data.joined_edges[index + 1])
+		if vertex_a >= vertices.size() or vertex_b >= vertices.size():
+			continue
+		_overlay.draw_line(
+				_node_to_editor_position(mesh_sprite, vertices[vertex_a]),
+				_node_to_editor_position(mesh_sprite, vertices[vertex_b]),
+				JOIN_EDGE_COLOR,
+				1.5
+		)
+
 	for index: int in vertices.size():
 		var color := HANDLE_COLOR
 		if index == _selected_vertex_index:
 			color = SELECTED_HANDLE_COLOR
+		if index == _join_first_vertex_index:
+			color = JOIN_EDGE_COLOR
 		_overlay.draw_circle(_node_to_editor_position(mesh_sprite, vertices[index]), HANDLE_RADIUS, color)
 
 
@@ -516,6 +569,8 @@ func _get_mode() -> int:
 		return MeshMode.REMOVE_POINT
 	if _cut_button.button_pressed:
 		return MeshMode.CUT_EDGE
+	if _join_button.button_pressed:
+		return MeshMode.JOIN_EDGE
 	if _edit_point_button.button_pressed:
 		return MeshMode.EDIT_POINT
 
