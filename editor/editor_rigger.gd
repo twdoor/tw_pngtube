@@ -36,6 +36,12 @@ enum RigMode {
 @onready var _reset_vertex_button: Button = %ResetVertexButton
 @onready var _reset_layer_button: Button = %ResetLayerButton
 @onready var _tree: Tree = %Tree
+@onready var _inspector: PanelContainer = %Inspector
+@onready var _visible_check_box: CheckBox = %VisibleCheckBox
+@onready var _opacity_slider: HSlider = %OpacitySlider
+@onready var _animation_frame_rate: SpinBox = %AnimationFrameRate
+@onready var _animations_box: Control = %AnimationsBox
+@onready var _animations_option_button: OptionButton = %AnimationsOptionButton
 @onready var _edit_panel: Control = $Panel
 @export var _preview_layer: CanvasLayer
 
@@ -68,11 +74,16 @@ var _root_layer_ids: Array[int] = []
 var _tree_items_by_id: Dictionary = {}
 var _initial_layer_states_by_node_id: Dictionary = {}
 var _next_item_id := 1
+var _updating_inspector := false
 
 
 func _ready() -> void:
 	_transform_button.button_pressed = true
 	_reset_layer_button.pressed.connect(_on_reset_layer_button_pressed)
+	_visible_check_box.toggled.connect(_on_visible_check_box_toggled)
+	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
+	_animation_frame_rate.value_changed.connect(_on_animation_frame_rate_value_changed)
+	_animations_option_button.item_selected.connect(_on_animation_selected)
 
 	_tree.clear()
 	_tree.columns = 1
@@ -82,6 +93,7 @@ func _ready() -> void:
 	_setup_overlay()
 
 	_setup_preview()
+	_hide_inspector()
 	reload_from_preview()
 	set_process(true)
 
@@ -400,7 +412,143 @@ func _on_reset_layer_button_pressed() -> void:
 	_reset_layer_to_initial_state(_selected_node)
 	_clear_vertex_selection()
 	_stop_pointer_interaction()
+	_refresh_inspector()
 	_queue_overlay_redraw()
+
+
+func _on_opacity_slider_value_changed(value: float) -> void:
+	if _updating_inspector or _selected_node == null:
+		return
+
+	var canvas_item: CanvasItem = _selected_node
+	var color := canvas_item.self_modulate
+	color.a = value
+	canvas_item.self_modulate = color
+	if canvas_item is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = canvas_item
+		mesh_sprite.sync_visual_state()
+
+
+func _on_visible_check_box_toggled(enabled: bool) -> void:
+	if _updating_inspector or _selected_node == null:
+		return
+
+	_selected_node.visible = enabled
+	_queue_overlay_redraw()
+
+
+func _on_animation_frame_rate_value_changed(value: float) -> void:
+	if _updating_inspector:
+		return
+
+	var animated_sprite := _get_selected_animated_sprite()
+	if animated_sprite == null or animated_sprite.sprite_frames == null:
+		return
+
+	var animation := _get_animated_sprite_animation(animated_sprite)
+	if not animated_sprite.sprite_frames.has_animation(animation):
+		return
+
+	animated_sprite.sprite_frames.set_animation_speed(animation, value)
+
+
+func _on_animation_selected(index: int) -> void:
+	if _updating_inspector:
+		return
+
+	var animated_sprite := _get_selected_animated_sprite()
+	if animated_sprite == null or animated_sprite.sprite_frames == null:
+		return
+
+	var selected_animation := _get_animation_name_from_option(index)
+	if selected_animation == &"" or not animated_sprite.sprite_frames.has_animation(selected_animation):
+		return
+
+	animated_sprite.animation = selected_animation
+	animated_sprite.play(selected_animation)
+	_refresh_inspector()
+
+
+func _hide_inspector() -> void:
+	_inspector.visible = false
+	_animations_box.visible = false
+	_animation_frame_rate.visible = false
+	_animations_option_button.clear()
+
+
+func _refresh_inspector() -> void:
+	if _selected_node == null:
+		_hide_inspector()
+		return
+
+	var is_animated_layer := _selected_node is AnimatedSprite2D
+
+	_updating_inspector = true
+	_inspector.visible = true
+	_visible_check_box.button_pressed = _selected_node.visible
+	_opacity_slider.value = _selected_node.self_modulate.a
+	_animation_frame_rate.visible = is_animated_layer
+	_animations_box.visible = is_animated_layer
+
+	if is_animated_layer and _selected_node is AnimatedSprite2D:
+		var animated_sprite: AnimatedSprite2D = _selected_node
+		_refresh_animation_controls(animated_sprite)
+		if animated_sprite.sprite_frames != null:
+			var animation := _get_animated_sprite_animation(animated_sprite)
+			if animated_sprite.sprite_frames.has_animation(animation):
+				_animation_frame_rate.value = animated_sprite.sprite_frames.get_animation_speed(animation)
+	else:
+		_animations_option_button.clear()
+
+	_updating_inspector = false
+
+
+func _refresh_animation_controls(animated_sprite: AnimatedSprite2D) -> void:
+	_animations_option_button.clear()
+
+	if animated_sprite.sprite_frames == null:
+		_animations_option_button.disabled = true
+		return
+
+	var animation_names := animated_sprite.sprite_frames.get_animation_names()
+	var current_animation := _get_animated_sprite_animation(animated_sprite)
+
+	for index: int in animation_names.size():
+		var animation_name: String = animation_names[index]
+		_animations_option_button.add_item(animation_name, index)
+		if StringName(animation_name) == current_animation:
+			_animations_option_button.select(index)
+
+	_animations_option_button.disabled = animation_names.is_empty()
+
+
+func _get_selected_animated_sprite() -> AnimatedSprite2D:
+	if _selected_node is AnimatedSprite2D:
+		return _selected_node
+
+	return null
+
+
+func _get_animation_name_from_option(index: int) -> StringName:
+	if index < 0 or index >= _animations_option_button.item_count:
+		return &""
+
+	return StringName(_animations_option_button.get_item_text(index))
+
+
+func _get_animated_sprite_animation(animated_sprite: AnimatedSprite2D) -> StringName:
+	if animated_sprite.sprite_frames == null:
+		return &"default"
+
+	var animation := animated_sprite.animation
+	if animation != &"" and animated_sprite.sprite_frames.has_animation(animation):
+		return animation
+
+	var animation_names := animated_sprite.sprite_frames.get_animation_names()
+	if not animation_names.is_empty():
+		return animation_names[0]
+
+	return &"default"
 
 
 func _reset_layer_to_initial_state(node: Node2D) -> void:
@@ -408,10 +556,13 @@ func _reset_layer_to_initial_state(node: Node2D) -> void:
 	node.position = state["position"]
 	node.rotation = state["rotation"]
 	node.scale = state["scale"]
+	node.visible = state["visible"]
+	node.self_modulate = state["self_modulate"]
 
 	if node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
 		mesh_sprite.reset_deformation()
+		mesh_sprite.sync_visual_state()
 
 
 func _remember_initial_layer_state(node: Node2D) -> void:
@@ -423,6 +574,8 @@ func _remember_initial_layer_state(node: Node2D) -> void:
 		"position": node.position,
 		"rotation": node.rotation,
 		"scale": node.scale,
+		"visible": node.visible,
+		"self_modulate": node.self_modulate,
 	}
 
 
@@ -766,6 +919,7 @@ func _set_selected_layer(layer_id: int) -> void:
 		_selected_node = null
 		_clear_vertex_selection()
 		_stop_pointer_interaction()
+		_hide_inspector()
 		_queue_overlay_redraw()
 		return
 
@@ -774,6 +928,7 @@ func _set_selected_layer(layer_id: int) -> void:
 	_selected_node = layer["node"]
 	_clear_vertex_selection()
 	_stop_pointer_interaction()
+	_refresh_inspector()
 	_queue_overlay_redraw()
 
 

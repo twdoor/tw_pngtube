@@ -21,16 +21,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 0
-split_offsets = PackedInt32Array(256)
+split_offsets = PackedInt32Array(256, 0)
 split_offset = 256
 script = ExtResource("1_rigger")
 metadata/_tab_index = 2
 metadata/_tab_name = "[Rig]"
 
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=949789036]
+[node name="ItemWindow" type="PanelContainer" parent="." unique_id=949789036]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=2065358272]
+[node name="MarginContainer" type="MarginContainer" parent="ItemWindow" unique_id=2065358272]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_left = 8
@@ -38,14 +38,14 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1890395530]
+[node name="VBoxContainer" type="VBoxContainer" parent="ItemWindow/MarginContainer" unique_id=1890395530]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 
-[node name="NodeButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=963447440]
+[node name="NodeButtons" type="HFlowContainer" parent="ItemWindow/MarginContainer/VBoxContainer" unique_id=963447440]
 layout_mode = 2
 
-[node name="TransformButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=272185880]
+[node name="TransformButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=272185880]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -59,7 +59,7 @@ icon = ExtResource("3_u8i7d")
 icon_alignment = 1
 expand_icon = true
 
-[node name="RotateButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=158961091]
+[node name="RotateButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=158961091]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -73,7 +73,7 @@ icon = ExtResource("4_lxu5c")
 icon_alignment = 1
 expand_icon = true
 
-[node name="ScaleButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=242324770]
+[node name="ScaleButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=242324770]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -87,7 +87,7 @@ icon = ExtResource("5_bwxmh")
 icon_alignment = 1
 expand_icon = true
 
-[node name="DeformButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
+[node name="DeformButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -101,7 +101,7 @@ icon = ExtResource("4_deform")
 icon_alignment = 1
 expand_icon = true
 
-[node name="RectangleSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1740100847]
+[node name="RectangleSelectButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=1740100847]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -115,7 +115,7 @@ icon = ExtResource("7_qpxpf")
 icon_alignment = 1
 expand_icon = true
 
-[node name="LassoSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1810167952]
+[node name="LassoSelectButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=1810167952]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -129,7 +129,7 @@ icon = ExtResource("8_yrcqg")
 icon_alignment = 1
 expand_icon = true
 
-[node name="ResetVertexButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
+[node name="ResetVertexButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -143,7 +143,7 @@ icon = ExtResource("5_reset")
 icon_alignment = 1
 expand_icon = true
 
-[node name="ResetLayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
+[node name="ResetLayerButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
@@ -155,7 +155,7 @@ icon = ExtResource("5_reset")
 icon_alignment = 1
 expand_icon = true
 
-[node name="Tree" type="Tree" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=863067424]
+[node name="Tree" type="Tree" parent="ItemWindow/MarginContainer/VBoxContainer" unique_id=863067424]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -169,9 +169,186 @@ auto_tooltip = false
 scroll_horizontal_enabled = false
 tile_scroll_hint = true
 
+[node name="Inspector" type="PanelContainer" parent="ItemWindow/MarginContainer/VBoxContainer" unique_id=1687762]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector" unique_id=357189767]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer" unique_id=1519652429]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer" unique_id=1380606219]
+layout_mode = 2
+
+[node name="VisibleCheckBox" type="CheckBox" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1772296358]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Visible"
+theme_override_fonts/font = ExtResource("2_2ael8")
+
+[node name="OpacitySlider" type="HSlider" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1538126739]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+tooltip_text = "Opacity"
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="AnimationFrameRate" type="SpinBox" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer" unique_id=1995894232]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 0.1
+step = 0.1
+value = 5.0
+alignment = 2
+update_on_text_changed = true
+suffix = "FPS"
+
+[node name="AnimationsBox" type="HBoxContainer" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer" unique_id=743293402]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AnimationsOptionButton" type="OptionButton" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/AnimationsBox" unique_id=1269708481]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="Panel" type="Panel" parent="." unique_id=2142597381]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 mouse_behavior_recursive = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
+
+[node name="ParameterWindow" type="PanelContainer" parent="." unique_id=1734670485]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ParameterWindow" unique_id=253337204]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ParameterWindow/MarginContainer" unique_id=717271305]
+layout_mode = 2
+
+[node name="CreateParams" type="HFlowContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=1641682660]
+layout_mode = 2
+alignment = 2
+
+[node name="BoolButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/CreateParams" unique_id=1084307425]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="IntButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/CreateParams" unique_id=1352743701]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "i"
+icon_alignment = 1
+expand_icon = true
+
+[node name="FloatButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/CreateParams" unique_id=890899249]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "f"
+icon_alignment = 1
+expand_icon = true
+
+[node name="VectorButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/CreateParams" unique_id=2057958686]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "v"
+icon_alignment = 1
+expand_icon = true
+
+[node name="ParamList" type="PanelContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=1710513610]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/ParamList" unique_id=1086689095]
+layout_mode = 2
+
+[node name="LayerOptions" type="HFlowContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=400341933]
+layout_mode = 2
+alignment = 2
+reverse_fill = true
+
+[node name="BoolButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=702041490]
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="BoolButton2" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1833976923]
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="BoolButton3" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1819927834]
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="BoolButton4" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1470623682]
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="BoolButton5" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=349989428]
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true

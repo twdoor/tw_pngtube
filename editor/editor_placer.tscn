@@ -115,9 +115,20 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1612645138]
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=926359725]
+layout_mode = 2
+
+[node name="VisibleCheckBox" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1192239371]
 unique_name_in_owner = true
 layout_mode = 2
+tooltip_text = "Visible"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+
+[node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1612645138]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
 tooltip_text = "Set Opacity"
 max_value = 1.0
 step = 0.01

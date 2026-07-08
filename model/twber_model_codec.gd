@@ -198,7 +198,7 @@ static func _layer_from_node(node: Node2D, model: Resource, state: Dictionary) -
 	if node is CanvasItem:
 		var canvas_item: CanvasItem = node
 		layer.visible = canvas_item.visible
-		layer.modulate = canvas_item.modulate
+		layer.modulate = canvas_item.self_modulate
 		layer.clip_children = canvas_item.clip_children
 
 	if node is TwberMeshSprite2D:
@@ -302,8 +302,11 @@ static func _node_from_layer(layer: Resource, model: Resource) -> Node2D:
 	node.scale = layer.scale
 	node.rotation = layer.rotation
 	node.visible = layer.visible
-	node.modulate = layer.modulate
+	node.self_modulate = layer.modulate
 	node.clip_children = layer.clip_children
+	if node is TwberMeshSprite2D:
+		var mesh_sprite: TwberMeshSprite2D = node
+		mesh_sprite.sync_visual_state()
 	return node
 
 

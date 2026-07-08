@@ -12,6 +12,13 @@ func _ready() -> void:
 	_ensure_mesh_data()
 	_ensure_mesh_polygon()
 	sync_mesh()
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if _mesh_polygon != null and is_instance_valid(_mesh_polygon):
+		if _mesh_polygon.self_modulate != self_modulate:
+			sync_visual_state()
 
 
 func _draw() -> void:
@@ -119,6 +126,13 @@ func sync_mesh() -> void:
 	_ensure_mesh_polygon()
 	mesh_data.ensure_rest_vertices()
 	_sync_mesh_polygon()
+	_sync_visual_state()
+	queue_redraw()
+
+
+func sync_visual_state() -> void:
+	_ensure_mesh_polygon()
+	_sync_visual_state()
 	queue_redraw()
 
 
@@ -171,6 +185,13 @@ func _sync_mesh_polygon() -> void:
 	_mesh_polygon.uv = mesh_data.uvs
 	_mesh_polygon.polygons = _triangles_to_polygons(mesh_data.triangles)
 	_mesh_polygon.visible = true
+
+
+func _sync_visual_state() -> void:
+	if _mesh_polygon == null or not is_instance_valid(_mesh_polygon):
+		return
+
+	_mesh_polygon.self_modulate = self_modulate
 
 
 func _triangles_to_polygons(triangles: PackedInt32Array) -> Array:

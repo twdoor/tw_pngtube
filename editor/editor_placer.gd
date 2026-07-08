@@ -1,17 +1,11 @@
 class_name EditorPlacer extends HSplitContainer
 
 const TREE_COLUMN := 0
-const VISIBILITY_COLUMN := TREE_COLUMN
-const VISIBILITY_BUTTON_ID := 0
-const VISIBILITY_BUTTON_INDEX := 0
 const DRAG_DATA_TYPE := &"editor_placer_tree_item"
 const ROOT_LAYER_ID := 0
 const INVALID_LAYER_ID := -1
 const IMAGE_FILTER := "*.png, *.jpg, *.jpeg, *.webp ; Image files"
 const MODEL_ROOT_NAME := "Textures"
-const TREE_VISIBILITY_ICON_SIZE := Vector2i(24, 24)
-const SHOW_ICON := preload("res://shared/assets/Icon_PictoIcon_Show.Png")
-const HIDE_ICON := preload("res://shared/assets/Icon_PictoIcon_Hide.Png")
 
 enum PlacerItemType {
 	LAYER,
@@ -26,6 +20,7 @@ enum PlacerItemType {
 @onready var _inspector: PanelContainer = %Inspector
 @onready var _layer_actions: Control = %LayerActions
 @onready var _change_texture_button: TextureButton = %ChangeTextureButton
+@onready var _visible_check_box: CheckBox = %VisibleCheckBox
 @onready var _opacity_slider: HSlider = %OpacitySlider
 @onready var _clip_option_button: OptionButton = %ClipOptionButton
 @onready var _animation_frame_rate: SpinBox = %AnimationFrameRate
@@ -44,8 +39,6 @@ var _root_item: TreeItem
 var _selected_layer_id := INVALID_LAYER_ID
 var _texture_button_placeholder: Texture2D
 var _texture_preview_cache: Dictionary = {}
-var _visibility_show_icon: Texture2D
-var _visibility_hide_icon: Texture2D
 var _updating_inspector := false
 var _model_root: Node2D
 var _next_item_id := 1
@@ -66,6 +59,7 @@ func _ready() -> void:
 	_duplicate_button.pressed.connect(_on_duplicate_button_pressed)
 	_delete_button.pressed.connect(_on_delete_button_pressed)
 	_change_texture_button.pressed.connect(_on_change_texture_button_pressed)
+	_visible_check_box.toggled.connect(_on_visible_check_box_toggled)
 	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
 	_clip_option_button.item_selected.connect(_on_clip_option_button_item_selected)
 	_animation_frame_rate.value_changed.connect(_on_animation_frame_rate_value_changed)
@@ -86,13 +80,10 @@ func _ready() -> void:
 	_tree.multi_selected.connect(_on_tree_multi_selected)
 	_tree.item_activated.connect(_on_tree_item_activated)
 	_tree.item_edited.connect(_on_tree_item_edited)
-	_tree.button_clicked.connect(_on_tree_button_clicked)
 
 	_texture_button_placeholder = _change_texture_button.texture_normal
 	_animation_frame_rate.min_value = 0.1
 	_animation_frame_rate.step = 0.1
-	_visibility_show_icon = _make_tree_icon(SHOW_ICON)
-	_visibility_hide_icon = _make_tree_icon(HIDE_ICON)
 	_hide_inspector()
 	_rebuild_tree()
 
@@ -227,28 +218,6 @@ func _on_tree_item_edited() -> void:
 	item.set_text(TREE_COLUMN, new_name)
 
 
-func _on_tree_button_clicked(
-		item: TreeItem,
-		column: int,
-		id: int,
-		mouse_button_index: int,
-) -> void:
-	if (
-			column != VISIBILITY_COLUMN
-			or id != VISIBILITY_BUTTON_ID
-			or mouse_button_index != MOUSE_BUTTON_LEFT
-	):
-		return
-
-	var layer_id := _get_layer_id_from_item(item)
-	if layer_id == INVALID_LAYER_ID:
-		return
-
-	var collapsed_state := _get_tree_collapsed_state()
-	_toggle_layer_visibility(layer_id)
-	_restore_tree_collapsed_state(collapsed_state)
-
-
 func _on_tree_item_selected() -> void:
 	_set_selected_layer(_get_layer_id_from_item(_tree.get_selected()))
 
@@ -367,6 +336,17 @@ func _on_replacement_animation_textures_selected(layer_id: int, paths: PackedStr
 		_refresh_inspector()
 
 
+func _on_visible_check_box_toggled(enabled: bool) -> void:
+	if _updating_inspector or not _layers_by_id.has(_selected_layer_id):
+		return
+
+	var layer: Dictionary = _layers_by_id[_selected_layer_id]
+	var model_node: Node = layer["node"]
+	if model_node is CanvasItem:
+		var canvas_item: CanvasItem = model_node
+		canvas_item.visible = enabled
+
+
 func _on_opacity_slider_value_changed(value: float) -> void:
 	if _updating_inspector or not _layers_by_id.has(_selected_layer_id):
 		return
@@ -375,9 +355,12 @@ func _on_opacity_slider_value_changed(value: float) -> void:
 	var model_node: Node = layer["node"]
 	if model_node is CanvasItem:
 		var canvas_item: CanvasItem = model_node
-		var color := canvas_item.modulate
+		var color := canvas_item.self_modulate
 		color.a = value
-		canvas_item.modulate = color
+		canvas_item.self_modulate = color
+		if canvas_item is TwberMeshSprite2D:
+			var mesh_sprite: TwberMeshSprite2D = canvas_item
+			mesh_sprite.sync_visual_state()
 
 
 func _on_clip_option_button_item_selected(index: int) -> void:
@@ -503,7 +486,8 @@ func _refresh_inspector() -> void:
 
 	if model_node is CanvasItem:
 		var canvas_item: CanvasItem = model_node
-		_opacity_slider.value = canvas_item.modulate.a
+		_visible_check_box.button_pressed = canvas_item.visible
+		_opacity_slider.value = canvas_item.self_modulate.a
 		_clip_option_button.select(clampi(canvas_item.clip_children, 0, _clip_option_button.item_count - 1))
 
 	if _can_layer_use_texture(layer):
@@ -997,66 +981,12 @@ func _add_layer_items(parent_item: TreeItem, layer_ids: Array, collapsed_state: 
 		var item := _tree.create_item(parent_item)
 		item.set_text(TREE_COLUMN, layer["name"])
 		item.set_metadata(TREE_COLUMN, layer_id)
-		item.set_metadata(VISIBILITY_COLUMN, layer_id)
 		item.set_editable(TREE_COLUMN, true)
 		if collapsed_state.has(layer_id):
 			item.set_collapsed(collapsed_state[layer_id])
-		_update_visibility_button(item, _is_layer_visible(layer))
 		_tree_items_by_id[layer_id] = item
 
 		_add_layer_items(item, layer["children"], collapsed_state)
-
-
-func _toggle_layer_visibility(layer_id: int) -> void:
-	if not _layers_by_id.has(layer_id):
-		return
-
-	var layer: Dictionary = _layers_by_id[layer_id]
-	var model_node: Node = layer["node"]
-	if not (model_node is CanvasItem):
-		return
-
-	var canvas_item: CanvasItem = model_node
-	canvas_item.visible = not canvas_item.visible
-
-	if _tree_items_by_id.has(layer_id):
-		var item: TreeItem = _tree_items_by_id[layer_id]
-		var was_collapsed := item.is_collapsed()
-		_update_visibility_button(item, canvas_item.visible)
-		item.set_collapsed(was_collapsed)
-
-
-func _is_layer_visible(layer: Dictionary) -> bool:
-	var model_node: Node = layer["node"]
-	if model_node is CanvasItem:
-		var canvas_item: CanvasItem = model_node
-		return canvas_item.visible
-
-	return true
-
-
-func _make_tree_icon(source: Texture2D) -> Texture2D:
-	var image: Image = source.get_image()
-	if image == null:
-		return source
-
-	image.resize(TREE_VISIBILITY_ICON_SIZE.x, TREE_VISIBILITY_ICON_SIZE.y, Image.INTERPOLATE_LANCZOS)
-	return ImageTexture.create_from_image(image)
-
-
-func _update_visibility_button(item: TreeItem, layer_visible: bool) -> void:
-	var icon: Texture2D = _visibility_show_icon
-	var tooltip := "Hide layer"
-	if not layer_visible:
-		icon = _visibility_hide_icon
-		tooltip = "Show layer"
-
-	if item.get_button_count(VISIBILITY_COLUMN) == 0:
-		item.add_button(VISIBILITY_COLUMN, icon, VISIBILITY_BUTTON_ID, false, tooltip)
-	else:
-		item.set_button(VISIBILITY_COLUMN, VISIBILITY_BUTTON_INDEX, icon)
-		item.set_button_tooltip_text(VISIBILITY_COLUMN, VISIBILITY_BUTTON_INDEX, tooltip)
-		item.set_button_description(VISIBILITY_COLUMN, VISIBILITY_BUTTON_INDEX, tooltip)
 
 
 func _setup_preview() -> void:
