@@ -11,6 +11,7 @@ const TwberModelCodecScript := preload("res://model/twber_model_codec.gd")
 @onready var _model_root: Node2D = $ModelPreview/Textures
 @onready var _editor_placer: EditorPlacer = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer
 @onready var _editor_mesher = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorMesher
+@onready var _editor_rigger = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger
 @onready var _menus: TabContainer = $PanelContainer/MarginContainer/VBoxContainer/Menus
 
 var _current_resource_path := ""
@@ -82,6 +83,7 @@ func _open_model(path: String) -> void:
 	TwberModelCodecScript.apply_to_model_root(model, _model_root)
 	_editor_placer.reload_from_preview()
 	_editor_mesher.reload_from_preview()
+	_editor_rigger.reload_from_preview()
 
 	if path.get_extension().to_lower() == TwberModelCodecScript.TWBER_EXTENSION:
 		_current_resource_path = ""
@@ -112,10 +114,13 @@ func _on_tab_changed(tab_index: int) -> void:
 		_editor_placer.reload_from_preview()
 	elif tab == _editor_mesher:
 		_editor_mesher.reload_from_preview()
+	elif tab == _editor_rigger:
+		_editor_rigger.reload_from_preview()
 
 
 func _on_mesher_model_tree_changed() -> void:
 	_editor_placer.reload_from_preview()
+	_editor_rigger.reload_from_preview()
 
 
 func _create_file_dialog(file_mode: FileDialog.FileMode, title: String) -> FileDialog:

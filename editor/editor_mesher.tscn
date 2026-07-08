@@ -39,9 +39,8 @@ theme_override_constants/margin_bottom = 8
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 
-[node name="NodeButtons" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1124470363]
+[node name="NodeButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=2082140880]
 layout_mode = 2
-columns = 4
 
 [node name="AddPointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
 unique_name_in_owner = true
@@ -59,7 +58,7 @@ expand_icon = true
 
 [node name="RemovePointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 0)
+custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -73,7 +72,7 @@ expand_icon = true
 
 [node name="EditPointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 0)
+custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -85,9 +84,9 @@ icon = ExtResource("4_sjag6")
 icon_alignment = 1
 expand_icon = true
 
-[node name="CutButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons"]
+[node name="CutButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1981457062]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 0)
+custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -109,7 +108,6 @@ theme_override_constants/parent_hl_line_width = 0
 theme_override_constants/children_hl_line_width = 0
 theme_override_fonts/font = ExtResource("2_sjag6")
 theme_override_fonts/title_button_font = ExtResource("2_sjag6")
-select_mode = 0
 auto_tooltip = false
 scroll_horizontal_enabled = false
 tile_scroll_hint = true
@@ -117,6 +115,5 @@ tile_scroll_hint = true
 [node name="Panel" type="Panel" parent="." unique_id=2142597381]
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 0
 mouse_behavior_recursive = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")

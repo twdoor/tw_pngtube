@@ -5,23 +5,36 @@
 [ext_resource type="Script" uid="uid://ua2bonrxhh82" path="res://editor/model_preview.gd" id="3_oi4dq"]
 [ext_resource type="Script" uid="uid://c5md0tempy73i" path="res://editor/editor.gd" id="4_tpbm2"]
 [ext_resource type="PackedScene" uid="uid://j875asnw84w1" path="res://editor/editor_mesher.tscn" id="5_6j37k"]
+[ext_resource type="PackedScene" uid="uid://ivr5rtc5wg7y" path="res://editor/editor_rigger.tscn" id="6_6hpnh"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q7cji"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6hpnh"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_dttc0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6hpnh"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_swf4p"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kga4s"]
 bg_color = Color(0.6255971, 0.6255971, 0.62559694, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_j1obv"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aws7q"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_kts1f"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3meo8"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
 
 [node name="Editor" type="CanvasLayer" unique_id=1738089725]
 script = ExtResource("4_tpbm2")
@@ -98,20 +111,21 @@ popup/item_4/id = 3
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_selected_color = Color(0, 0, 0, 1)
-theme_override_constants/side_margin = 0
+theme_override_constants/side_margin = 3
 theme_override_constants/tab_separation = 4
 theme_override_fonts/font = ExtResource("1_ycap1")
-theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
-theme_override_styles/tab_unselected = SubResource("StyleBoxEmpty_q7cji")
-theme_override_styles/tab_hovered = SubResource("StyleBoxEmpty_dttc0")
+theme_override_styles/panel = SubResource("StyleBoxEmpty_6hpnh")
+theme_override_styles/tab_unselected = SubResource("StyleBoxFlat_6hpnh")
+theme_override_styles/tab_hovered = SubResource("StyleBoxFlat_swf4p")
 theme_override_styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
-theme_override_styles/tab_disabled = SubResource("StyleBoxEmpty_j1obv")
-theme_override_styles/tab_focus = SubResource("StyleBoxEmpty_kts1f")
+theme_override_styles/tab_disabled = SubResource("StyleBoxFlat_aws7q")
+theme_override_styles/tab_focus = SubResource("StyleBoxFlat_3meo8")
 current_tab = 0
 tabs_position = 1
 switch_on_drag_hover = false
 tab_0/title = "[Place]"
 tab_1/title = "[Mesh]"
+tab_2/title = "[Rig]"
 
 [node name="EditorPlacer" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=795151654 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("2_fjngd")]
 layout_mode = 2
@@ -119,6 +133,11 @@ _preview_layer = NodePath("../../../../../ModelPreview")
 _new_model_root_position = Vector2(960, 360)
 
 [node name="EditorMesher" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=1026952844 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("5_6j37k")]
+visible = false
+layout_mode = 2
+_preview_layer = NodePath("../../../../../ModelPreview")
+
+[node name="EditorRigger" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=1062814089 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("6_6hpnh")]
 visible = false
 layout_mode = 2
 _preview_layer = NodePath("../../../../../ModelPreview")

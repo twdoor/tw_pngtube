@@ -28,6 +28,28 @@ func set_vertex(index: int, position: Vector2) -> void:
 		rest_vertices[index] = position
 
 
+func set_deformed_vertex(index: int, vertex_position: Vector2) -> void:
+	if index < 0 or index >= vertices.size():
+		return
+
+	ensure_rest_vertices()
+	vertices[index] = vertex_position
+
+
+func reset_deformed_vertex(index: int) -> void:
+	if index < 0 or index >= vertices.size():
+		return
+
+	ensure_rest_vertices()
+	if index < rest_vertices.size():
+		vertices[index] = rest_vertices[index]
+
+
+func reset_deformation() -> void:
+	ensure_rest_vertices()
+	vertices = rest_vertices.duplicate()
+
+
 func add_vertex(position: Vector2, uv_position: Vector2) -> void:
 	vertices.append(position)
 	rest_vertices.append(position)

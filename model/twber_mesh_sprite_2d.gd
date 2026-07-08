@@ -72,6 +72,30 @@ func set_vertex(index: int, vertex_position: Vector2) -> void:
 	sync_mesh()
 
 
+func set_deformed_vertex(index: int, vertex_position: Vector2) -> void:
+	if mesh_data == null:
+		return
+
+	mesh_data.set_deformed_vertex(index, vertex_position)
+	sync_mesh()
+
+
+func reset_deformed_vertex(index: int) -> void:
+	if mesh_data == null:
+		return
+
+	mesh_data.reset_deformed_vertex(index)
+	sync_mesh()
+
+
+func reset_deformation() -> void:
+	if mesh_data == null:
+		return
+
+	mesh_data.reset_deformation()
+	sync_mesh()
+
+
 func get_vertex_count() -> int:
 	if mesh_data == null:
 		return 0

@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://b6q4pf07yi3em" path="res://shared/assets/Icon_PictoIcon_Plus.Png" id="3_3ohd4"]
 [ext_resource type="Texture2D" uid="uid://bh66mgoqqcsab" path="res://shared/assets/Icon_PictoIcon_Bin.Png" id="4_3ohd4"]
 [ext_resource type="Texture2D" uid="uid://dy03qucgek3jq" path="res://shared/assets/Icon_PictoIcon_Pencil.Png" id="5_10tqb"]
+[ext_resource type="Texture2D" uid="uid://xan4bffygot5" path="res://shared/assets/Icon_PictoIcon_Copy.Png" id="6_121pa"]
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_hdak6"]
 size = Vector2(100, 100)
@@ -39,9 +40,8 @@ theme_override_constants/margin_bottom = 8
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 
-[node name="NodeButtons" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1124470363]
+[node name="NodeButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1232974109]
 layout_mode = 2
-columns = 3
 
 [node name="LayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
 unique_name_in_owner = true
@@ -192,13 +192,19 @@ layout_mode = 2
 
 [node name="DuplicateButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/GeneralActions" unique_id=402775417]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("1_a7f0c")
 text = "Duplicate"
+icon = ExtResource("6_121pa")
+expand_icon = true
 
 [node name="DeleteButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/GeneralActions" unique_id=1597951933]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0, 0, 1)
@@ -213,6 +219,9 @@ theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
 theme_override_fonts/font = ExtResource("1_a7f0c")
 text = "Delete"
+icon = ExtResource("4_3ohd4")
+icon_alignment = 2
+expand_icon = true
 
 [node name="Panel" type="Panel" parent="." unique_id=2142597381]
 layout_mode = 2

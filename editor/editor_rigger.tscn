@@ -1,0 +1,177 @@
+[gd_scene format=3 uid="uid://ivr5rtc5wg7y"]
+
+[ext_resource type="Script" uid="uid://dqqu1rj0obmqq" path="res://editor/editor_rigger.gd" id="1_rigger"]
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_2ael8"]
+[ext_resource type="Texture2D" uid="uid://byt3rq4x3yi4c" path="res://shared/assets/Icon_PictoIcon_Expand.Png" id="3_u8i7d"]
+[ext_resource type="Texture2D" uid="uid://d4i2kp1y7vona" path="res://shared/assets/Icon_PictoIcon_Pen.Png" id="4_deform"]
+[ext_resource type="Texture2D" uid="uid://qyw4ob470cht" path="res://shared/assets/Icon_PictoIcon_Reload.Png" id="4_lxu5c"]
+[ext_resource type="Texture2D" uid="uid://cq8l3ixq0c7kb" path="res://shared/assets/Icon_PictoIcon_Crop.Png" id="5_bwxmh"]
+[ext_resource type="Texture2D" uid="uid://bfdsk2dx2fe2d" path="res://shared/assets/Icon_PictoIcon_Reset.Png" id="5_reset"]
+[ext_resource type="Texture2D" uid="uid://bjwltalmnvmi0" path="res://shared/assets/Icon_PictoIcon_Hashtag.Png" id="7_qpxpf"]
+[ext_resource type="Texture2D" uid="uid://cwomok7hxilfr" path="res://shared/assets/Icon_PictoIcon_Gender_Female.Png" id="8_yrcqg"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_hdak6"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
+
+[node name="EditorRigger" type="HSplitContainer" unique_id=795151654]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+split_offsets = PackedInt32Array(256)
+split_offset = 256
+script = ExtResource("1_rigger")
+metadata/_tab_index = 2
+metadata/_tab_name = "[Rig]"
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=949789036]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=2065358272]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1890395530]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="NodeButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=963447440]
+layout_mode = 2
+
+[node name="TransformButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=272185880]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Move layer"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("3_u8i7d")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RotateButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=158961091]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Rotate layer"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("4_lxu5c")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ScaleButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=242324770]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Scale layer"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("5_bwxmh")
+icon_alignment = 1
+expand_icon = true
+
+[node name="DeformButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Deform vertex"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("4_deform")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RectangleSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1740100847]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Rectangle select"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("7_qpxpf")
+icon_alignment = 1
+expand_icon = true
+
+[node name="LassoSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1810167952]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Lasso select"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("8_yrcqg")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ResetVertexButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Reset vertex"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hdak6")
+icon = ExtResource("5_reset")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ResetLayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Reset layer"
+theme_override_fonts/font = ExtResource("2_2ael8")
+icon = ExtResource("5_reset")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Tree" type="Tree" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=863067424]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/draw_guides = 0
+theme_override_constants/relationship_line_width = 0
+theme_override_constants/parent_hl_line_width = 0
+theme_override_constants/children_hl_line_width = 0
+theme_override_fonts/font = ExtResource("2_2ael8")
+theme_override_fonts/title_button_font = ExtResource("2_2ael8")
+auto_tooltip = false
+scroll_horizontal_enabled = false
+tile_scroll_hint = true
+
+[node name="Panel" type="Panel" parent="." unique_id=2142597381]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+mouse_behavior_recursive = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
