@@ -6,11 +6,14 @@ const MENU_SAVE := 2
 const MENU_EXPORT := 3
 const MENU_SETTINGS := 5
 const MENU_PERFORMANCE := 6
-const MODEL_RESOURCE_FILTER := "*.tres, *.res ; Editable model resources"
-const EXPORTED_MODEL_FILTER := "*.twber ; Twber model packages"
+const MENU_SAVE_AS := 7
+const MODEL_RESOURCE_FILTER := "*.tres, *.res ; Legacy editable model resources"
+const EXPORTED_MODEL_FILTER := "*.twber ; Twber models"
 const SETTINGS_DIALOG_SCENE := preload("res://editor/editor_settings_dialog.tscn")
 
 @onready var _file_menu_button: MenuButton = %FileMenuButton
+@onready var _current_model_label: Label = %CurrentModelLabel
+@onready var _editor_status_label: Label = %EditorStatusLabel
 @onready var _model_root: Node2D = $ModelPreview/Textures
 @onready var _model_preview: ModelPreview = $ModelPreview
 @onready var _editor_placer: EditorPlacer = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer
@@ -18,13 +21,14 @@ const SETTINGS_DIALOG_SCENE := preload("res://editor/editor_settings_dialog.tscn
 @onready var _editor_rigger: EditorRigger = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger
 @onready var _menus: TabContainer = $PanelContainer/MarginContainer/VBoxContainer/Menus
 
-var _current_resource_path := ""
+var _current_model_path := ""
 var _default_model_root_position := Vector2.ZERO
 var _default_model_root_scale := Vector2.ONE
 var _default_model_root_rotation := 0.0
 var _editor_settings: TwberEditorSettings
 var _batch_renderer: TwberModelBatchRenderer2D
 var _clip_controller: TwberAlphaClipController
+var _busy := false
 
 
 func _ready() -> void:
@@ -33,6 +37,7 @@ func _ready() -> void:
 	_batch_renderer = TwberModelBatchRenderer2D.attach_to(_model_root)
 	_clip_controller = TwberAlphaClipController.attach_to(_model_root)
 	_apply_editor_settings()
+	_set_current_model_path("")
 
 	var popup := _file_menu_button.get_popup()
 	popup.id_pressed.connect(_on_file_menu_id_pressed)
@@ -50,6 +55,8 @@ func _on_file_menu_id_pressed(id: int) -> void:
 			_open_model_dialog()
 		MENU_SAVE:
 			_save_model()
+		MENU_SAVE_AS:
+			_save_model_as_dialog()
 		MENU_EXPORT:
 			_export_model_dialog()
 		MENU_SETTINGS:
@@ -59,6 +66,8 @@ func _on_file_menu_id_pressed(id: int) -> void:
 
 
 func _new_model() -> void:
+	if _busy:
+		return
 	if _clip_controller != null:
 		_clip_controller.clear()
 	for child: Node in _model_root.get_children():
@@ -69,7 +78,8 @@ func _new_model() -> void:
 	_model_root.scale = _default_model_root_scale
 	_model_root.rotation = _default_model_root_rotation
 	TwberModelCodec.clear_model_root_metadata(_model_root)
-	_current_resource_path = ""
+	_set_current_model_path("")
+	_set_editor_status("Ready")
 
 	_reload_editors_from_preview()
 	_menus.current_tab = _editor_placer.get_index()
@@ -79,38 +89,38 @@ func _open_model_dialog() -> void:
 	var dialog := _create_file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "Open model")
 	dialog.filters = PackedStringArray([MODEL_RESOURCE_FILTER, EXPORTED_MODEL_FILTER])
 	dialog.file_selected.connect(func(path: String) -> void:
-		_open_model(path)
 		dialog.queue_free()
+		_open_model_async(path)
 	)
 	dialog.popup_centered_ratio(0.7)
 
 
 func _save_model() -> void:
-	if _current_resource_path.is_empty():
-		_save_model_dialog()
+	if _current_model_path.is_empty():
+		_save_model_as_dialog()
 		return
 
-	_save_model_resource(_current_resource_path)
+	_save_model_to_path_async(_current_model_path, true)
 
 
-func _save_model_dialog() -> void:
-	var dialog := _create_file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "Save editable model resource")
-	dialog.filters = PackedStringArray([MODEL_RESOURCE_FILTER])
-	dialog.current_file = "model.tres"
+func _save_model_as_dialog() -> void:
+	var dialog := _create_file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "Save model as")
+	dialog.filters = PackedStringArray([EXPORTED_MODEL_FILTER, MODEL_RESOURCE_FILTER])
+	dialog.current_file = _get_save_as_file_name()
 	dialog.file_selected.connect(func(path: String) -> void:
-		_save_model_resource(_normalize_resource_path(path))
 		dialog.queue_free()
+		_save_model_to_path_async(_normalize_model_path(path), true)
 	)
 	dialog.popup_centered_ratio(0.7)
 
 
 func _export_model_dialog() -> void:
-	var dialog := _create_file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "Export Twber model")
+	var dialog := _create_file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "Export Twber copy")
 	dialog.filters = PackedStringArray([EXPORTED_MODEL_FILTER])
-	dialog.current_file = "model.twber"
+	dialog.current_file = _get_export_file_name()
 	dialog.file_selected.connect(func(path: String) -> void:
-		_export_model(_normalize_export_path(path))
 		dialog.queue_free()
+		_save_model_to_path_async(_normalize_export_path(path), false)
 	)
 	dialog.popup_centered_ratio(0.7)
 
@@ -119,6 +129,27 @@ func _open_model(path: String) -> void:
 	var model = TwberModelCodec.load_model(path)
 	if model == null:
 		return
+	_apply_opened_model(model, path)
+	_set_editor_status("Loaded %s" % path.get_file())
+
+
+func _open_model_async(path: String) -> Error:
+	if _busy:
+		return ERR_BUSY
+	_set_busy(true, "Loading %s…" % path.get_file())
+	var result: Variant = await _run_background(TwberModelCodec.load_model.bind(path))
+	if result is not TwberModelResource:
+		_set_busy(false, "Load failed")
+		push_error("Could not load model: %s" % path)
+		return ERR_FILE_CORRUPT
+	_set_editor_status("Preparing editor…")
+	await get_tree().process_frame
+	_apply_opened_model(result as TwberModelResource, path)
+	_set_busy(false, "Loaded %s" % path.get_file())
+	return OK
+
+
+func _apply_opened_model(model: TwberModelResource, path: String) -> void:
 
 	if _clip_controller != null:
 		_clip_controller.clear()
@@ -128,27 +159,61 @@ func _open_model(path: String) -> void:
 	)
 	_reload_editors_from_preview()
 
-	if path.get_extension().to_lower() == TwberModelCodec.TWBER_EXTENSION:
-		_current_resource_path = ""
+	_set_current_model_path(path)
+
+
+func _save_model_to_path(path: String, make_current: bool) -> Error:
+	var normalized_path := _normalize_model_path(path)
+	if normalized_path.get_extension().to_lower() == TwberModelCodec.TWBER_EXTENSION:
+		return _export_model(normalized_path, make_current)
+	return _save_model_resource(normalized_path, make_current)
+
+
+func _save_model_to_path_async(path: String, make_current: bool) -> Error:
+	if _busy:
+		return ERR_BUSY
+	var normalized_path := _normalize_model_path(path)
+	_set_busy(true, "Saving %s…" % normalized_path.get_file())
+	await get_tree().process_frame
+	var model := _create_model_resource_from_base_state()
+	var save_callable: Callable
+	if normalized_path.get_extension().to_lower() == TwberModelCodec.TWBER_EXTENSION:
+		save_callable = TwberModelCodec.export_twber.bind(model, normalized_path)
 	else:
-		_current_resource_path = path
+		save_callable = TwberModelCodec.save_resource.bind(model, normalized_path)
+	var result: Variant = await _run_background(save_callable)
+	var error := int(result) as Error
+	if error != OK:
+		_set_busy(false, "Save failed")
+		push_error("Could not save model: %s" % error_string(error))
+		return error
+	if make_current:
+		_set_current_model_path(normalized_path)
+	_set_busy(false, "Saved %s" % normalized_path.get_file())
+	return OK
 
 
-func _save_model_resource(path: String) -> void:
+func _save_model_resource(path: String, make_current := true) -> Error:
 	var model := _create_model_resource_from_base_state()
 	var error: Error = TwberModelCodec.save_resource(model, path)
 	if error != OK:
 		push_error("Could not save model resource: %s" % error_string(error))
-		return
+		return error
 
-	_current_resource_path = path
+	if make_current:
+		_set_current_model_path(path)
+	return OK
 
 
-func _export_model(path: String) -> void:
+func _export_model(path: String, make_current := false) -> Error:
 	var model := _create_model_resource_from_base_state()
 	var error: Error = TwberModelCodec.export_twber(model, path)
 	if error != OK:
 		push_error("Could not export Twber model: %s" % error_string(error))
+		return error
+	if make_current:
+		_set_current_model_path(path)
+	return OK
 
 
 func _open_settings_dialog() -> void:
@@ -303,8 +368,12 @@ func _remember_default_model_root_transform() -> void:
 	_default_model_root_rotation = _model_root.rotation
 
 
-func _normalize_resource_path(path: String) -> String:
-	return _normalize_path_extension(path, PackedStringArray(["tres", "res"]), "tres")
+func _normalize_model_path(path: String) -> String:
+	return _normalize_path_extension(
+		path,
+		PackedStringArray(["tres", "res", TwberModelCodec.TWBER_EXTENSION]),
+		TwberModelCodec.TWBER_EXTENSION,
+	)
 
 
 func _normalize_export_path(path: String) -> String:
@@ -313,6 +382,57 @@ func _normalize_export_path(path: String) -> String:
 		PackedStringArray([TwberModelCodec.TWBER_EXTENSION]),
 		TwberModelCodec.TWBER_EXTENSION
 	)
+
+
+func _get_save_as_file_name() -> String:
+	return _current_model_path.get_file() if not _current_model_path.is_empty() else "model.twber"
+
+
+func _get_export_file_name() -> String:
+	if _current_model_path.is_empty():
+		return "model.twber"
+	return "%s.twber" % _current_model_path.get_file().get_basename()
+
+
+func _set_current_model_path(path: String) -> void:
+	_current_model_path = path
+	if _current_model_label == null:
+		return
+	_current_model_label.text = path.get_file() if not path.is_empty() else "Untitled"
+	_current_model_label.tooltip_text = path if not path.is_empty() else "This model has not been saved yet."
+
+
+func get_current_model_path() -> String:
+	return _current_model_path
+
+
+func is_busy() -> bool:
+	return _busy
+
+
+func _set_busy(busy: bool, status: String) -> void:
+	_busy = busy
+	_file_menu_button.disabled = busy
+	_menus.mouse_behavior_recursive = (
+		Control.MOUSE_BEHAVIOR_DISABLED if busy else Control.MOUSE_BEHAVIOR_ENABLED
+	)
+	_menus.modulate.a = 0.65 if busy else 1.0
+	_set_editor_status(status)
+
+
+func _set_editor_status(status: String) -> void:
+	if _editor_status_label != null:
+		_editor_status_label.text = status
+
+
+func _run_background(callable: Callable) -> Variant:
+	var task := TwberBackgroundTask.new()
+	get_tree().root.add_child(task)
+	var error := task.start(callable)
+	if error != OK:
+		task.queue_free()
+		return error
+	return await task.completed
 
 
 func _normalize_path_extension(

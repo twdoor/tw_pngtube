@@ -1,0 +1,8 @@
+{
+  "api_version": 1,
+  "id": "attachment",
+  "name": "Model Attachments",
+  "version": "1.0.0",
+  "description": "Attaches a dropped model or image asset to another model on the stage.",
+  "entry_scene": "res://package_sources/attachment/attachment.tscn",
+}

@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://c8sis7p4145wm"]
 
 [ext_resource type="Script" uid="uid://dt4w6u2dd3res" path="res://environment/environment.gd" id="1_environment"]
-[ext_resource type="Script" uid="uid://dqehepip4iv8u" path="res://shared/model/twber_runtime_model.gd" id="2_runtime"]
 [ext_resource type="Script" uid="uid://bnduj0hnc6ce5" path="res://environment/core/twber_input_registry.gd" id="3_registry"]
 [ext_resource type="Script" uid="uid://d4hke14eqja6w" path="res://environment/core/twber_package_manager.gd" id="4_manager"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="5_font"]
@@ -16,7 +15,8 @@ vertical = true
 [node name="Environment" type="Node" unique_id=481477685]
 script = ExtResource("1_environment")
 
-[node name="Background" type="ColorRect" parent="." unique_id=2004424042]
+[node name="BackgroundColor" type="ColorRect" parent="." unique_id=2004424042]
+unique_name_in_owner = true
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -25,10 +25,20 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
-[node name="RuntimeModel" type="Node2D" parent="." unique_id=1237895022]
+[node name="BackgroundImage" type="TextureRect" parent="." unique_id=1407150585]
 unique_name_in_owner = true
-position = Vector2(460, 360)
-script = ExtResource("2_runtime")
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="ModelStage" type="Node2D" parent="." unique_id=1237895022]
+unique_name_in_owner = true
 
 [node name="InputRegistry" type="Node" parent="." unique_id=1752308089]
 unique_name_in_owner = true
@@ -42,6 +52,8 @@ script = ExtResource("4_manager")
 layer = 10
 
 [node name="RootMargin" type="MarginContainer" parent="Interface" unique_id=1618282355]
+unique_name_in_owner = true
+visibility_layer = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -76,7 +88,18 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 12
-text = "Open"
+text = "Add Model"
+flat = true
+
+[node name="RemoveModelButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=64564045]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+disabled = true
+text = "Remove"
 flat = true
 
 [node name="ResetViewButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1635298662]
@@ -86,8 +109,19 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 12
-text = "Reset
-"
+disabled = true
+text = "Reset Model"
+flat = true
+
+[node name="OutputWindowButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1053111085]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+toggle_mode = true
+text = "Open Output"
 flat = true
 
 [node name="Spacer" type="Control" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1876338789]
@@ -96,12 +130,14 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 
-[node name="ModelNameLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=608783282]
+[node name="ModelSelector" type="OptionButton" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=323403547]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 12
-text = "No model loaded"
+disabled = true
 
 [node name="VSeparator" type="VSeparator" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=19387517]
 layout_mode = 2
@@ -116,6 +152,23 @@ size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Waiting for model"
+
+[node name="Spacer2" type="Control" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1092483743]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="OperationStatusLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=164612572]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 11
+text = "Ready"
+horizontal_alignment = 2
 
 [node name="Body" type="HSplitContainer" parent="Interface/RootMargin/Layout" unique_id=1563576268]
 layout_mode = 2
@@ -139,7 +192,7 @@ offset_bottom = 34.0
 theme_override_colors/font_color = Color(0.48, 0.51, 0.58, 1)
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 10
-text = "Wheel to zoom · Middle-drag to pan"
+text = "Click/drag selected model · Wheel to scale"
 
 [node name="Tabs" type="TabContainer" parent="Interface/RootMargin/Layout/Body" unique_id=2053464090]
 layout_mode = 2
@@ -187,7 +240,7 @@ size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.48, 0.51, 0.58, 1)
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 11
-text = "Load a .twber model to see its parameters."
+text = "Add and select a .twber model to see its parameters."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
@@ -245,15 +298,18 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
+[node name="ModelControlStorage" type="VBoxContainer" parent="Interface" unique_id=1019776395]
+unique_name_in_owner = true
+visible = false
+
 [node name="OpenModelDialog" type="FileDialog" parent="Interface" unique_id=1016109793]
 unique_name_in_owner = true
 oversampling_override = 1.0
-title = "Open a File"
+title = "Open File(s)"
 initial_position = 2
 size = Vector2i(920, 560)
-transient = true
-ok_button_text = "Open"
-file_mode = 0
+ok_button_text = "Add"
+file_mode = 1
 access = 2
 
 [node name="ErrorDialog" type="AcceptDialog" parent="Interface" unique_id=582028564]
@@ -261,4 +317,14 @@ unique_name_in_owner = true
 oversampling_override = 1.0
 initial_position = 2
 size = Vector2i(480, 180)
-transient = true
+
+[node name="OutputWindow" type="Window" parent="." unique_id=1593628809]
+unique_name_in_owner = true
+transparent_bg = true
+canvas_cull_mask = 1
+title = "Twber Output"
+initial_position = 1
+size = Vector2i(1280, 720)
+visible = false
+transparent = true
+min_size = Vector2i(640, 360)

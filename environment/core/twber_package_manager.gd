@@ -1,6 +1,6 @@
 class_name TwberPackageManager extends Node
 
-signal package_loaded(package_id: StringName, manifest: Dictionary, provider: TwberInputProvider)
+signal package_loaded(package_id: StringName, manifest: Dictionary, package: TwberEnvironmentPackage)
 signal package_failed(path: String, reason: String)
 signal discovery_finished()
 
@@ -79,24 +79,25 @@ func _load_package_pack(pack_path: String, expected_id: String) -> void:
 		package_failed.emit(pack_path, "Could not load package entry scene")
 		return
 	var instance := entry_scene.instantiate()
-	if instance is not TwberInputProvider:
+	if instance is not TwberEnvironmentPackage:
 		instance.free()
-		package_failed.emit(pack_path, "Entry scene must extend TwberInputProvider")
+		package_failed.emit(pack_path, "Entry scene must extend TwberEnvironmentPackage")
 		return
-	var provider := instance as TwberInputProvider
-	for descriptor: Dictionary in provider.get_value_descriptors():
-		var binding_scene_path := String(descriptor.get("binding_scene", ""))
-		if not binding_scene_path.is_empty() and not binding_scene_path.begins_with(package_namespace):
-			provider.free()
-			package_failed.emit(pack_path, "Binding scenes must be inside the package namespace")
-			return
-	add_child(provider)
+	var package := instance as TwberEnvironmentPackage
+	if package is TwberInputProvider:
+		for descriptor: Dictionary in (package as TwberInputProvider).get_value_descriptors():
+			var binding_scene_path := String(descriptor.get("binding_scene", ""))
+			if not binding_scene_path.is_empty() and not binding_scene_path.begins_with(package_namespace):
+				package.free()
+				package_failed.emit(pack_path, "Binding scenes must be inside the package namespace")
+				return
+	add_child(package)
 	_packages[package_id] = {
 		"manifest": manifest,
-		"provider": provider,
+		"package": package,
 		"pack_path": pack_path,
 	}
-	package_loaded.emit(package_id, manifest, provider)
+	package_loaded.emit(package_id, manifest, package)
 
 
 func _is_valid_package_id(package_id: String) -> bool:

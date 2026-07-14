@@ -20,7 +20,7 @@ func _run() -> void:
 	get_root().add_child(environment)
 	await process_frame
 	var package_list := environment.get_node("%PackageList") as VBoxContainer
-	_expect(package_list.get_child_count() == 2, "Environment auto-generates cards for both PCK packages")
+	_expect(package_list.get_child_count() == 4, "Environment auto-generates cards for all PCK packages")
 	var open_button := environment.get_node("%OpenModelButton") as Button
 	var open_dialog := environment.get_node("%OpenModelDialog") as FileDialog
 	_expect(
@@ -36,12 +36,36 @@ func _run() -> void:
 	await process_frame
 	_expect(error_dialog.visible, "Environment opens its error dialog")
 	error_dialog.hide()
+	var output_button := environment.get_node("%OutputWindowButton") as Button
+	var output_window := environment.get_node("%OutputWindow") as Window
+	var interface_root := environment.get_node("%RootMargin") as Control
+	_expect(
+		output_window.world_2d == environment.get_viewport().world_2d
+		and output_window.canvas_cull_mask == 1
+		and interface_root.visibility_layer == 2,
+		"Output window shares only the presentation canvas, excluding the interface layer",
+	)
+	output_button.button_pressed = true
+	await process_frame
+	_expect(output_window.visible, "Output toolbar button opens the clean presentation window")
+	output_window.close_requested.emit()
+	_expect(
+		not output_window.visible and not output_button.button_pressed,
+		"Closing the presentation window resets its toolbar toggle",
+	)
 
 	var model := _create_test_model()
 	var model_path := "user://twber_environment_test.tres"
 	MODEL_INPUT_PROFILE.clear_bindings(model_path)
 	_expect(TwberModelCodec.save_resource(model, model_path) == OK, "Environment fixture saves")
-	_expect(environment.load_model(model_path) == OK, "Environment loads a model resource")
+	var load_error: Error = await environment.load_model_async(model_path)
+	_expect(
+		load_error == OK
+		and not environment.is_busy()
+		and environment.get_model_count() == 1
+		and (environment.get_node("%OperationStatusLabel") as Label).text.begins_with("Loaded "),
+		"Environment loads a model resource in the background",
+	)
 	_expect(environment.get_current_model_path() == model_path, "Environment remembers the model path")
 
 	var parameter_list := environment.get_node("%ParameterList") as VBoxContainer
@@ -81,7 +105,11 @@ func _run() -> void:
 	)
 	var source_value := Vector2(tracked_display.get_center())
 	mouse_provider.value_changed.emit(&"position", source_value)
-	var runtime_model := environment.get_node("%RuntimeModel") as TwberRuntimeModel
+	var runtime_model := environment.get_selected_model()
+	_expect(
+		runtime_model.name == "TwberEnvironmentTest",
+		"Environment names model nodes from their source file",
+	)
 	_expect(
 			runtime_model.get_parameter_value("look").is_equal_approx(Vector2.ZERO),
 		"Automatic mouse tracking maps the pointer relative to its current display",
@@ -96,7 +124,21 @@ func _run() -> void:
 			is_equal_approx(float(runtime_model.get_parameter_value("volume")), 0.5),
 			"Microphone dB range maps to its bound float parameter",
 	)
-	_expect(environment.load_model(model_path) == OK, "Environment reloads a model profile")
+	var first_runtime_model := runtime_model
+	_expect(environment.load_model(model_path) == OK, "Environment adds another model with its saved profile")
+	_expect(environment.get_model_count() == 2, "Environment keeps multiple model instances on stage")
+	_expect(
+		environment.get_selected_model().name == "TwberEnvironmentTest2",
+		"Duplicate model instances receive readable numbered names",
+	)
+	var model_stage := environment.get_node("%ModelStage") as Node2D
+	environment.call("_select_model", first_runtime_model)
+	_expect(
+		model_stage.get_child(model_stage.get_child_count() - 1) == first_runtime_model,
+		"Selecting an older model brings it in front of newer stage items",
+	)
+	environment.call("_select_model", environment.call("_get_stage_items")[0])
+	runtime_model = environment.get_selected_model()
 	parameter_list = environment.get_node("%ParameterList") as VBoxContainer
 	volume_control = parameter_list.get_child(1) as TwberEnvironmentParameterControl
 	volume_source_option = volume_control.get_node("%SourceOption") as OptionButton
@@ -105,20 +147,169 @@ func _run() -> void:
 			"Environment restores the saved parameter source",
 	)
 	microphone_provider.value_changed.emit(&"level_db", -35.0)
-	runtime_model = environment.get_node("%RuntimeModel") as TwberRuntimeModel
+	runtime_model = environment.get_selected_model()
 	_expect(
-			is_equal_approx(float(runtime_model.get_parameter_value("volume")), 0.5),
-			"Environment restores the saved dB mapping range",
+		is_equal_approx(float(runtime_model.get_parameter_value("volume")), 0.5),
+		"Environment restores the saved dB mapping range",
+	)
+	_expect(
+		is_equal_approx(float(first_runtime_model.get_parameter_value("volume")), 0.5),
+		"One input source updates every model instance with that binding",
+	)
+	var original_position := runtime_model.position
+	var animated_sprite := AnimatedSprite2D.new()
+	animated_sprite.sprite_frames = SpriteFrames.new()
+	animated_sprite.sprite_frames.clear(&"default")
+	var animated_image := Image.create(24, 18, false, Image.FORMAT_RGBA8)
+	animated_image.fill(Color.WHITE)
+	animated_sprite.sprite_frames.add_frame(
+		&"default",
+		ImageTexture.create_from_image(animated_image),
+	)
+	runtime_model.add_child(animated_sprite)
+	var animated_bounds: Rect2 = environment.call("_get_model_global_bounds", runtime_model)
+	_expect(
+		animated_bounds.has_area() and animated_bounds.has_point(animated_sprite.global_position),
+		"Stage selection calculates AnimatedSprite2D bounds from its current frame",
+	)
+	_expect(
+		environment.call(
+			"_get_model_attachment_anchor",
+			runtime_model,
+			animated_sprite.global_position,
+		) == animated_sprite,
+		"Animated sprite attachment targets sample the current frame without crashing",
+	)
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.global_position = runtime_model.global_position
+	environment.call("_on_preview_gui_input", press)
+	var drag := InputEventMouseMotion.new()
+	drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+	drag.relative = Vector2(25.0, -10.0)
+	environment.call("_on_preview_gui_input", drag)
+	_expect(
+		runtime_model.position.is_equal_approx(original_position + drag.relative),
+		"Dragging moves only the selected model",
+	)
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	environment.call("_on_preview_gui_input", wheel)
+	_expect(runtime_model.scale.x > 1.0, "Mouse wheel scales the selected model")
+	var stage_api: TwberStageApi = environment.get("_stage_api") as TwberStageApi
+	var target_bounds: Rect2 = environment.call("_get_model_global_bounds", first_runtime_model)
+	_expect(
+		stage_api.get_attachment_anchor(first_runtime_model, target_bounds.position + Vector2.ONE) == null,
+		"Transparent pixels are not valid attachment targets",
+	)
+	runtime_model.global_position = first_runtime_model.global_position
+	stage_api.item_drag_ended.emit(runtime_model)
+	await process_frame
+	var attached_position := runtime_model.global_position
+	var parent_motion := Vector2(18.0, 12.0)
+	first_runtime_model.global_position += parent_motion
+	await process_frame
+	_expect(
+		runtime_model.global_position.is_equal_approx(attached_position + parent_motion),
+		"Attachment package makes a dropped model follow its parent model",
+	)
+	var target_layer := _find_layer_node(first_runtime_model, "stage_test_layer")
+	var before_layer_motion := runtime_model.global_position
+	var layer_motion := Vector2(7.0, -4.0)
+	target_layer.position += layer_motion
+	await process_frame
+	_expect(
+		runtime_model.global_position.is_equal_approx(before_layer_motion + layer_motion),
+		"An attachment follows the moving model layer under its drop point",
+	)
+	var attached_scale := runtime_model.scale * 1.1
+	runtime_model.scale = attached_scale
+	await process_frame
+	_expect(
+		runtime_model.scale.is_equal_approx(attached_scale),
+		"An attached model can still be scaled independently",
+	)
+	environment.call("_select_model", first_runtime_model)
+	_expect(
+		model_stage.get_child(model_stage.get_child_count() - 1) == runtime_model,
+		"Selecting an attachment parent also brings its attached items forward",
+	)
+	stage_api.item_drag_started.emit(runtime_model)
+	var detached_position := runtime_model.global_position
+	first_runtime_model.global_position += parent_motion
+	await process_frame
+	_expect(
+		runtime_model.global_position.is_equal_approx(detached_position),
+		"Dragging an attached model detaches it",
+	)
+	var selector := environment.get_node("%ModelSelector") as OptionButton
+	selector.select(0)
+	selector.item_selected.emit(0)
+	_expect(environment.get_selected_model() == first_runtime_model, "Model selector changes the active model")
+	environment.remove_selected_model()
+	_expect(
+		environment.get_model_count() == 1
+		and environment.get_selected_model() == runtime_model
+		and selector.item_count == 1,
+		"Removing the selected model keeps the remaining stage model active",
+	)
+	var asset_path := "user://twber_environment_asset_test.png"
+	var asset_image := Image.create(20, 12, false, Image.FORMAT_RGBA8)
+	asset_image.fill(Color(0.8, 0.2, 0.4, 1.0))
+	_expect(asset_image.save_png(asset_path) == OK, "Image asset fixture saves")
+	var package_manager := environment.get_node("%PackageManager") as TwberPackageManager
+	var background_record: Dictionary = package_manager.get_packages().get(&"background", {})
+	var background_package := background_record.get("package") as TwberEnvironmentPackage
+	var background_color := Color(0.12, 0.34, 0.56, 0.78)
+	background_package.apply_package_settings({"mode": "color", "color": background_color})
+	_expect(
+		(environment.get_node("%BackgroundColor") as ColorRect).color.is_equal_approx(background_color)
+		and not (environment.get_node("%BackgroundImage") as TextureRect).visible,
+		"Background package applies a solid color",
+	)
+	background_package.apply_package_settings({"mode": "image", "image_path": asset_path})
+	_expect(
+		(environment.get_node("%BackgroundImage") as TextureRect).visible
+		and (environment.get_node("%BackgroundImage") as TextureRect).texture != null,
+		"Background package loads a custom image",
+	)
+	var attachment_record: Dictionary = package_manager.get_packages().get(&"attachment", {})
+	var attachment_package := attachment_record.get("package") as TwberEnvironmentPackage
+	attachment_package.call("_on_files_dropped", PackedStringArray([asset_path]))
+	await process_frame
+	while environment.is_busy():
+		await process_frame
+	_expect(
+		environment.get_model_count() == 2
+		and environment.get_selected_model().name == "TwberEnvironmentAssetTest",
+		"Dropping an image file into the app adds it as an attachment asset",
 	)
 
+	await process_frame
 	environment.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(model_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(asset_path))
 	MODEL_INPUT_PROFILE.clear_bindings(model_path)
 	_finish()
 
 
 func _create_test_model() -> TwberModelResource:
 	var model := TwberModelResource.new()
+	var image := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	for y: int in range(8, 24):
+		for x: int in range(8, 24):
+			image.set_pixel(x, y, Color.WHITE)
+	model.textures["stage_test_texture"] = ImageTexture.create_from_image(image)
+	var layer := TwberLayerResource.new()
+	layer.id = "stage_test_layer"
+	layer.name = "Stage Test Layer"
+	layer.type = TwberLayerResource.LayerType.SPRITE
+	layer.texture_id = "stage_test_texture"
+	model.layers.append(layer)
+	model.root_layer_ids.append(layer.id)
 
 	var enabled := TwberParameterResource.new()
 	enabled.id = "enabled"
@@ -143,6 +334,16 @@ func _create_test_model() -> TwberModelResource:
 	model.parameters.append(look)
 
 	return model
+
+
+func _find_layer_node(parent: Node, layer_id: String) -> Node2D:
+	for child: Node in parent.get_children():
+		if child is Node2D and String(child.get_meta(TwberModelCodec.LAYER_ID_META, "")) == layer_id:
+			return child as Node2D
+		var nested := _find_layer_node(child, layer_id)
+		if nested != null:
+			return nested
+	return null
 
 
 func _expect(condition: bool, message: String) -> void:

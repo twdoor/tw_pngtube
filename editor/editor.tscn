@@ -73,19 +73,53 @@ text = "File
 "
 expand_icon = true
 switch_on_hover = true
-item_count = 6
+item_count = 7
 popup/item_0/text = "New"
 popup/item_0/id = 4
 popup/item_1/text = "Open"
 popup/item_1/id = 1
 popup/item_2/text = "Save"
 popup/item_2/id = 2
-popup/item_3/text = "Export"
-popup/item_3/id = 3
-popup/item_4/text = "Settings"
-popup/item_4/id = 5
-popup/item_5/text = "Model Performance"
-popup/item_5/id = 6
+popup/item_3/text = "Save As..."
+popup/item_3/id = 7
+popup/item_4/text = "Export Copy..."
+popup/item_4/id = 3
+popup/item_5/text = "Settings"
+popup/item_5/id = 5
+popup/item_6/text = "Model Performance"
+popup/item_6/id = 6
+
+[node name="Spacer2" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=605529992]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="CurrentModelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=1129255221]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("1_ycap1")
+theme_override_font_sizes/font_size = 11
+text = "Untitled"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=872686595]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="EditorStatusLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=1750300078]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("1_ycap1")
+theme_override_font_sizes/font_size = 11
+text = "Ready"
+horizontal_alignment = 2
+vertical_alignment = 1
 
 [node name="Menus" type="TabContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=213659694]
 layout_mode = 2

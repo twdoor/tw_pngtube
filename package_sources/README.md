@@ -4,6 +4,8 @@ This folder contains the editable source for Twber Environment packages. Godot c
 
 - `mouse/` demonstrates a vector input, per-parameter display settings, platform-specific tracking, and a binding UI.
 - `microphone/` demonstrates package-wide settings, bool/float/int mappings, thresholds, and live meters.
+- `attachment/` demonstrates a stage extension, model-to-model drag/drop attachment, and image-asset creation.
+- `background/` demonstrates saved stage presentation settings with solid-color and custom-image modes.
 
 Every immediate child folder with a `package.json` is discovered by `tools/build_packages.gd`. Build all packages from the Godot editor:
 

@@ -475,6 +475,19 @@ func _test_editor_model_open_and_reset() -> void:
 	editor.call("_open_model", model_path)
 	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
 	var renderer := TwberModelBatchRenderer2D.find_on(model_root)
+	var file_menu := (editor.get_node("%FileMenuButton") as MenuButton).get_popup()
+	_expect(
+		file_menu.get_item_index(TwberEditor.MENU_SAVE_AS) >= 0,
+		"Editor File menu provides Save As",
+	)
+	_expect(
+		editor.get_current_model_path() == model_path,
+		"Editor tracks an opened editable resource as the current model",
+	)
+	_expect(
+		(editor.get_node("%CurrentModelLabel") as Label).text == model_path.get_file(),
+		"Editor displays the current model file name",
+	)
 	_expect(model_root.get_child_count() == 2, "Editor opens both model layers")
 	_expect(
 			renderer is TwberModelBatchRenderer2D and renderer.is_batching_active(),
@@ -482,10 +495,61 @@ func _test_editor_model_open_and_reset() -> void:
 	)
 	if renderer is TwberModelBatchRenderer2D:
 		_expect(renderer.get_batch_count() == 1, "Editor preview uses one atlas render batch")
+	var saved_twber_path := "user://twber_editor_current_model_test.twber"
+	_expect(
+		int(editor.call("_save_model_to_path", saved_twber_path, true)) == OK,
+		"Editor Save As writes a Twber model",
+	)
+	_expect(
+		editor.get_current_model_path() == saved_twber_path,
+		"Saving as Twber adopts the Twber path as the current model",
+	)
+	var async_open_error: Error = await editor._open_model_async(saved_twber_path)
+	_expect(
+		async_open_error == OK
+		and editor.get_current_model_path() == saved_twber_path
+		and not editor.is_busy()
+		and (editor.get_node("%EditorStatusLabel") as Label).text.begins_with("Loaded "),
+		"Editor loads and tracks a Twber model in the background",
+	)
+	var in_place_save_error: Error = await editor._save_model_to_path_async(
+		saved_twber_path,
+		true,
+	)
+	_expect(
+		in_place_save_error == OK
+		and editor.get_current_model_path() == saved_twber_path
+		and not editor.is_busy()
+		and (editor.get_node("%EditorStatusLabel") as Label).text.begins_with("Saved "),
+		"Save writes an opened Twber model in place",
+	)
+	var saved_resource_path := "user://twber_editor_save_as_test.tres"
+	_expect(
+		int(editor.call("_save_model_to_path", saved_resource_path, true)) == OK,
+		"Editor Save As writes an editable resource",
+	)
+	_expect(
+		editor.get_current_model_path() == saved_resource_path,
+		"Saving as an editable resource adopts its path",
+	)
+	var exported_copy_path := "user://twber_editor_export_copy_test.twber"
+	_expect(
+		int(editor.call("_export_model", exported_copy_path)) == OK,
+		"Editor Export writes a Twber copy",
+	)
+	_expect(
+		editor.get_current_model_path() == saved_resource_path,
+		"Export does not replace the current model path",
+	)
 
 	editor.call("_new_model")
 	renderer = TwberModelBatchRenderer2D.find_on(model_root)
 	_expect(model_root.get_child_count() == 0, "New model removes editable layers")
+	_expect(
+		editor.get_current_model_path().is_empty()
+		and (editor.get_node("%CurrentModelLabel") as Label).text == "Untitled",
+		"New clears the current model path",
+	)
 	_expect(
 			renderer is TwberModelBatchRenderer2D and not renderer.is_batching_active(),
 			"New model keeps the internal renderer ready without stale geometry",
@@ -620,6 +684,9 @@ func _test_editor_model_open_and_reset() -> void:
 	)
 	editor.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(model_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(saved_twber_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(saved_resource_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(exported_copy_path))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(clipped_model_path))
 
 

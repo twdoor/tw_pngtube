@@ -30,7 +30,9 @@ The manifest API is versioned:
 }
 ```
 
-`settings_scene` is optional. The entry scene must extend `TwberInputProvider`. A settings scene must extend `TwberPackageSettingsControl`, and input descriptors may provide a `binding_scene` extending `TwberInputBindingControl`. This lets a package carry its provider, package-wide settings UI, parameter-specific mapping UI, and preview behavior in the same PCK.
+`settings_scene` is optional. Every entry scene extends `TwberEnvironmentPackage`. Input packages extend its `TwberInputProvider` subtype, while stage extensions can use the base class directly. A settings scene must extend `TwberPackageSettingsControl`, and input descriptors may provide a `binding_scene` extending `TwberInputBindingControl`. This lets a package carry its behavior and scene-backed UI in the same PCK.
+
+Stage packages receive a `TwberStageApi`. It exposes the current stage items, their visual bounds and source paths, item add/remove and drag lifecycle signals, and image-asset creation. The API deliberately stays narrower than the environment scene so package code remains modular. See `package_sources/attachment/` for a complete stage-extension example.
 
 ## Authoring Packages
 
@@ -46,16 +48,22 @@ package_sources/
 │   ├── settings_control.tscn
 │   ├── binding_control.gd
 │   └── binding_control.tscn
-└── mouse/
-    └── ...
+├── mouse/
+│   └── ...
+└── attachment/
+    ├── attachment.gd
+    ├── attachment.tscn
+    ├── settings_control.gd
+    └── settings_control.tscn
 ```
 
 These folders are visible in Godot's FileSystem dock. Their scenes and scripts use normal editable paths such as `res://package_sources/mouse/provider.gd`, so they can be opened and changed directly.
 
 To start another package, copy either existing folder, rename it to a valid lowercase package ID, and replace every old `res://package_sources/<old-id>` path with the new folder path. The `id` in `package.json` must match the folder name.
 
-The three core base scripts are:
+The four core base scripts are:
 
+- `TwberEnvironmentPackage`: the common entry point for every package.
 - `TwberInputProvider`: the package entry point and value producer.
 - `TwberPackageSettingsControl`: optional package-wide settings UI.
 - `TwberInputBindingControl`: optional per-parameter mapping and preview UI.
@@ -88,6 +96,8 @@ The builder writes:
 ```text
 packages/mouse.pck
 packages/microphone.pck
+packages/attachment.pck
+packages/background.pck
 ```
 
 The `.pck` files are generated build outputs; the editable folders remain unchanged. During packaging, the builder validates the manifest and stages a copy that rewrites `res://package_sources/<package-id>` references to the isolated `res://twber_packages/<package-id>` runtime namespace. Each generated PCK therefore contains only its own manifest, scripts, scenes, and assets, with no runtime dependency on the authoring folder.

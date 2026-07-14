@@ -1,4 +1,4 @@
-class_name TwberInputProvider extends Node
+class_name TwberInputProvider extends TwberEnvironmentPackage
 
 # Providers emit this from their own scripts; the base contract intentionally
 # does not emit a sample itself.
@@ -18,12 +18,28 @@ func get_provider_description() -> String:
 	return ""
 
 
+func get_package_name() -> String:
+	return get_provider_name()
+
+
+func get_package_description() -> String:
+	return get_provider_description()
+
+
 func is_provider_enabled() -> bool:
 	return true
 
 
 func set_provider_enabled(_enabled: bool) -> void:
 	pass
+
+
+func is_package_enabled() -> bool:
+	return is_provider_enabled()
+
+
+func set_package_enabled(enabled: bool) -> void:
+	set_provider_enabled(enabled)
 
 
 func get_default_enabled() -> bool:

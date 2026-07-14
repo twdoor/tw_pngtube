@@ -24,11 +24,13 @@ The editor also repacks compatible preview textures into in-memory atlases. Mesh
 
 ## Environment
 
-The environment can load `.twber`, `.tres`, and `.res` models, inspect and manually test their parameters, pan and zoom the live model, and connect compatible package values to parameters. Its UI is composed from Godot scenes, including a reusable parameter-control scene; scripts only populate model-dependent rows and handle behavior.
+The environment can place multiple `.twber`, `.tres`, and `.res` model instances on one stage. Each model can be selected, dragged, scaled with the mouse wheel, removed, and configured independently; the parameter panel follows the selected model while package inputs continue updating every model with matching bindings. Its UI is composed from Godot scenes, including reusable model-instance and parameter-control scenes.
 
-The first input packages are mouse tracking and microphone level. They are loaded at runtime from `packages/mouse.pck` and `packages/microphone.pck`; the environment has no direct scene, script, class, or UI reference to either implementation. Mouse tracking publishes a global `mouse.position`; each bound vector parameter selects the display it should interpret, producing normalized model-space coordinates from `(-1, -1)` to `(1, 1)` with positive Y pointing up. The microphone package publishes RMS-smoothed `microphone.level_db` from `-80 dB` to `0 dB`; it is disabled by default and can be enabled from Packages. Each bound bool parameter has its own dB threshold, while each bound float or integer parameter has its own minimum and maximum dB range plus a live preview. Package settings and parameter-binding controls are scenes carried inside their respective PCK.
+The toolbar's **Open Output** action opens a separate transparent presentation window that shares the live stage but excludes the environment interface. Streaming applications such as OBS can capture the `Twber Output` window while controls remain available in the main window.
 
-The environment automatically saves each model's input profile locally, keyed by its loaded path. A profile includes every parameter's selected source and its source-specific configuration, so reopening the same model restores its display choice, microphone threshold, and dB ranges.
+The included packages are mouse tracking, microphone level, model attachments, and stage backgrounds. They are loaded at runtime from their files under `packages/`; the environment has no direct scene or script reference to their implementations. Mouse tracking publishes a global `mouse.position`; each bound vector parameter selects the display it should interpret, producing normalized model-space coordinates from `(-1, -1)` to `(1, 1)` with positive Y pointing up. The microphone package publishes RMS-smoothed `microphone.level_db` from `-80 dB` to `0 dB`; it is disabled by default and can be enabled from Packages. The attachment package lets an image asset or model dropped over another model follow that model until it is dragged away. The background package provides saved solid-color and custom-image stage backgrounds. Package settings and parameter-binding controls are scenes carried inside their respective PCK.
+
+The environment automatically saves each model's input profile locally, keyed by its loaded path. Every stage instance keeps its own live copy of that profile, so multiple loaded models can animate together while switching selection only changes which controls are shown.
 
 Environment-wide settings are kept separately in `user://twber_environment_settings.cfg`. They remember which installed packages are enabled, along with global package settings such as the selected microphone device and audio-feedback preference. The editor continues to use its own independent editor-settings file.
 
@@ -36,10 +38,10 @@ The File menu includes a **Model Performance** report for estimated draw calls, 
 
 ## Model Formats
 
-- `.tres` / `.res`: editable Godot model resources used while authoring.
-- `.twber`: versioned archive containing a binary model, checksummed texture files, export-time atlases, lossless fallback images, and desktop GPU-compressed texture variants.
+- `.twber`: the primary editable model format, stored as a versioned archive containing a binary model, checksummed texture files, atlases, lossless fallback images, and desktop GPU-compressed texture variants.
+- `.tres` / `.res`: legacy editable Godot model resources retained for compatibility.
 
-The editor can open editable resources, current `.twber` archives, and legacy JSON/base64 `.twber` packages. Saving writes editable resources; exporting writes the archive format atomically.
+The editor can open, edit, and save current `.twber` archives in place, as well as legacy resources and JSON/base64 `.twber` packages. New models default to `.twber`; loading and archive saving run as background jobs with visible status so the interface remains responsive. Export Copy writes another `.twber` without changing the current document.
 
 Parameter samples are compiled when a model changes: scalar positions are sorted once, 2D triangulations are cached, layer lookups are reused, and unchanged pose channels are stored sparsely. `TwberRuntimeModel` provides the environment-facing model node, batched parameter updates, immutable neutral poses, atlas preparation, direct canvas batching, and dirty-parameter evaluation that updates only affected layers and render-buffer slices.
 

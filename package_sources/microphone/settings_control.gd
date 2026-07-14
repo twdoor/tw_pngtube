@@ -11,7 +11,7 @@ func _ready() -> void:
 	_feedback.toggled.connect(_on_feedback_changed)
 
 
-func configure(value: TwberInputProvider, settings: Dictionary = {}) -> void:
+func configure(value: TwberEnvironmentPackage, settings: Dictionary = {}) -> void:
 	super.configure(value, settings)
 	_updating = true
 	_device_option.clear()
@@ -47,4 +47,3 @@ func _on_changed(_index: int) -> void:
 func _on_feedback_changed(_enabled: bool) -> void:
 	if not _updating:
 		settings_changed.emit(get_settings())
-

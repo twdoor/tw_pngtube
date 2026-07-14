@@ -1,0 +1,9 @@
+{
+  "api_version": 1,
+  "id": "background",
+  "name": "Stage Background",
+  "version": "1.0.0",
+  "description": "Sets a solid color or custom image behind the stage.",
+  "entry_scene": "res://package_sources/background/background.tscn",
+  "settings_scene": "res://package_sources/background/settings_control.tscn"
+}

@@ -11,7 +11,7 @@ signal package_state_changed(package_id: StringName, enabled: bool, settings: Di
 @onready var _settings_host: VBoxContainer = %PackageSettingsHost
 
 var _package_id := StringName()
-var _provider: TwberInputProvider
+var _package: TwberEnvironmentPackage
 var _settings_control: TwberPackageSettingsControl
 var _updating := false
 
@@ -23,24 +23,25 @@ func _ready() -> void:
 
 func configure(
 		manifest: Dictionary,
-		provider: TwberInputProvider,
+		package: TwberEnvironmentPackage,
 		enabled: bool,
 		settings: Dictionary,
 ) -> void:
 	_package_id = StringName(manifest.get("id", ""))
-	_provider = provider
-	_name_label.text = String(manifest.get("name", provider.get_provider_name()))
+	_package = package
+	_name_label.text = String(manifest.get("name", package.get_package_name()))
 	_version_label.text = "v%s" % String(manifest.get("version", "0.0.0"))
-	_description_label.text = String(manifest.get("description", provider.get_provider_description()))
+	_description_label.text = String(manifest.get("description", package.get_package_description()))
 	var outputs := PackedStringArray()
-	for descriptor: Dictionary in provider.get_value_descriptors():
-		outputs.append(String(descriptor.get("name", descriptor.get("id", "Value"))))
-	_outputs_label.text = "Outputs: %s" % ", ".join(outputs)
+	if package is TwberInputProvider:
+		for descriptor: Dictionary in (package as TwberInputProvider).get_value_descriptors():
+			outputs.append(String(descriptor.get("name", descriptor.get("id", "Value"))))
+	_outputs_label.text = "Outputs: %s" % ", ".join(outputs) if not outputs.is_empty() else "Stage extension"
 	_updating = true
 	_enabled_button.button_pressed = enabled
 	_updating = false
-	_provider.apply_package_settings(settings)
-	_provider.set_provider_enabled(enabled)
+	_package.apply_package_settings(settings)
+	_package.set_package_enabled(enabled)
 	_create_settings_control(String(manifest.get("settings_scene", "")), settings)
 
 
@@ -58,14 +59,14 @@ func _create_settings_control(scene_path: String, settings: Dictionary) -> void:
 		return
 	_settings_control = instance as TwberPackageSettingsControl
 	_settings_host.add_child(_settings_control)
-	_settings_control.configure(_provider, settings)
+	_settings_control.configure(_package, settings)
 	_settings_control.settings_changed.connect(_on_settings_changed)
 
 
 func _on_enabled_toggled(enabled: bool) -> void:
-	if _updating or _provider == null:
+	if _updating or _package == null:
 		return
-	_provider.set_provider_enabled(enabled)
+	_package.set_package_enabled(enabled)
 	_emit_state()
 
 
@@ -74,13 +75,12 @@ func _on_settings_toggled(expanded: bool) -> void:
 
 
 func _on_settings_changed(settings: Dictionary) -> void:
-	if _provider == null:
+	if _package == null:
 		return
-	_provider.apply_package_settings(settings)
+	_package.apply_package_settings(settings)
 	_emit_state()
 
 
 func _emit_state() -> void:
-	var settings := _settings_control.get_settings() if _settings_control != null else _provider.get_package_settings()
+	var settings := _settings_control.get_settings() if _settings_control != null else _package.get_package_settings()
 	package_state_changed.emit(_package_id, _enabled_button.button_pressed, settings)
-
