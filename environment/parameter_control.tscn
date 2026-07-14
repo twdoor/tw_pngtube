@@ -1,0 +1,96 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://environment/parameter_control.gd" id="1_parameter"]
+[ext_resource type="FontFile" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[ext_resource type="Script" path="res://environment/vector_plane.gd" id="3_vector_plane"]
+
+[node name="ParameterControl" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 154)
+script = ExtResource("1_parameter")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Title" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Margin/Content/Title"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 13
+text = "Parameter"
+
+[node name="TypeLabel" type="Label" parent="Margin/Content/Title"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "FLOAT"
+
+[node name="ResetButton" type="Button" parent="Margin/Content/Title"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "Reset"
+
+[node name="Source" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Margin/Content/Source"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 11
+text = "Input"
+
+[node name="SourceOption" type="OptionButton" parent="Margin/Content/Source"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 11
+
+[node name="BindingHost" type="VBoxContainer" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BoolEditor" type="CheckButton" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Enabled"
+
+[node name="ScalarEditor" type="HBoxContainer" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ScalarSlider" type="HSlider" parent="Margin/Content/ScalarEditor"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+
+[node name="ScalarValue" type="SpinBox" parent="Margin/Content/ScalarEditor"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+
+[node name="VectorPlane" type="Control" parent="Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+script = ExtResource("3_vector_plane")

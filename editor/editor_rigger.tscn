@@ -2,14 +2,17 @@
 
 [ext_resource type="Script" uid="uid://dqqu1rj0obmqq" path="res://editor/editor_rigger.gd" id="1_rigger"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_2ael8"]
-[ext_resource type="Texture2D" uid="uid://byt3rq4x3yi4c" path="res://shared/assets/Icon_PictoIcon_Expand.Png" id="3_u8i7d"]
-[ext_resource type="Texture2D" uid="uid://d4i2kp1y7vona" path="res://shared/assets/Icon_PictoIcon_Pen.Png" id="4_deform"]
-[ext_resource type="Texture2D" uid="uid://qyw4ob470cht" path="res://shared/assets/Icon_PictoIcon_Reload.Png" id="4_lxu5c"]
-[ext_resource type="Texture2D" uid="uid://cq8l3ixq0c7kb" path="res://shared/assets/Icon_PictoIcon_Crop.Png" id="5_bwxmh"]
-[ext_resource type="Texture2D" uid="uid://bfdsk2dx2fe2d" path="res://shared/assets/Icon_PictoIcon_Reset.Png" id="5_reset"]
-[ext_resource type="Texture2D" uid="uid://polce8mf26ha" path="res://shared/assets/Icon_PictoIcon_Earth.Png" id="6_lxu5c"]
-[ext_resource type="Texture2D" uid="uid://bjwltalmnvmi0" path="res://shared/assets/Icon_PictoIcon_Hashtag.Png" id="7_qpxpf"]
-[ext_resource type="Texture2D" uid="uid://cwomok7hxilfr" path="res://shared/assets/Icon_PictoIcon_Gender_Female.Png" id="8_yrcqg"]
+[ext_resource type="Texture2D" uid="uid://b8rkam22a3uut" path="res://shared/assets/icons/cursor-move.svg" id="3_yrcqg"]
+[ext_resource type="Texture2D" uid="uid://bpjb5ofpa8ers" path="res://shared/assets/icons/change.svg" id="4_folvi"]
+[ext_resource type="Texture2D" uid="uid://83jdb8ri4wy5" path="res://shared/assets/icons/expand-02.svg" id="5_0auf0"]
+[ext_resource type="Texture2D" uid="uid://c2xf3ons8p7ni" path="res://shared/assets/icons/circle-ring.svg" id="6_skge1"]
+[ext_resource type="Texture2D" uid="uid://dlxa8u73ggu6b" path="res://shared/assets/icons/pen.svg" id="7_d1grl"]
+[ext_resource type="Texture2D" uid="uid://8wx77ynvjsn1" path="res://shared/assets/icons/select.svg" id="8_xv5wb"]
+[ext_resource type="Texture2D" uid="uid://dfmy4fnmf5mo7" path="res://shared/assets/icons/search.svg" id="9_vmst1"]
+[ext_resource type="Texture2D" uid="uid://0fv1pdxw7gwf" path="res://shared/assets/icons/refresh.svg" id="10_y4xg0"]
+[ext_resource type="Texture2D" uid="uid://jqed7o41wr7j" path="res://shared/assets/icons/emoji-17.svg" id="11_rnnyd"]
+[ext_resource type="Texture2D" uid="uid://lnw3g5w4ewhe" path="res://shared/assets/icons/visible.svg" id="12_7owhd"]
+[ext_resource type="Texture2D" uid="uid://cnwknklfei45d" path="res://shared/assets/icons/invisible.svg" id="13_aison"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_hdak6"]
 
@@ -56,7 +59,7 @@ tooltip_text = "Move layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("3_u8i7d")
+icon = ExtResource("3_yrcqg")
 icon_alignment = 1
 expand_icon = true
 
@@ -70,7 +73,7 @@ tooltip_text = "Rotate layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("4_lxu5c")
+icon = ExtResource("4_folvi")
 icon_alignment = 1
 expand_icon = true
 
@@ -84,7 +87,7 @@ tooltip_text = "Scale layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("5_bwxmh")
+icon = ExtResource("5_0auf0")
 icon_alignment = 1
 expand_icon = true
 
@@ -98,7 +101,7 @@ tooltip_text = "Change pivot"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("6_lxu5c")
+icon = ExtResource("6_skge1")
 icon_alignment = 1
 expand_icon = true
 
@@ -112,7 +115,7 @@ tooltip_text = "Deform vertex"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("4_deform")
+icon = ExtResource("7_d1grl")
 icon_alignment = 1
 expand_icon = true
 
@@ -126,7 +129,7 @@ tooltip_text = "Rectangle select"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("7_qpxpf")
+icon = ExtResource("8_xv5wb")
 icon_alignment = 1
 expand_icon = true
 
@@ -140,7 +143,7 @@ tooltip_text = "Lasso select"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("8_yrcqg")
+icon = ExtResource("9_vmst1")
 icon_alignment = 1
 expand_icon = true
 
@@ -154,7 +157,7 @@ tooltip_text = "Reset vertex"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_hdak6")
-icon = ExtResource("5_reset")
+icon = ExtResource("10_y4xg0")
 icon_alignment = 1
 expand_icon = true
 
@@ -166,7 +169,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Reset layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
-icon = ExtResource("5_reset")
+icon = ExtResource("11_rnnyd")
 icon_alignment = 1
 expand_icon = true
 
@@ -206,6 +209,8 @@ unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Visibility toggle"
 theme_override_fonts/font = ExtResource("2_2ael8")
+theme_override_icons/checked = ExtResource("12_7owhd")
+theme_override_icons/unchecked = ExtResource("13_aison")
 
 [node name="OpacitySlider" type="HSlider" parent="ItemWindow/MarginContainer/VBoxContainer/Inspector/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1538126739]
 unique_name_in_owner = true
@@ -244,7 +249,7 @@ mouse_behavior_recursive = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
 
 [node name="ParameterWindow" type="PanelContainer" parent="." unique_id=1734670485]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="ParameterWindow" unique_id=253337204]
@@ -268,6 +273,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Create bool parameter"
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "b"
 icon_alignment = 1
@@ -279,6 +285,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Create integer parameter"
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "i"
 icon_alignment = 1
@@ -290,6 +297,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Create float parameter"
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "f"
 icon_alignment = 1
@@ -301,6 +309,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Create 2D vector parameter"
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "v"
 icon_alignment = 1
@@ -310,60 +319,34 @@ expand_icon = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/ParamList" unique_id=1086689095]
-layout_mode = 2
-
-[node name="LayerOptions" type="HFlowContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=400341933]
-layout_mode = 2
-alignment = 2
-reverse_fill = true
-
-[node name="BoolButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=702041490]
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+[node name="ParameterScroll" type="ScrollContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/ParamList" unique_id=141189189]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("2_2ael8")
-text = "b"
-icon_alignment = 1
-expand_icon = true
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="BoolButton2" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1833976923]
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+[node name="ParameterList" type="VBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/ParamList/ParameterScroll" unique_id=1086689095]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("2_2ael8")
-text = "b"
-icon_alignment = 1
-expand_icon = true
 
-[node name="BoolButton3" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1819927834]
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+[node name="LayerOptions" type="HBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=400341933]
+layout_mode = 2
+
+[node name="BindPositionButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1819927834]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Capture the selected layer's full state at the current parameter position"
 theme_override_fonts/font = ExtResource("2_2ael8")
-text = "b"
-icon_alignment = 1
-expand_icon = true
+text = "Bind"
 
-[node name="BoolButton4" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=1470623682]
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+[node name="RemovePositionButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=767664345]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Remove the selected layer's state from the current parameter position"
 theme_override_fonts/font = ExtResource("2_2ael8")
-text = "b"
-icon_alignment = 1
-expand_icon = true
-
-[node name="BoolButton5" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/LayerOptions" unique_id=349989428]
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("2_2ael8")
-text = "b"
-icon_alignment = 1
-expand_icon = true
+text = "Remove"

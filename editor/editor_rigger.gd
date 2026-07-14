@@ -1,11 +1,5 @@
-class_name EditorRigger extends HSplitContainer
+class_name EditorRigger extends EditorModelTree
 
-const TREE_COLUMN := 0
-const ROOT_LAYER_ID := 0
-const INVALID_LAYER_ID := -1
-const MODEL_ROOT_NAME := "Textures"
-const HANDLE_RADIUS := 5.0
-const HANDLE_HIT_RADIUS := 12.0
 const EDGE_COLOR := Color(0.19, 0.75, 1.0, 0.9)
 const LAYER_ORIGIN_COLOR := Color(1.0, 0.78, 0.22, 0.95)
 const LAYER_GUIDE_COLOR := Color(1.0, 0.78, 0.22, 0.65)
@@ -37,20 +31,21 @@ enum RigMode {
 @onready var _lasso_select_button: Button = %LassoSelectButton
 @onready var _reset_vertex_button: Button = %ResetVertexButton
 @onready var _reset_layer_button: Button = %ResetLayerButton
-@onready var _tree: Tree = %Tree
 @onready var _inspector: PanelContainer = %Inspector
 @onready var _visible_check_box: CheckBox = %VisibleCheckBox
 @onready var _opacity_slider: HSlider = %OpacitySlider
 @onready var _animation_frame_rate: SpinBox = %AnimationFrameRate
 @onready var _animations_box: Control = %AnimationsBox
 @onready var _animations_option_button: OptionButton = %AnimationsOptionButton
+@onready var _create_bool_button: Button = %BoolButton
+@onready var _create_int_button: Button = %IntButton
+@onready var _create_float_button: Button = %FloatButton
+@onready var _create_vector_button: Button = %VectorButton
+@onready var _parameter_list: VBoxContainer = %ParameterList
+@onready var _bind_position_button: Button = %BindPositionButton
+@onready var _remove_position_button: Button = %RemovePositionButton
 @onready var _edit_panel: Control = $Panel
-@export var _preview_layer: CanvasLayer
 
-var _root_item: TreeItem
-var _model_root: Node2D
-var _selected_layer_id := INVALID_LAYER_ID
-var _selected_node: Node2D
 var _selected_vertex_indices: Array[int] = []
 var _dragging_vertex := false
 var _dragging_layer_transform := false
@@ -70,13 +65,14 @@ var _selection_mode := RigMode.RECTANGLE_SELECT
 var _selection_start_position := Vector2.ZERO
 var _selection_current_position := Vector2.ZERO
 var _lasso_points := PackedVector2Array()
-var _overlay: Control
-var _layers_by_id: Dictionary = {}
-var _root_layer_ids: Array[int] = []
-var _tree_items_by_id: Dictionary = {}
 var _initial_layer_states_by_node_id: Dictionary = {}
-var _next_item_id := 1
 var _updating_inspector := false
+var _selected_parameter_id := ""
+var _parameter_preview_values := {}
+var _parameter_value_controls := {}
+var _parameter_select_buttons := {}
+var _previewed_layer_ids := {}
+var _parameter_evaluator := TwberParameterEvaluator.new()
 
 
 func _ready() -> void:
@@ -86,23 +82,35 @@ func _ready() -> void:
 	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
 	_animation_frame_rate.value_changed.connect(_on_animation_frame_rate_value_changed)
 	_animations_option_button.item_selected.connect(_on_animation_selected)
+	_create_bool_button.pressed.connect(
+			_on_create_parameter_pressed.bind(TwberParameterResource.ValueType.BOOL)
+	)
+	_create_int_button.pressed.connect(
+			_on_create_parameter_pressed.bind(TwberParameterResource.ValueType.INT)
+	)
+	_create_float_button.pressed.connect(
+			_on_create_parameter_pressed.bind(TwberParameterResource.ValueType.FLOAT)
+	)
+	_create_vector_button.pressed.connect(
+			_on_create_parameter_pressed.bind(TwberParameterResource.ValueType.VECTOR2)
+	)
+	_bind_position_button.pressed.connect(_on_bind_position_button_pressed)
+	_remove_position_button.pressed.connect(_on_remove_position_button_pressed)
 
-	_tree.clear()
-	_tree.columns = 1
-	_tree.hide_root = true
-	_tree.set_column_expand(TREE_COLUMN, true)
-	_tree.item_selected.connect(_on_tree_item_selected)
+	_initialize_model_tree()
 	_setup_overlay()
-
-	_setup_preview()
-	_hide_inspector()
 	reload_from_preview()
-	set_process(true)
 
 
-func _process(_delta: float) -> void:
+func reload_from_preview(selected_node: Node2D = null) -> void:
+	restore_parameter_preview_base()
+	_previewed_layer_ids.clear()
+	_initial_layer_states_by_node_id.clear()
+	_parameter_preview_values.clear()
+	super.reload_from_preview(selected_node)
+	_parameter_evaluator.configure(_model_root, _get_model_parameters())
 	if visible:
-		_queue_overlay_redraw()
+		preview_parameters()
 
 
 func _setup_overlay() -> void:
@@ -130,8 +138,7 @@ func _on_overlay_draw() -> void:
 	elif _selected_node is AnimatedSprite2D:
 		_draw_animated_sprite_bounds(_selected_node)
 
-	if _selected_node != null:
-		_draw_layer_transform_overlay(_selected_node)
+	_draw_layer_transform_overlay(_selected_node)
 
 
 func _on_overlay_gui_input(event: InputEvent) -> void:
@@ -142,29 +149,6 @@ func _on_overlay_gui_input(event: InputEvent) -> void:
 		_handle_mouse_button(event, _overlay_local_to_viewport(event.position))
 	elif event is InputEventMouseMotion:
 		_handle_mouse_motion(event, _overlay_local_to_viewport(event.position))
-
-
-func reload_from_preview(selected_node: Node2D = null) -> void:
-	var node_to_select := selected_node
-	if node_to_select == null:
-		node_to_select = _selected_node
-
-	_layers_by_id.clear()
-	_root_layer_ids.clear()
-	_tree_items_by_id.clear()
-	_next_item_id = 1
-
-	if _model_root != null:
-		_import_model_children(_model_root, ROOT_LAYER_ID, _root_layer_ids)
-
-	_rebuild_tree()
-
-	if node_to_select != null:
-		_select_node(node_to_select)
-	elif _selected_layer_id != INVALID_LAYER_ID:
-		_set_selected_layer(_selected_layer_id)
-	else:
-		_set_selected_layer(INVALID_LAYER_ID)
 
 
 func _handle_mouse_button(event: InputEventMouseButton, viewport_position: Vector2) -> void:
@@ -221,7 +205,8 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport_position: Vecto
 			continue
 
 		var start_position: Vector2 = _drag_start_vertices[vertex_index]
-		mesh_sprite.set_deformed_vertex(vertex_index, start_position + drag_offset)
+		var next_position := _snap_mesh_position(mesh_sprite, start_position + drag_offset)
+		mesh_sprite.set_deformed_vertex(vertex_index, next_position)
 	_queue_overlay_redraw()
 	_overlay.accept_event()
 
@@ -243,7 +228,7 @@ func _begin_layer_transform_at(canvas_position: Vector2, mode: int) -> void:
 	var mouse_offset := canvas_position - _layer_transform_start_origin
 	_layer_transform_start_mouse_angle = mouse_offset.angle()
 	_layer_transform_start_mouse_distance = maxf(mouse_offset.length(), MIN_LAYER_SCALE_DISTANCE)
-	_update_layer_transform(canvas_position)
+	_queue_overlay_redraw()
 
 
 func _update_layer_transform(canvas_position: Vector2) -> void:
@@ -258,10 +243,19 @@ func _update_layer_transform(canvas_position: Vector2) -> void:
 		RigMode.ROTATE_LAYER:
 			var mouse_offset := canvas_position - _layer_transform_start_origin
 			if mouse_offset.length_squared() > MIN_LAYER_SCALE_DISTANCE:
-				_selected_node.rotation = _layer_transform_start_rotation + mouse_offset.angle() - _layer_transform_start_mouse_angle
+				var rotation_delta := angle_difference(
+						_layer_transform_start_mouse_angle,
+						mouse_offset.angle(),
+				)
+				var next_rotation := _snap_rotation(
+						_layer_transform_start_rotation + rotation_delta,
+				)
+				_selected_node.rotation = wrapf(next_rotation, -PI, PI)
 		RigMode.SCALE_LAYER:
 			var mouse_distance := maxf((canvas_position - _layer_transform_start_origin).length(), MIN_LAYER_SCALE_DISTANCE)
-			var scale_factor := mouse_distance / _layer_transform_start_mouse_distance
+			var scale_factor := _snap_scale_factor(
+					mouse_distance / _layer_transform_start_mouse_distance,
+			)
 			_selected_node.scale = _layer_transform_start_scale * scale_factor
 
 	_queue_overlay_redraw()
@@ -537,6 +531,802 @@ func _refresh_animation_controls(animated_sprite: AnimatedSprite2D) -> void:
 	_animations_option_button.disabled = animation_names.is_empty()
 
 
+func _get_model_parameters() -> Array[TwberParameterResource]:
+	var output: Array[TwberParameterResource] = []
+	if _model_root == null:
+		return output
+
+	var stored_values: Variant = _model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, [])
+	if stored_values is Array:
+		for value: Variant in stored_values:
+			if value is TwberParameterResource:
+				output.append(value)
+
+	return output
+
+
+func _set_model_parameters(parameters: Array[TwberParameterResource]) -> void:
+	if _model_root != null:
+		_model_root.set_meta(TwberModelCodec.MODEL_PARAMETERS_META, parameters)
+		_parameter_evaluator.update_parameters(parameters)
+
+
+func _refresh_parameter_panel() -> void:
+	if _parameter_list == null:
+		return
+
+	for child: Node in _parameter_list.get_children():
+		_parameter_list.remove_child(child)
+		child.queue_free()
+
+	_parameter_value_controls.clear()
+	_parameter_select_buttons.clear()
+
+	var parameters := _get_model_parameters()
+	_sync_parameter_preview_values(parameters)
+	if not _has_parameter_id(_selected_parameter_id):
+		_selected_parameter_id = parameters[0].id if not parameters.is_empty() else ""
+
+	for parameter: TwberParameterResource in parameters:
+		_parameter_list.add_child(_create_parameter_card(parameter))
+
+	_update_parameter_selection()
+	_refresh_position_buttons()
+
+
+func _sync_parameter_preview_values(parameters: Array[TwberParameterResource]) -> void:
+	var next_values := {}
+	for parameter: TwberParameterResource in parameters:
+		if parameter == null or parameter.id.is_empty():
+			continue
+		var value: Variant = _parameter_preview_values.get(
+				parameter.id,
+				parameter.get_default_value(),
+		)
+		next_values[parameter.id] = parameter.value_from_coordinate(
+				parameter.coordinate_from_value(value),
+		)
+	_parameter_preview_values = next_values
+
+
+func _create_parameter_card(parameter: TwberParameterResource) -> Control:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0.0, 0.0)
+
+	var margin := MarginContainer.new()
+	for margin_name: StringName in [
+			&"margin_left",
+			&"margin_top",
+			&"margin_right",
+			&"margin_bottom",
+	]:
+		margin.add_theme_constant_override(margin_name, 6)
+	card.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	margin.add_child(content)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 4)
+	content.add_child(header)
+
+	var select_button := Button.new()
+	select_button.custom_minimum_size = Vector2(48.0, 28.0)
+	select_button.toggle_mode = true
+	select_button.text = _get_parameter_type_label(parameter.value_type).to_upper()
+	select_button.tooltip_text = _get_parameter_position_count_text(parameter)
+	select_button.pressed.connect(func() -> void:
+		_select_parameter(parameter.id)
+	)
+	header.add_child(select_button)
+	_parameter_select_buttons[parameter.id] = select_button
+
+	var name_edit := LineEdit.new()
+	name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_edit.text = parameter.name if not parameter.name.is_empty() else parameter.id
+	name_edit.tooltip_text = parameter.id
+	name_edit.focus_entered.connect(func() -> void:
+		_select_parameter(parameter.id)
+	)
+	name_edit.text_changed.connect(func(text_value: String) -> void:
+		parameter.name = text_value.strip_edges()
+		_set_model_parameters(_get_model_parameters())
+	)
+	header.add_child(name_edit)
+
+	var delete_button := Button.new()
+	delete_button.custom_minimum_size = Vector2(28.0, 28.0)
+	delete_button.text = "×"
+	delete_button.tooltip_text = "Delete parameter"
+	delete_button.pressed.connect(func() -> void:
+		_delete_parameter(parameter.id)
+	)
+	header.add_child(delete_button)
+
+	if parameter.value_type != TwberParameterResource.ValueType.BOOL:
+		content.add_child(_create_parameter_range_editor(parameter))
+
+	var value_control := _create_parameter_value_control(parameter)
+	content.add_child(value_control)
+	_parameter_value_controls[parameter.id] = value_control
+	return card
+
+
+func _create_parameter_range_editor(parameter: TwberParameterResource) -> Control:
+	if parameter.value_type == TwberParameterResource.ValueType.VECTOR2:
+		return _create_vector_range_editor(parameter)
+	return _create_scalar_range_editor(parameter)
+
+
+func _create_scalar_range_editor(parameter: TwberParameterResource) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var minimum_label := Label.new()
+	minimum_label.text = "Min"
+	row.add_child(minimum_label)
+
+	var use_integers := parameter.value_type == TwberParameterResource.ValueType.INT
+	var minimum_edit := _create_range_spin_box(parameter.get_scalar_min(), use_integers)
+	minimum_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(minimum_edit)
+
+	var maximum_label := Label.new()
+	maximum_label.text = "Max"
+	row.add_child(maximum_label)
+
+	var maximum_edit := _create_range_spin_box(parameter.get_scalar_max(), use_integers)
+	maximum_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(maximum_edit)
+
+	minimum_edit.value_changed.connect(func(value: float) -> void:
+		_on_scalar_range_changed(parameter, true, value, minimum_edit, maximum_edit)
+	)
+	maximum_edit.value_changed.connect(func(value: float) -> void:
+		_on_scalar_range_changed(parameter, false, value, minimum_edit, maximum_edit)
+	)
+	_update_scalar_range_spin_limits(parameter, minimum_edit, maximum_edit)
+	return row
+
+
+func _create_vector_range_editor(parameter: TwberParameterResource) -> Control:
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 2)
+
+	var range_min := parameter.get_vector_min()
+	var range_max := parameter.get_vector_max()
+	var minimum_x_edit := _add_labeled_range_spin_box(grid, "Min X", range_min.x)
+	var minimum_y_edit := _add_labeled_range_spin_box(grid, "Min Y", range_min.y)
+	var maximum_x_edit := _add_labeled_range_spin_box(grid, "Max X", range_max.x)
+	var maximum_y_edit := _add_labeled_range_spin_box(grid, "Max Y", range_max.y)
+
+	minimum_x_edit.value_changed.connect(func(value: float) -> void:
+		_on_vector_range_changed(parameter, 0, true, value, minimum_x_edit, maximum_x_edit)
+	)
+	minimum_y_edit.value_changed.connect(func(value: float) -> void:
+		_on_vector_range_changed(parameter, 1, true, value, minimum_y_edit, maximum_y_edit)
+	)
+	maximum_x_edit.value_changed.connect(func(value: float) -> void:
+		_on_vector_range_changed(parameter, 0, false, value, minimum_x_edit, maximum_x_edit)
+	)
+	maximum_y_edit.value_changed.connect(func(value: float) -> void:
+		_on_vector_range_changed(parameter, 1, false, value, minimum_y_edit, maximum_y_edit)
+	)
+	_update_vector_range_spin_limits(parameter, 0, minimum_x_edit, maximum_x_edit)
+	_update_vector_range_spin_limits(parameter, 1, minimum_y_edit, maximum_y_edit)
+	return grid
+
+
+func _add_labeled_range_spin_box(
+		parent: GridContainer,
+		label_text: String,
+		value: float,
+) -> SpinBox:
+	var label := Label.new()
+	label.text = label_text
+	parent.add_child(label)
+
+	var spin_box := _create_range_spin_box(value, false)
+	spin_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(spin_box)
+	return spin_box
+
+
+func _create_range_spin_box(value: float, use_integers: bool) -> SpinBox:
+	var spin_box := SpinBox.new()
+	spin_box.custom_minimum_size = Vector2(62.0, 0.0)
+	spin_box.min_value = -1000000.0
+	spin_box.max_value = 1000000.0
+	spin_box.step = (
+			TwberParameterResource.DISCRETE_STEP
+			if use_integers
+			else TwberParameterResource.CONTINUOUS_STEP
+	)
+	spin_box.rounded = use_integers
+	spin_box.value = value
+	spin_box.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	spin_box.update_on_text_changed = false
+	spin_box.tooltip_text = "Remove bound positions before shrinking the range past them"
+	return spin_box
+
+
+func _create_parameter_value_control(parameter: TwberParameterResource) -> Control:
+	var active_value: Variant = _parameter_preview_values.get(
+			parameter.id,
+			parameter.get_default_value(),
+	)
+
+	match parameter.value_type:
+		TwberParameterResource.ValueType.BOOL:
+			var check_box := CheckBox.new()
+			check_box.text = "True"
+			check_box.tooltip_text = "Preview false or true"
+			check_box.button_pressed = bool(active_value)
+			check_box.toggled.connect(func(enabled: bool) -> void:
+				_on_parameter_value_changed(parameter, enabled)
+			)
+			return check_box
+		TwberParameterResource.ValueType.VECTOR2:
+			var vector_field := ParameterVectorField.new()
+			vector_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			vector_field.configure(
+					parameter.get_vector_min(),
+					parameter.get_vector_max(),
+					parameter.step,
+			)
+			vector_field.set_active_value(parameter.coordinate_from_value(active_value))
+			vector_field.set_bound_markers(parameter.get_bound_coordinates())
+			vector_field.value_changed.connect(func(value: Vector2) -> void:
+				_on_parameter_value_changed(parameter, value)
+			)
+			return vector_field
+		_:
+			var scalar_track := ParameterScalarTrack.new()
+			scalar_track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var use_integers := parameter.value_type == TwberParameterResource.ValueType.INT
+			scalar_track.configure(
+					parameter.get_scalar_min(),
+					parameter.get_scalar_max(),
+					parameter.step,
+					use_integers,
+			)
+			scalar_track.set_active_value(parameter.coordinate_from_value(active_value).x)
+			scalar_track.set_bound_markers(_get_scalar_bound_markers(parameter))
+			scalar_track.value_changed.connect(func(value: float) -> void:
+				var parameter_value: Variant = value
+				if use_integers:
+					parameter_value = int(roundf(value))
+				_on_parameter_value_changed(parameter, parameter_value)
+			)
+			return scalar_track
+
+
+func _get_scalar_bound_markers(parameter: TwberParameterResource) -> Array[float]:
+	var output: Array[float] = []
+	for coordinate: Vector2 in parameter.get_bound_coordinates():
+		output.append(coordinate.x)
+	return output
+
+
+func _on_scalar_range_changed(
+		parameter: TwberParameterResource,
+		editing_minimum: bool,
+		value: float,
+		minimum_edit: SpinBox,
+		maximum_edit: SpinBox,
+) -> void:
+	if editing_minimum:
+		var upper_limit := parameter.get_scalar_max()
+		var lowest_bound: Variant = _get_bound_component_extreme(parameter, 0, true)
+		if lowest_bound != null:
+			upper_limit = minf(upper_limit, float(lowest_bound))
+		parameter.min_value = minf(value, upper_limit)
+	else:
+		var lower_limit := parameter.get_scalar_min()
+		var highest_bound: Variant = _get_bound_component_extreme(parameter, 0, false)
+		if highest_bound != null:
+			lower_limit = maxf(lower_limit, float(highest_bound))
+		parameter.max_value = maxf(value, lower_limit)
+
+	minimum_edit.set_value_no_signal(parameter.get_scalar_min())
+	maximum_edit.set_value_no_signal(parameter.get_scalar_max())
+	_update_scalar_range_spin_limits(parameter, minimum_edit, maximum_edit)
+	_finish_parameter_range_change(parameter)
+
+
+func _update_scalar_range_spin_limits(
+		parameter: TwberParameterResource,
+		minimum_edit: SpinBox,
+		maximum_edit: SpinBox,
+) -> void:
+	var minimum_upper_limit := parameter.get_scalar_max()
+	var lowest_bound: Variant = _get_bound_component_extreme(parameter, 0, true)
+	if lowest_bound != null:
+		minimum_upper_limit = minf(minimum_upper_limit, float(lowest_bound))
+	minimum_edit.max_value = minimum_upper_limit
+
+	var maximum_lower_limit := parameter.get_scalar_min()
+	var highest_bound: Variant = _get_bound_component_extreme(parameter, 0, false)
+	if highest_bound != null:
+		maximum_lower_limit = maxf(maximum_lower_limit, float(highest_bound))
+	maximum_edit.min_value = maximum_lower_limit
+
+
+func _on_vector_range_changed(
+		parameter: TwberParameterResource,
+		axis: int,
+		editing_minimum: bool,
+		value: float,
+		minimum_edit: SpinBox,
+		maximum_edit: SpinBox,
+) -> void:
+	var range_min := parameter.get_vector_min()
+	var range_max := parameter.get_vector_max()
+	if editing_minimum:
+		var upper_limit := range_max[axis]
+		var lowest_bound: Variant = _get_bound_component_extreme(parameter, axis, true)
+		if lowest_bound != null:
+			upper_limit = minf(upper_limit, float(lowest_bound))
+		range_min[axis] = minf(value, upper_limit)
+	else:
+		var lower_limit := range_min[axis]
+		var highest_bound: Variant = _get_bound_component_extreme(parameter, axis, false)
+		if highest_bound != null:
+			lower_limit = maxf(lower_limit, float(highest_bound))
+		range_max[axis] = maxf(value, lower_limit)
+
+	parameter.min_vector2 = range_min
+	parameter.max_vector2 = range_max
+	minimum_edit.set_value_no_signal(range_min[axis])
+	maximum_edit.set_value_no_signal(range_max[axis])
+	_update_vector_range_spin_limits(parameter, axis, minimum_edit, maximum_edit)
+	_finish_parameter_range_change(parameter)
+
+
+func _update_vector_range_spin_limits(
+		parameter: TwberParameterResource,
+		axis: int,
+		minimum_edit: SpinBox,
+		maximum_edit: SpinBox,
+) -> void:
+	var range_min := parameter.get_vector_min()
+	var range_max := parameter.get_vector_max()
+	var minimum_upper_limit := range_max[axis]
+	var lowest_bound: Variant = _get_bound_component_extreme(parameter, axis, true)
+	if lowest_bound != null:
+		minimum_upper_limit = minf(minimum_upper_limit, float(lowest_bound))
+	minimum_edit.max_value = minimum_upper_limit
+
+	var maximum_lower_limit := range_min[axis]
+	var highest_bound: Variant = _get_bound_component_extreme(parameter, axis, false)
+	if highest_bound != null:
+		maximum_lower_limit = maxf(maximum_lower_limit, float(highest_bound))
+	maximum_edit.min_value = maximum_lower_limit
+
+
+func _get_bound_component_extreme(
+		parameter: TwberParameterResource,
+		axis: int,
+		find_minimum: bool,
+) -> Variant:
+	var found := false
+	var extreme := INF if find_minimum else -INF
+	for parameter_position: TwberParameterPositionResource in parameter.positions:
+		if parameter_position == null or parameter_position.layer_states.is_empty():
+			continue
+		var component := parameter_position.coordinate[axis]
+		extreme = minf(extreme, component) if find_minimum else maxf(extreme, component)
+		found = true
+	if not found:
+		return null
+	return extreme
+
+
+func _finish_parameter_range_change(parameter: TwberParameterResource) -> void:
+	var current_value: Variant = _parameter_preview_values.get(
+			parameter.id,
+			parameter.get_default_value(),
+	)
+	_parameter_preview_values[parameter.id] = parameter.value_from_coordinate(
+			parameter.coordinate_from_value(current_value),
+	)
+	_selected_parameter_id = parameter.id
+	_update_parameter_selection()
+	_update_parameter_control(parameter)
+	_refresh_position_buttons()
+	_set_model_parameters(_get_model_parameters())
+	if visible:
+		preview_parameters()
+
+
+func _on_parameter_value_changed(
+		parameter: TwberParameterResource,
+		value: Variant,
+) -> void:
+	_parameter_preview_values[parameter.id] = parameter.value_from_coordinate(
+			parameter.coordinate_from_value(value),
+	)
+	_selected_parameter_id = parameter.id
+	_update_parameter_selection()
+	_refresh_position_buttons()
+	preview_parameters()
+
+
+func _select_parameter(parameter_id: String) -> void:
+	if not _has_parameter_id(parameter_id):
+		return
+	_selected_parameter_id = parameter_id
+	_update_parameter_selection()
+	_refresh_position_buttons()
+	preview_parameters()
+
+
+func _update_parameter_selection() -> void:
+	for parameter_id: Variant in _parameter_select_buttons:
+		var select_button: Button = _parameter_select_buttons[parameter_id]
+		select_button.set_pressed_no_signal(String(parameter_id) == _selected_parameter_id)
+
+
+func _on_create_parameter_pressed(value_type: int) -> void:
+	var parameter := TwberParameterResource.new()
+	parameter.value_type = value_type as TwberParameterResource.ValueType
+	_configure_new_parameter(parameter)
+
+	var parameters := _get_model_parameters()
+	parameters.append(parameter)
+	_set_model_parameters(parameters)
+	_parameter_preview_values[parameter.id] = parameter.get_default_value()
+	_selected_parameter_id = parameter.id
+	_refresh_parameter_panel()
+	preview_parameters()
+
+
+func _configure_new_parameter(parameter: TwberParameterResource) -> void:
+	match parameter.value_type:
+		TwberParameterResource.ValueType.BOOL:
+			parameter.id = _make_unique_parameter_id("bool")
+			parameter.name = _make_unique_parameter_name("Bool")
+			parameter.min_value = 0.0
+			parameter.max_value = 1.0
+			parameter.step = TwberParameterResource.DISCRETE_STEP
+			parameter.default_bool = false
+		TwberParameterResource.ValueType.INT:
+			parameter.id = _make_unique_parameter_id("int")
+			parameter.name = _make_unique_parameter_name("Int")
+			parameter.min_value = 0.0
+			parameter.max_value = 10.0
+			parameter.step = TwberParameterResource.DISCRETE_STEP
+			parameter.default_int = 0
+		TwberParameterResource.ValueType.VECTOR2:
+			parameter.id = _make_unique_parameter_id("vector")
+			parameter.name = _make_unique_parameter_name("Vector")
+			parameter.min_vector2 = Vector2(-1.0, -1.0)
+			parameter.max_vector2 = Vector2(1.0, 1.0)
+			parameter.step = TwberParameterResource.CONTINUOUS_STEP
+			parameter.default_vector2 = Vector2.ZERO
+		_:
+			parameter.id = _make_unique_parameter_id("float")
+			parameter.name = _make_unique_parameter_name("Float")
+			parameter.min_value = 0.0
+			parameter.max_value = 1.0
+			parameter.step = TwberParameterResource.CONTINUOUS_STEP
+			parameter.default_float = 0.0
+
+
+func _delete_parameter(parameter_id: String) -> void:
+	var parameters := _get_model_parameters()
+	for index: int in range(parameters.size() - 1, -1, -1):
+		if parameters[index].id == parameter_id:
+			parameters.remove_at(index)
+
+	_parameter_preview_values.erase(parameter_id)
+	if _selected_parameter_id == parameter_id:
+		_selected_parameter_id = ""
+
+	_set_model_parameters(parameters)
+	_refresh_parameter_panel()
+	preview_parameters()
+
+
+func _on_bind_position_button_pressed() -> void:
+	var parameter := _get_selected_parameter()
+	var layer_id := _get_selected_model_layer_id()
+	if parameter == null or _selected_node == null or layer_id.is_empty():
+		return
+
+	# The object currently contains the contributions from every active parameter,
+	# plus the user's edits. Store only the selected parameter's contribution so
+	# unrelated visibility, transform, colour, and mesh changes are not baked into it.
+	var edited_state := TwberLayerStateResource.new()
+	edited_state.capture_from_node(_selected_node)
+	restore_parameter_preview_base()
+	_reset_layer_to_initial_state(_selected_node, false)
+
+	var base_state := TwberLayerStateResource.new()
+	base_state.capture_from_node(_selected_node)
+	for affected_layer_id: String in _apply_parameter_preview_values(parameter.id):
+		_previewed_layer_ids[affected_layer_id] = true
+
+	var other_parameters_state := TwberLayerStateResource.new()
+	other_parameters_state.capture_from_node(_selected_node)
+	var isolated_state := TwberLayerStateResource.isolate_contribution(
+			base_state,
+			edited_state,
+			other_parameters_state,
+	)
+	if isolated_state == null:
+		preview_parameters()
+		return
+
+	var coordinate := _get_parameter_preview_coordinate(parameter)
+	var parameter_position := parameter.find_position(coordinate)
+	if parameter_position == null:
+		parameter_position = TwberParameterPositionResource.new()
+		parameter_position.coordinate = coordinate
+		parameter.positions.append(parameter_position)
+
+	parameter_position.upsert_state(isolated_state)
+	_set_model_parameters(_get_model_parameters())
+	_refresh_parameter_panel()
+	preview_parameters()
+
+
+func _on_remove_position_button_pressed() -> void:
+	var parameter := _get_selected_parameter()
+	var layer_id := _get_selected_model_layer_id()
+	if parameter == null or layer_id.is_empty():
+		return
+
+	var parameter_position := parameter.find_position(
+			_get_parameter_preview_coordinate(parameter),
+	)
+	if parameter_position == null or not parameter_position.remove_state(layer_id):
+		return
+
+	if parameter_position.layer_states.is_empty():
+		parameter.positions.erase(parameter_position)
+
+	_set_model_parameters(_get_model_parameters())
+	_refresh_parameter_panel()
+	preview_parameters()
+
+
+func _get_parameter_preview_coordinate(parameter: TwberParameterResource) -> Vector2:
+	return parameter.coordinate_from_value(_parameter_preview_values.get(
+			parameter.id,
+			parameter.get_default_value(),
+	))
+
+
+func _update_parameter_control(parameter: TwberParameterResource) -> void:
+	if not _parameter_value_controls.has(parameter.id):
+		return
+
+	var control: Control = _parameter_value_controls[parameter.id]
+	var active_coordinate := _get_parameter_preview_coordinate(parameter)
+	if control is ParameterScalarTrack:
+		control.configure(
+				parameter.get_scalar_min(),
+				parameter.get_scalar_max(),
+				parameter.step,
+				parameter.value_type == TwberParameterResource.ValueType.INT,
+		)
+		control.set_active_value(active_coordinate.x)
+		control.set_bound_markers(_get_scalar_bound_markers(parameter))
+	elif control is ParameterVectorField:
+		control.configure(
+				parameter.get_vector_min(),
+				parameter.get_vector_max(),
+				parameter.step,
+		)
+		control.set_active_value(active_coordinate)
+		control.set_bound_markers(parameter.get_bound_coordinates())
+
+	if _parameter_select_buttons.has(parameter.id):
+		var select_button: Button = _parameter_select_buttons[parameter.id]
+		select_button.tooltip_text = _get_parameter_position_count_text(parameter)
+
+
+func _get_parameter_position_count_text(parameter: TwberParameterResource) -> String:
+	var count := 0
+	for parameter_position: TwberParameterPositionResource in parameter.positions:
+		if parameter_position != null and not parameter_position.layer_states.is_empty():
+			count += 1
+	return "%d bound position(s)" % count
+
+
+func _refresh_position_buttons() -> void:
+	var parameter := _get_selected_parameter()
+	var can_bind := parameter != null and _selected_node != null
+	var has_selected_state := can_bind and _has_selected_layer_state_at_preview(parameter)
+	_bind_position_button.disabled = not can_bind
+	_remove_position_button.disabled = not has_selected_state
+	if not can_bind:
+		_remove_position_button.tooltip_text = "Select a parameter and layer first"
+	elif has_selected_state:
+		_remove_position_button.tooltip_text = (
+				"Remove the selected layer's state from the current parameter position"
+		)
+	elif parameter.find_position(_get_parameter_preview_coordinate(parameter)) != null:
+		_remove_position_button.tooltip_text = (
+				"This position currently contains states for other layers only"
+		)
+	else:
+		_remove_position_button.tooltip_text = "The current parameter position is not bound"
+
+
+func _has_selected_layer_state_at_preview(parameter: TwberParameterResource) -> bool:
+	if parameter == null:
+		return false
+	var layer_id := _get_selected_model_layer_id()
+	if layer_id.is_empty():
+		return false
+	var parameter_position := parameter.find_position(
+			_get_parameter_preview_coordinate(parameter),
+	)
+	return parameter_position != null and parameter_position.find_state(layer_id) != null
+
+
+func preview_parameters() -> void:
+	if not visible:
+		return
+	restore_parameter_preview_base()
+	if _model_root != null:
+		for layer_id: String in _apply_parameter_preview_values():
+			_previewed_layer_ids[layer_id] = true
+
+	if _selected_node != null:
+		_refresh_inspector()
+	_queue_overlay_redraw()
+
+
+func _apply_parameter_preview_values(excluded_parameter_id := "") -> Array[String]:
+	if _model_root == null:
+		return []
+
+	var affected_layer_ids := _parameter_evaluator.apply(
+			_parameter_preview_values,
+			excluded_parameter_id,
+	)
+	_snap_parameter_preview_layers(affected_layer_ids)
+	return affected_layer_ids
+
+
+func _snap_parameter_preview_layers(layer_ids: Array[String]) -> void:
+	if not _is_pixel_snap_enabled() or layer_ids.is_empty() or _model_root == null:
+		return
+
+	var layer_nodes := _parameter_evaluator.get_layer_nodes()
+	for layer_id: String in layer_ids:
+		if not layer_nodes.has(layer_id):
+			continue
+		var node := layer_nodes[layer_id] as Node2D
+		if node == null:
+			continue
+		node.position = _snap_pixel_position(node.position)
+		node.rotation = _snap_rotation(node.rotation)
+		node.scale = _snap_scale(node.scale)
+		_snap_parameter_preview_mesh(node)
+
+
+func _snap_parameter_preview_mesh(node: Node2D) -> void:
+	if node is not TwberMeshSprite2D:
+		return
+
+	var mesh_sprite: TwberMeshSprite2D = node
+	if mesh_sprite.mesh_data == null or mesh_sprite.mesh_data.vertices.is_empty():
+		return
+
+	var snapped_vertices := mesh_sprite.mesh_data.vertices.duplicate()
+	var changed := false
+	for vertex_index: int in snapped_vertices.size():
+		var snapped_position := _snap_mesh_position(
+				mesh_sprite,
+				snapped_vertices[vertex_index],
+		)
+		if not snapped_position.is_equal_approx(snapped_vertices[vertex_index]):
+			snapped_vertices[vertex_index] = snapped_position
+			changed = true
+
+	if changed:
+		mesh_sprite.mesh_data.vertices = snapped_vertices
+		mesh_sprite.sync_mesh()
+
+
+func restore_parameter_preview_base() -> void:
+	if _previewed_layer_ids.is_empty() or _model_root == null:
+		return
+	_restore_initial_states_in_tree(_model_root, _previewed_layer_ids)
+	var renderer := TwberModelBatchRenderer2D.find_on(_model_root)
+	if renderer is TwberModelBatchRenderer2D:
+		var restored_nodes: Array[Node2D] = []
+		var layer_nodes := _parameter_evaluator.get_layer_nodes()
+		for layer_id: Variant in _previewed_layer_ids:
+			var node := layer_nodes.get(String(layer_id)) as Node2D
+			if node != null:
+				restored_nodes.append(node)
+		if not restored_nodes.is_empty():
+			renderer.update_dynamic_geometry_for_nodes(restored_nodes)
+	_previewed_layer_ids.clear()
+
+
+func _restore_initial_states_in_tree(parent: Node, layer_ids: Dictionary) -> void:
+	for child: Node in parent.get_children():
+		if child is not Node2D:
+			continue
+		var node_2d: Node2D = child
+		var layer_id := String(node_2d.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+		if layer_ids.has(layer_id) and _initial_layer_states_by_node_id.has(node_2d.get_instance_id()):
+			_reset_layer_to_initial_state(node_2d, false)
+		_restore_initial_states_in_tree(node_2d, layer_ids)
+
+
+func _get_selected_parameter() -> TwberParameterResource:
+	return _find_parameter_by_id(_selected_parameter_id)
+
+
+func _has_parameter_id(parameter_id: String) -> bool:
+	return not parameter_id.is_empty() and _find_parameter_by_id(parameter_id) != null
+
+
+func _find_parameter_by_id(parameter_id: String) -> TwberParameterResource:
+	for parameter: TwberParameterResource in _get_model_parameters():
+		if parameter.id == parameter_id:
+			return parameter
+	return null
+
+
+func _get_selected_model_layer_id() -> String:
+	if _selected_node == null:
+		return ""
+
+	if not _selected_node.has_meta(TwberModelCodec.LAYER_ID_META):
+		TwberModelCodec.ensure_layer_ids(_model_root)
+
+	return String(_selected_node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+
+
+func _make_unique_parameter_id(prefix: String) -> String:
+	var index := 1
+	while true:
+		var parameter_id := "%s_%03d" % [prefix, index]
+		if _find_parameter_by_id(parameter_id) == null:
+			return parameter_id
+		index += 1
+
+	return prefix
+
+
+func _make_unique_parameter_name(prefix: String) -> String:
+	var existing_names := {}
+	for parameter: TwberParameterResource in _get_model_parameters():
+		existing_names[parameter.name] = true
+
+	var index := 1
+	while true:
+		var parameter_name := "%s %d" % [prefix, index]
+		if not existing_names.has(parameter_name):
+			return parameter_name
+		index += 1
+
+	return prefix
+
+
+func _get_parameter_type_label(value_type: int) -> String:
+	match value_type:
+		TwberParameterResource.ValueType.BOOL:
+			return "bool"
+		TwberParameterResource.ValueType.INT:
+			return "int"
+		TwberParameterResource.ValueType.VECTOR2:
+			return "vec"
+		_:
+			return "float"
+
+
 func _get_selected_animated_sprite() -> AnimatedSprite2D:
 	if _selected_node is AnimatedSprite2D:
 		return _selected_node
@@ -566,19 +1356,14 @@ func _get_animated_sprite_animation(animated_sprite: AnimatedSprite2D) -> String
 	return &"default"
 
 
-func _reset_layer_to_initial_state(node: Node2D) -> void:
+func _reset_layer_to_initial_state(node: Node2D, restore_children := true) -> void:
 	var state := _get_initial_layer_state(node)
 	node.position = state["position"]
 	node.rotation = state["rotation"]
 	node.scale = state["scale"]
 	node.visible = state["visible"]
 	node.self_modulate = state["self_modulate"]
-	_restore_layer_content_state(node, state)
-
-	if node is TwberMeshSprite2D:
-		var mesh_sprite: TwberMeshSprite2D = node
-		mesh_sprite.reset_deformation()
-		mesh_sprite.sync_visual_state()
+	_restore_layer_content_state(node, state, restore_children)
 
 
 func _remember_initial_layer_state(node: Node2D) -> void:
@@ -610,6 +1395,16 @@ func _capture_layer_content_state(node: Node2D) -> Dictionary:
 	elif node is AnimatedSprite2D:
 		var animated_sprite: AnimatedSprite2D = node
 		state["animated_offset"] = animated_sprite.offset
+		if animated_sprite.sprite_frames != null:
+			var animation_speeds := {}
+			for animation_name: StringName in animated_sprite.sprite_frames.get_animation_names():
+				animation_speeds[String(animation_name)] = (
+					animated_sprite.sprite_frames.get_animation_speed(animation_name)
+				)
+			state["animated_animation_speeds"] = animation_speeds
+			var animation := animated_sprite.animation
+			if animation != &"" and animated_sprite.sprite_frames.has_animation(animation):
+				state["animated_animation"] = animation
 	elif node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
 		if mesh_sprite.mesh_data != null:
@@ -622,14 +1417,34 @@ func _capture_layer_content_state(node: Node2D) -> Dictionary:
 	return state
 
 
-func _restore_layer_content_state(node: Node2D, state: Dictionary) -> void:
+func _restore_layer_content_state(
+		node: Node2D,
+		state: Dictionary,
+		restore_children: bool,
+) -> void:
 	var content: Dictionary = state.get("content", {})
 	if node is Sprite2D and content.has("sprite_offset"):
 		var sprite: Sprite2D = node
 		sprite.offset = content["sprite_offset"]
-	elif node is AnimatedSprite2D and content.has("animated_offset"):
+	elif node is AnimatedSprite2D:
 		var animated_sprite: AnimatedSprite2D = node
-		animated_sprite.offset = content["animated_offset"]
+		if content.has("animated_offset"):
+			animated_sprite.offset = content["animated_offset"]
+
+		if animated_sprite.sprite_frames != null:
+			var animation_speeds: Dictionary = content.get("animated_animation_speeds", {})
+			for animation_name_value: Variant in animation_speeds:
+				var animation_name := StringName(animation_name_value)
+				if animated_sprite.sprite_frames.has_animation(animation_name):
+					animated_sprite.sprite_frames.set_animation_speed(
+							animation_name,
+							float(animation_speeds[animation_name_value]),
+					)
+
+		if animated_sprite.sprite_frames != null and content.has("animated_animation"):
+			var animation := StringName(content["animated_animation"])
+			if animation != &"" and animated_sprite.sprite_frames.has_animation(animation):
+				animated_sprite.animation = animation
 	elif node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
 		if mesh_sprite.mesh_data != null:
@@ -643,7 +1458,8 @@ func _restore_layer_content_state(node: Node2D, state: Dictionary) -> void:
 				mesh_sprite.mesh_data.uvs = content["mesh_uvs"].duplicate()
 			mesh_sprite.sync_mesh()
 
-	_restore_direct_child_positions(node, state.get("child_positions", {}))
+	if restore_children:
+		_restore_direct_child_positions(node, state.get("child_positions", {}))
 
 
 func _capture_direct_child_positions(node: Node2D) -> Dictionary:
@@ -713,23 +1529,6 @@ func _prune_vertex_selection(vertex_count: int) -> void:
 		var vertex_index := _selected_vertex_indices[selection_index]
 		if vertex_index < 0 or vertex_index >= vertex_count:
 			_selected_vertex_indices.remove_at(selection_index)
-
-
-func _find_vertex_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_position: Vector2) -> int:
-	if mesh_sprite.mesh_data == null:
-		return -1
-
-	var editor_position := _canvas_to_editor_position(canvas_position)
-	var best_index := -1
-	var best_distance := HANDLE_HIT_RADIUS
-	for index: int in mesh_sprite.mesh_data.vertices.size():
-		var vertex_position := _node_to_editor_position(mesh_sprite, mesh_sprite.mesh_data.vertices[index])
-		var distance := editor_position.distance_to(vertex_position)
-		if distance <= best_distance:
-			best_distance = distance
-			best_index = index
-
-	return best_index
 
 
 func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
@@ -874,36 +1673,20 @@ func _draw_layer_origin(node: Node2D) -> void:
 	_overlay.draw_circle(_canvas_to_editor_position(_get_node_canvas_origin(node)), HANDLE_RADIUS, LAYER_ORIGIN_COLOR)
 
 
-func _get_sprite_texture_origin(sprite: Sprite2D) -> Vector2:
-	if sprite.texture == null:
-		return sprite.offset
-
-	var origin := sprite.offset
-	if sprite.centered:
-		origin -= sprite.texture.get_size() * 0.5
-
-	return origin
-
-
-func _node_to_editor_position(node: Node2D, local_position: Vector2) -> Vector2:
-	return _canvas_to_editor_position(node.get_global_transform_with_canvas() * local_position)
-
-
-func _viewport_to_node_position(node: Node2D, viewport_position: Vector2) -> Vector2:
-	return node.get_global_transform_with_canvas().affine_inverse() * viewport_position
-
-
 func _get_node_canvas_origin(node: Node2D) -> Vector2:
 	return node.get_global_transform_with_canvas().origin
 
 
 func _change_node_pivot(node: Node2D, canvas_origin: Vector2) -> void:
 	var old_transform := node.get_global_transform_with_canvas()
+	var local_pivot := old_transform.affine_inverse() * canvas_origin
+	local_pivot = _snap_pixel_position(local_pivot)
+	var snapped_canvas_origin := old_transform * local_pivot
 	var next_transform := old_transform
-	next_transform.origin = canvas_origin
+	next_transform.origin = snapped_canvas_origin
 	var local_shift := next_transform.affine_inverse() * old_transform.origin
 
-	_set_node_canvas_origin(node, canvas_origin)
+	_set_node_canvas_origin(node, snapped_canvas_origin, false)
 	_shift_node_local_content(node, local_shift)
 
 
@@ -923,17 +1706,23 @@ func _shift_node_local_content(node: Node2D, local_shift: Vector2) -> void:
 			child.position += local_shift
 
 
-func _set_node_canvas_origin(node: Node2D, canvas_origin: Vector2) -> void:
+func _set_node_canvas_origin(
+		node: Node2D,
+		canvas_origin: Vector2,
+		snap_to_grid := true,
+) -> void:
 	var parent := node.get_parent()
 	if parent is CanvasItem:
 		var parent_item: CanvasItem = parent
-		node.position = parent_item.get_global_transform_with_canvas().affine_inverse() * canvas_origin
+		var local_position := (
+				parent_item.get_global_transform_with_canvas().affine_inverse()
+				* canvas_origin
+		)
+		node.position = _snap_pixel_position(local_position) if snap_to_grid else local_position
 	else:
-		node.global_position = canvas_origin
-
-
-func _canvas_to_editor_position(canvas_position: Vector2) -> Vector2:
-	return _overlay.get_global_transform_with_canvas().affine_inverse() * canvas_position
+		node.global_position = (
+				_snap_pixel_position(canvas_origin) if snap_to_grid else canvas_origin
+		)
 
 
 func _get_mode() -> int:
@@ -957,130 +1746,38 @@ func _get_mode() -> int:
 	return RigMode.TRANSFORM_LAYER
 
 
-func _overlay_local_to_viewport(local_position: Vector2) -> Vector2:
-	return _overlay.get_global_transform_with_canvas() * local_position
+func _on_model_node_imported(node: Node2D) -> void:
+	_remember_initial_layer_state(node)
 
 
-func _queue_overlay_redraw() -> void:
-	if _overlay != null:
-		_overlay.queue_redraw()
-	queue_redraw()
-
-
-func _setup_preview() -> void:
-	if _preview_layer == null:
-		push_warning("EditorRigger needs a preview CanvasLayer.")
-		return
-
-	var existing_node := _preview_layer.get_node_or_null(MODEL_ROOT_NAME)
-	if existing_node is Node2D:
-		_model_root = existing_node
-	else:
-		push_warning("EditorRigger needs a Node2D named %s in the preview layer." % MODEL_ROOT_NAME)
-
-
-func _import_model_children(parent_node: Node, parent_id: int, child_ids: Array) -> void:
-	for child: Node in parent_node.get_children():
-		if child is not Node2D:
-			continue
-
-		var layer_id := _next_item_id
-		_next_item_id += 1
-		_remember_initial_layer_state(child)
-		_layers_by_id[layer_id] = {
-			"id": layer_id,
-			"name": child.name,
-			"parent_id": parent_id,
-			"children": [],
-			"node": child,
-		}
-		child_ids.append(layer_id)
-
-		var layer: Dictionary = _layers_by_id[layer_id]
-		_import_model_children(child, layer_id, layer["children"])
-
-
-func _rebuild_tree() -> void:
-	var collapsed_state := _get_tree_collapsed_state()
-	_tree.clear()
-	_tree_items_by_id.clear()
-	_root_item = _tree.create_item()
-	_add_layer_items(_root_item, _root_layer_ids, collapsed_state)
-
-
-func _add_layer_items(parent_item: TreeItem, layer_ids: Array, collapsed_state: Dictionary) -> void:
-	for layer_id: int in layer_ids:
-		var layer: Dictionary = _layers_by_id[layer_id]
-		var item := _tree.create_item(parent_item)
-		item.set_text(TREE_COLUMN, layer["name"])
-		item.set_metadata(TREE_COLUMN, layer_id)
-		if collapsed_state.has(layer_id):
-			item.set_collapsed(collapsed_state[layer_id])
-		_tree_items_by_id[layer_id] = item
-		_add_layer_items(item, layer["children"], collapsed_state)
-
-
-func _on_tree_item_selected() -> void:
-	_set_selected_layer(_get_layer_id_from_item(_tree.get_selected()))
-
-
-func _set_selected_layer(layer_id: int) -> void:
-	if not _layers_by_id.has(layer_id):
-		_selected_layer_id = INVALID_LAYER_ID
-		_selected_node = null
-		_clear_vertex_selection()
-		_stop_pointer_interaction()
-		_hide_inspector()
-		_queue_overlay_redraw()
-		return
-
-	_selected_layer_id = layer_id
-	var layer: Dictionary = _layers_by_id[layer_id]
-	_selected_node = layer["node"]
+func _on_model_node_selected() -> void:
 	_clear_vertex_selection()
 	_stop_pointer_interaction()
-	_refresh_inspector()
+	if _selected_node == null:
+		_hide_inspector()
+	else:
+		_refresh_inspector()
+	_refresh_parameter_panel()
 	_queue_overlay_redraw()
 
 
-func _select_node(node: Node2D) -> void:
-	var layer_id := _get_layer_id_for_node(node)
-	if layer_id == INVALID_LAYER_ID:
-		_set_selected_layer(INVALID_LAYER_ID)
+func _queue_overlay_redraw() -> void:
+	super._queue_overlay_redraw()
+	if _model_root == null:
 		return
-
-	if _tree_items_by_id.has(layer_id):
-		_tree.deselect_all()
-		var item: TreeItem = _tree_items_by_id[layer_id]
-		item.select(TREE_COLUMN)
-	_set_selected_layer(layer_id)
-
-
-func _get_layer_id_for_node(node: Node2D) -> int:
-	for layer_id: int in _layers_by_id.keys():
-		var layer: Dictionary = _layers_by_id[layer_id]
-		if layer["node"] == node:
-			return layer_id
-
-	return INVALID_LAYER_ID
-
-
-func _get_tree_collapsed_state() -> Dictionary:
-	var collapsed_state := {}
-	for layer_id: int in _tree_items_by_id.keys():
-		var item: TreeItem = _tree_items_by_id[layer_id]
-		if item != null:
-			collapsed_state[layer_id] = item.is_collapsed()
-
-	return collapsed_state
-
-
-func _get_layer_id_from_item(item: TreeItem) -> int:
-	if item == null:
-		return INVALID_LAYER_ID
-
-	var layer_id: Variant = item.get_metadata(TREE_COLUMN)
-	if layer_id is int and _layers_by_id.has(layer_id):
-		return layer_id
-
-	return INVALID_LAYER_ID
+	var renderer := TwberModelBatchRenderer2D.find_on(_model_root)
+	if renderer is TwberModelBatchRenderer2D:
+		var dirty_nodes: Array[Node2D] = []
+		var seen_node_ids := {}
+		if _selected_node != null:
+			dirty_nodes.append(_selected_node)
+			seen_node_ids[_selected_node.get_instance_id()] = true
+		var layer_nodes := _parameter_evaluator.get_layer_nodes()
+		for layer_id: Variant in _previewed_layer_ids:
+			var node := layer_nodes.get(String(layer_id)) as Node2D
+			if node == null or seen_node_ids.has(node.get_instance_id()):
+				continue
+			seen_node_ids[node.get_instance_id()] = true
+			dirty_nodes.append(node)
+		if not dirty_nodes.is_empty():
+			renderer.update_dynamic_geometry_for_nodes(dirty_nodes)

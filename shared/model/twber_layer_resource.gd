@@ -18,6 +18,8 @@ enum LayerType {
 @export var modulate := Color.WHITE
 @export var clip_children := CanvasItem.CLIP_CHILDREN_DISABLED
 @export var texture_id := ""
+@export var offset := Vector2.ZERO
+@export var centered := true
 @export var current_animation := "default"
-@export var animations: Array[Resource] = []
-@export var mesh: Resource
+@export var animations: Array[TwberAnimationResource] = []
+@export var mesh: TwberMeshResource

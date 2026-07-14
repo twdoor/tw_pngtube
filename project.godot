@@ -11,17 +11,35 @@ config_version=5
 [application]
 
 config/name="twber"
-run/main_scene="uid://ddb8cptjj4uo7"
+run/main_scene="res://environment/environment.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
+
+[audio]
+
+driver/enable_input=true
+
+[debug]
+
+gdscript/warnings/incompatible_ternary=2
+gdscript/warnings/int_as_enum_without_cast=2
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/transparent=true
+window/subwindows/embed_subwindows=false
 window/per_pixel_transparency/allowed=true
 
 [editor_plugins]
 
 enabled=PackedStringArray()
+
+[gui]
+
+theme/custom="uid://bsd32vbcsncwc"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

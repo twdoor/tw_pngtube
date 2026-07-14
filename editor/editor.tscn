@@ -9,33 +9,6 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6hpnh"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6hpnh"]
-bg_color = Color(0, 0, 0, 0.39215687)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_swf4p"]
-bg_color = Color(0, 0, 0, 0.39215687)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kga4s"]
-bg_color = Color(0.6255971, 0.6255971, 0.62559694, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aws7q"]
-bg_color = Color(0, 0, 0, 0.39215687)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3meo8"]
-bg_color = Color(0, 0, 0, 0.39215687)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
 [node name="Editor" type="CanvasLayer" unique_id=1738089725]
 script = ExtResource("4_tpbm2")
 
@@ -51,7 +24,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.288518, 0.28851798, 0.28851798, 1)
+color = Color(0.2901961, 0.2901961, 0.2901961, 0)
 
 [node name="Textures" type="Node2D" parent="ModelPreview" unique_id=1130443414]
 position = Vector2(720, 360)
@@ -95,7 +68,7 @@ text = "File
 "
 expand_icon = true
 switch_on_hover = true
-item_count = 5
+item_count = 6
 popup/item_0/text = "New"
 popup/item_0/id = 4
 popup/item_1/text = "Open"
@@ -106,20 +79,13 @@ popup/item_3/text = "Export"
 popup/item_3/id = 3
 popup/item_4/text = "Settings"
 popup/item_4/id = 5
+popup/item_5/text = "Model Performance"
+popup/item_5/id = 6
 
 [node name="Menus" type="TabContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=213659694]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_selected_color = Color(0, 0, 0, 1)
-theme_override_constants/side_margin = 3
-theme_override_constants/tab_separation = 4
 theme_override_fonts/font = ExtResource("1_ycap1")
-theme_override_styles/panel = SubResource("StyleBoxEmpty_6hpnh")
-theme_override_styles/tab_unselected = SubResource("StyleBoxFlat_6hpnh")
-theme_override_styles/tab_hovered = SubResource("StyleBoxFlat_swf4p")
-theme_override_styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
-theme_override_styles/tab_disabled = SubResource("StyleBoxFlat_aws7q")
-theme_override_styles/tab_focus = SubResource("StyleBoxFlat_3meo8")
 current_tab = 0
 tabs_position = 1
 switch_on_drag_hover = false

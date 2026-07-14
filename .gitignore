@@ -9,8 +9,13 @@ export_presets.cfg
 # Imported translations (automatically generated from CSV files)
 *.translation
 
-# Local development/test content
-testing/
+# Local development/test content. Keep the automated runner, ignore ad-hoc models.
+testing/*
+!testing/run_tests.gd
+!testing/benchmark_runtime.gd
+!testing/benchmark_renderer.gd
+!testing/test_renderer.gd
+!testing/test_environment.gd
 
 # Mono-specific ignores
 .mono/

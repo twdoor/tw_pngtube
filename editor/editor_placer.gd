@@ -1,5 +1,7 @@
 class_name EditorPlacer extends HSplitContainer
 
+signal model_render_changed(rebuild_atlases: bool, reconfigure_batching: bool)
+
 const TREE_COLUMN := 0
 const DRAG_DATA_TYPE := &"editor_placer_tree_item"
 const ROOT_LAYER_ID := 0
@@ -7,12 +9,9 @@ const INVALID_LAYER_ID := -1
 const IMAGE_FILTER := "*.png, *.jpg, *.jpeg, *.webp ; Image files"
 const MODEL_ROOT_NAME := "Textures"
 const TEXTURE_PREVIEW_ALPHA_THRESHOLD := 0.001
-const TEXTURE_IMPORT_PARAMS_SECTION := "params"
-const TEXTURE_IMPORT_COMPRESS_MODE_KEY := "compress/mode"
-const TEXTURE_IMPORT_DEFAULT_COMPRESS_MODE := 0
-const TEXTURE_IMPORT_VRAM_COMPRESS_MODE := 2
 const TEXTURE_RUNTIME_COMPRESS_MODE := Image.COMPRESS_S3TC
 const TEXTURE_RUNTIME_COMPRESS_SOURCE := Image.COMPRESS_SOURCE_GENERIC
+const TEXTURE_PREVIEW_CACHE_LIMIT := 128
 
 enum PlacerItemType {
 	LAYER,
@@ -46,6 +45,7 @@ var _root_item: TreeItem
 var _selected_layer_id := INVALID_LAYER_ID
 var _texture_button_placeholder: Texture2D
 var _texture_preview_cache: Dictionary = {}
+var _texture_preview_cache_order: Array[Variant] = []
 var _editor_settings: TwberEditorSettings
 var _updating_inspector := false
 var _model_root: Node2D
@@ -53,6 +53,7 @@ var _next_item_id := 1
 var _layers_by_id: Dictionary = {}
 var _root_layer_ids: Array[int] = []
 var _tree_items_by_id: Dictionary = {}
+var _tree_state_keys_by_id: Dictionary[int, String] = {}
 var _item_counts: Dictionary = {
 	PlacerItemType.LAYER: 0,
 	PlacerItemType.ANIMATION_LAYER: 0,
@@ -112,14 +113,16 @@ func _on_add_item_pressed(item_type: int) -> void:
 
 
 func reload_from_preview() -> void:
+	var collapsed_state := _get_tree_collapsed_state()
 	_load_model_tree_from_preview()
-	_rebuild_tree()
+	_rebuild_tree(INVALID_LAYER_ID, collapsed_state)
 	_set_selected_layer(INVALID_LAYER_ID)
 
 
 func set_editor_settings(settings: TwberEditorSettings) -> void:
 	_editor_settings = settings
 	_texture_preview_cache.clear()
+	_texture_preview_cache_order.clear()
 	_refresh_inspector()
 
 
@@ -219,17 +222,15 @@ func _on_tree_item_edited() -> void:
 		return
 
 	var layer: Dictionary = _layers_by_id[layer_id]
-	var old_name: String = layer["name"]
+	var model_node: Node2D = layer["node"]
+	var old_name := String(model_node.name)
 	var new_name := item.get_text(TREE_COLUMN).strip_edges()
 	if new_name.is_empty():
 		item.set_text(TREE_COLUMN, old_name)
 		return
 
-	layer["name"] = new_name
-	var model_node: Node = layer["node"]
 	model_node.name = new_name
-	_layers_by_id[layer_id] = layer
-	item.set_text(TREE_COLUMN, new_name)
+	item.set_text(TREE_COLUMN, model_node.name)
 
 
 func _on_tree_item_selected() -> void:
@@ -255,8 +256,8 @@ func _on_duplicate_button_pressed() -> void:
 	var duplicate_id := _duplicate_layer_tree(_selected_layer_id, parent_id, true)
 	siblings.insert(selected_index + 1, duplicate_id)
 
-	_rebuild_tree(duplicate_id)
 	_sync_model_tree()
+	_rebuild_tree(duplicate_id)
 	_set_selected_layer(duplicate_id)
 
 
@@ -279,7 +280,9 @@ func _on_delete_button_pressed() -> void:
 		elif parent_id != ROOT_LAYER_ID:
 			next_selected_id = parent_id
 
+	_prune_parameter_states_for_layer_tree(_selected_layer_id)
 	_delete_layer_tree(_selected_layer_id)
+	model_render_changed.emit(false, true)
 
 	_rebuild_tree(next_selected_id)
 	_set_selected_layer(next_selected_id)
@@ -320,11 +323,15 @@ func _on_replacement_texture_selected(layer_id: int, path: String) -> void:
 	var layer: Dictionary = _layers_by_id[layer_id]
 	var model_node: Node = layer["node"]
 	if model_node is Sprite2D:
-		model_node.texture = texture
+		var sprite: Sprite2D = model_node
+		var previous_default_offset := TwberTextureUtils.get_centered_sprite_offset(sprite.texture)
+		var custom_offset := sprite.offset - previous_default_offset
+		sprite.texture = texture
+		sprite.offset = TwberTextureUtils.get_centered_sprite_offset(texture) + custom_offset
 	elif model_node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = model_node
-		mesh_sprite.texture = texture
-		mesh_sprite.sync_mesh()
+		mesh_sprite.replace_texture(texture)
+	model_render_changed.emit(true, true)
 
 	if layer_id == _selected_layer_id:
 		_refresh_inspector()
@@ -335,15 +342,21 @@ func _on_replacement_animation_textures_selected(layer_id: int, paths: PackedStr
 		return
 
 	var layer: Dictionary = _layers_by_id[layer_id]
-	var animated_sprite: AnimatedSprite2D = layer["node"]
-	if animated_sprite is not AnimatedSprite2D:
+	var model_node: Node = layer["node"]
+	if model_node is not AnimatedSprite2D:
 		return
+	var animated_sprite: AnimatedSprite2D = model_node
 
 	var textures := _load_textures_from_paths(paths)
 	if textures.is_empty():
 		return
 
+	var previous_texture := _get_layer_texture(layer)
+	var previous_default_offset := TwberTextureUtils.get_centered_sprite_offset(previous_texture)
+	var custom_offset := animated_sprite.offset - previous_default_offset
 	_replace_animated_sprite_animation_frames(animated_sprite, textures)
+	animated_sprite.offset = TwberTextureUtils.get_centered_sprite_offset(textures[0]) + custom_offset
+	model_render_changed.emit(true, true)
 
 	if layer_id == _selected_layer_id:
 		_refresh_inspector()
@@ -374,6 +387,8 @@ func _on_opacity_slider_value_changed(value: float) -> void:
 		if canvas_item is TwberMeshSprite2D:
 			var mesh_sprite: TwberMeshSprite2D = canvas_item
 			mesh_sprite.sync_visual_state()
+		else:
+			model_render_changed.emit(false, false)
 
 
 func _on_clip_option_button_item_selected(index: int) -> void:
@@ -384,6 +399,7 @@ func _on_clip_option_button_item_selected(index: int) -> void:
 	var model_node: Node = layer["node"]
 	if model_node is CanvasItem:
 		model_node.clip_children = index
+		model_render_changed.emit(false, true)
 
 
 func _on_animation_frame_rate_value_changed(value: float) -> void:
@@ -491,7 +507,7 @@ func _refresh_inspector() -> void:
 	_updating_inspector = true
 	_inspector.visible = true
 	_layer_actions.visible = has_layer_actions
-	_change_texture_button.visible = _can_layer_use_texture(layer)
+	_change_texture_button.visible = has_layer_actions
 	_opacity_slider.visible = has_layer_actions
 	_clip_option_button.visible = has_layer_actions
 	_animation_frame_rate.visible = is_animated_layer
@@ -503,7 +519,7 @@ func _refresh_inspector() -> void:
 		_opacity_slider.value = canvas_item.self_modulate.a
 		_clip_option_button.select(clampi(canvas_item.clip_children, 0, _clip_option_button.item_count - 1))
 
-	if _can_layer_use_texture(layer):
+	if has_layer_actions:
 		_set_texture_button_texture(_get_layer_texture(layer))
 	else:
 		_set_texture_button_texture(null)
@@ -528,7 +544,8 @@ func _refresh_animation_controls(animated_sprite: AnimatedSprite2D) -> void:
 	_rename_animation_button.disabled = true
 
 	if animated_sprite.sprite_frames == null:
-		animated_sprite.sprite_frames = SpriteFrames.new()
+		_animations_option_button.disabled = true
+		return
 
 	var sprite_frames := animated_sprite.sprite_frames
 	var animation_names := sprite_frames.get_animation_names()
@@ -601,49 +618,34 @@ func _get_texture_button_preview(texture: Texture2D) -> Texture2D:
 	if _texture_preview_cache.has(cache_key):
 		return _texture_preview_cache[cache_key]
 
-	if _editor_settings != null and _editor_settings.should_vram_compress_texture(texture):
-		_texture_preview_cache[cache_key] = texture
-		return texture
-
 	var preview_texture: Texture2D = texture
-	var image := texture.get_image()
-	if image != null:
-		var used_rect := _get_texture_alpha_used_rect(image)
-		if used_rect.size.x > 0 and used_rect.size.y > 0:
-			var atlas_texture := AtlasTexture.new()
-			atlas_texture.atlas = texture
-			atlas_texture.region = Rect2(used_rect.position, used_rect.size)
-			preview_texture = atlas_texture
+	var used_rect := TwberTextureUtils.get_visible_rect(texture)
+	if used_rect.size.x <= 0 or used_rect.size.y <= 0:
+		var image := TwberTextureUtils.get_authoring_image(texture)
+		if image != null:
+			used_rect = _get_texture_alpha_used_rect(image)
+	if used_rect.size.x > 0 and used_rect.size.y > 0:
+		var atlas_texture := AtlasTexture.new()
+		atlas_texture.atlas = texture
+		atlas_texture.region = Rect2(used_rect.position, used_rect.size)
+		preview_texture = atlas_texture
 
-	_texture_preview_cache[cache_key] = preview_texture
+	_cache_texture_preview(cache_key, preview_texture)
 	return preview_texture
 
 
+func _cache_texture_preview(cache_key: Variant, texture: Texture2D) -> void:
+	if _texture_preview_cache.has(cache_key):
+		_texture_preview_cache_order.erase(cache_key)
+	_texture_preview_cache[cache_key] = texture
+	_texture_preview_cache_order.append(cache_key)
+	while _texture_preview_cache_order.size() > TEXTURE_PREVIEW_CACHE_LIMIT:
+		var oldest_key: Variant = _texture_preview_cache_order.pop_front()
+		_texture_preview_cache.erase(oldest_key)
+
+
 func _get_texture_alpha_used_rect(image: Image) -> Rect2i:
-	if image.is_compressed():
-		return Rect2i()
-
-	var image_width := image.get_width()
-	var image_height := image.get_height()
-	var min_x := image_width
-	var min_y := image_height
-	var max_x := -1
-	var max_y := -1
-
-	for y: int in image_height:
-		for x: int in image_width:
-			if image.get_pixel(x, y).a <= TEXTURE_PREVIEW_ALPHA_THRESHOLD:
-				continue
-
-			min_x = mini(min_x, x)
-			min_y = mini(min_y, y)
-			max_x = maxi(max_x, x)
-			max_y = maxi(max_y, y)
-
-	if max_x < min_x or max_y < min_y:
-		return Rect2i()
-
-	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+	return TwberTextureUtils.find_alpha_used_rect(image, TEXTURE_PREVIEW_ALPHA_THRESHOLD)
 
 
 func _replace_animated_sprite_animation_frames(animated_sprite: AnimatedSprite2D, textures: Array[Texture2D]) -> void:
@@ -804,9 +806,19 @@ func _on_animation_textures_selected(paths: PackedStringArray) -> void:
 
 
 func _load_textures_from_paths(paths: PackedStringArray) -> Array[Texture2D]:
-	var textures: Array[Texture2D] = []
+	var records: Array[Dictionary] = []
 	for path: String in paths:
-		var texture := _load_texture_from_path(path)
+		var record := _load_image_record_from_path(path)
+		if not record.is_empty():
+			records.append(record)
+
+	var textures: Array[Texture2D] = []
+	if records.is_empty():
+		return textures
+
+	var forced_trim_rect := _get_shared_animation_trim_rect(records)
+	for record: Dictionary in records:
+		var texture := _create_texture_from_image_record(record, forced_trim_rect)
 		if texture != null:
 			textures.append(texture)
 
@@ -827,28 +839,126 @@ func _create_texture_file_dialog(file_mode: FileDialog.FileMode, title: String) 
 
 
 func _load_texture_from_path(selected_path: String) -> Texture2D:
+	var record := _load_image_record_from_path(selected_path)
+	if record.is_empty():
+		return null
+	return _create_texture_from_image_record(record)
+
+
+func _load_image_record_from_path(selected_path: String) -> Dictionary:
 	var path := _normalize_texture_path(selected_path)
+	if path.begins_with("res://"):
+		var absolute_path := ProjectSettings.globalize_path(path)
+		if FileAccess.file_exists(absolute_path):
+			var source_image := Image.new()
+			if source_image.load(absolute_path) == OK:
+				return {
+					"image": source_image,
+					"path": path,
+					"name": _make_name_from_path(path),
+				}
 	if path.begins_with("res://") or path.begins_with("uid://"):
 		var resource := load(path)
 		if resource is Texture2D:
 			var resource_texture: Texture2D = resource
-			_apply_texture_import_preferences(path, resource_texture)
-			return _runtime_compress_texture_if_needed(path, resource_texture)
+			var resource_image := TwberTextureUtils.get_readable_image(resource_texture)
+			if resource_image != null:
+				return {
+					"image": resource_image,
+					"path": path,
+					"name": resource_texture.resource_name,
+				}
 
 		push_warning("Selected file is not a Texture2D: %s" % selected_path)
-		return null
+		return {}
 
 	var image := Image.new()
 	var error := image.load(path)
 	if error != OK:
 		push_warning("Could not load image file %s: %s" % [selected_path, error_string(error)])
+		return {}
+
+	return {
+		"image": image,
+		"path": path,
+		"name": _make_name_from_path(path),
+	}
+
+
+func _create_texture_from_image_record(
+		record: Dictionary,
+		forced_trim_rect: Rect2i = Rect2i(),
+) -> Texture2D:
+	var source_image: Image = record.get("image") as Image
+	if source_image == null:
 		return null
 
-	_runtime_compress_image_if_needed(path, image)
-	var image_texture := ImageTexture.create_from_image(image)
-	image_texture.resource_name = _make_name_from_path(path)
-	image_texture.set_meta(TwberModelCodec.TEXTURE_SOURCE_PATH_META, path)
-	return image_texture
+	var trim_enabled := (
+			_editor_settings != null
+			and _editor_settings.trim_transparent_borders
+	)
+	if forced_trim_rect.size.x < 0 or forced_trim_rect.size.y < 0:
+		trim_enabled = false
+		forced_trim_rect = Rect2i()
+	var alpha_threshold := (
+			_editor_settings.trim_alpha_threshold
+			if _editor_settings != null
+			else TwberEditorSettings.DEFAULT_TRIM_ALPHA_THRESHOLD
+	)
+	var trim_padding := (
+			_editor_settings.trim_padding
+			if _editor_settings != null
+			else TwberEditorSettings.DEFAULT_TRIM_PADDING
+	)
+	var prepared := TwberTextureUtils.prepare_image(
+			source_image,
+			trim_enabled,
+			alpha_threshold,
+			trim_padding,
+			forced_trim_rect,
+	)
+	if prepared.is_empty():
+		return null
+
+	var image: Image = prepared["image"]
+	_runtime_compress_image_if_needed(String(record.get("path", "")), image)
+	var texture := ImageTexture.create_from_image(image)
+	texture.resource_name = String(record.get("name", ""))
+	texture.set_meta(TwberModelCodec.TEXTURE_SOURCE_PATH_META, String(record.get("path", "")))
+	TwberTextureUtils.apply_metadata(texture, prepared)
+	return texture
+
+
+func _get_shared_animation_trim_rect(records: Array[Dictionary]) -> Rect2i:
+	if _editor_settings == null or not _editor_settings.trim_transparent_borders:
+		return Rect2i()
+	if records.is_empty():
+		return Rect2i()
+
+	var first_image: Image = records[0].get("image") as Image
+	if first_image == null:
+		return Rect2i()
+	var shared_size := Vector2i(first_image.get_width(), first_image.get_height())
+	var union_rect := Rect2i()
+	for record: Dictionary in records:
+		var image: Image = record.get("image") as Image
+		if image == null or Vector2i(image.get_width(), image.get_height()) != shared_size:
+			# AnimatedSprite2D has one offset for every frame. Keeping mixed-size
+			# frames untrimmed prevents per-frame alignment shifts.
+			return Rect2i(Vector2i(-1, -1), Vector2i(-1, -1))
+		var used_rect := TwberTextureUtils.find_alpha_used_rect(
+				image,
+				_editor_settings.trim_alpha_threshold,
+		)
+		if used_rect.size.x <= 0 or used_rect.size.y <= 0:
+			continue
+		union_rect = used_rect if union_rect.size == Vector2i.ZERO else union_rect.merge(used_rect)
+
+	return TwberTextureUtils.padded_rect(
+			union_rect,
+			_editor_settings.trim_padding,
+			shared_size,
+	)
 
 
 func _normalize_texture_path(path: String) -> String:
@@ -864,60 +974,6 @@ func _normalize_texture_path(path: String) -> String:
 		return "res://%s" % normalized_path.substr(project_root.length())
 
 	return path
-
-
-func _apply_texture_import_preferences(path: String, texture: Texture2D) -> void:
-	if _editor_settings == null or not _editor_settings.should_vram_compress_texture(texture):
-		return
-	if not path.begins_with("res://"):
-		return
-
-	var import_path := "%s.import" % path
-	if not FileAccess.file_exists(import_path):
-		return
-
-	var config := ConfigFile.new()
-	var error := config.load(import_path)
-	if error != OK:
-		push_warning("Could not read texture import settings for %s: %s" % [path, error_string(error)])
-		return
-
-	var current_mode := int(config.get_value(
-		TEXTURE_IMPORT_PARAMS_SECTION,
-		TEXTURE_IMPORT_COMPRESS_MODE_KEY,
-		TEXTURE_IMPORT_DEFAULT_COMPRESS_MODE
-	))
-	if current_mode == TEXTURE_IMPORT_VRAM_COMPRESS_MODE:
-		return
-
-	config.set_value(
-		TEXTURE_IMPORT_PARAMS_SECTION,
-		TEXTURE_IMPORT_COMPRESS_MODE_KEY,
-		TEXTURE_IMPORT_VRAM_COMPRESS_MODE
-	)
-	error = config.save(import_path)
-	if error != OK:
-		push_warning("Could not save texture import settings for %s: %s" % [path, error_string(error)])
-		return
-
-
-func _runtime_compress_texture_if_needed(path: String, texture: Texture2D) -> Texture2D:
-	if _editor_settings == null or not _editor_settings.should_vram_compress_texture(texture):
-		return texture
-
-	var image := texture.get_image()
-	if image == null:
-		return texture
-	if image.is_compressed():
-		return texture
-
-	if not _runtime_compress_image_if_needed(path, image):
-		return texture
-
-	var compressed_texture := ImageTexture.create_from_image(image)
-	compressed_texture.resource_name = texture.resource_name
-	compressed_texture.set_meta(TwberModelCodec.TEXTURE_SOURCE_PATH_META, path)
-	return compressed_texture
 
 
 func _runtime_compress_image_if_needed(path: String, image: Image) -> bool:
@@ -946,9 +1002,6 @@ func _create_layer(item_type: int, layer_name: String = "", textures: Array = []
 	var parent_id := ROOT_LAYER_ID
 	var model_node := _create_model_node(item_type, layer_name, textures)
 	_layers_by_id[layer_id] = {
-		"id": layer_id,
-		"type": item_type,
-		"name": layer_name,
 		"parent_id": parent_id,
 		"children": [],
 		"node": model_node,
@@ -956,8 +1009,9 @@ func _create_layer(item_type: int, layer_name: String = "", textures: Array = []
 	_get_child_ids(parent_id).append(layer_id)
 
 	_next_item_id += 1
-	_rebuild_tree(layer_id)
 	_sync_model_tree()
+	model_render_changed.emit(true, true)
+	_rebuild_tree(layer_id)
 	_set_selected_layer(layer_id)
 
 
@@ -968,10 +1022,13 @@ func _create_model_node(item_type: int, layer_name: String, textures: Array) -> 
 			var sprite := Sprite2D.new()
 			if not textures.is_empty() and textures[0] is Texture2D:
 				sprite.texture = textures[0]
+				sprite.offset = TwberTextureUtils.get_centered_sprite_offset(sprite.texture)
 			node = sprite
 		PlacerItemType.ANIMATION_LAYER:
 			var animated_sprite := AnimatedSprite2D.new()
 			animated_sprite.sprite_frames = _create_sprite_frames(textures)
+			if not textures.is_empty() and textures[0] is Texture2D:
+				animated_sprite.offset = TwberTextureUtils.get_centered_sprite_offset(textures[0])
 			animated_sprite.animation = &"default"
 			animated_sprite.autoplay = "default"
 			animated_sprite.play(&"default")
@@ -1005,7 +1062,7 @@ func _duplicate_layer_tree(source_id: int, parent_id: int, copy_root_name: bool)
 	var source_layer: Dictionary = _layers_by_id[source_id]
 	var source_node: Node2D = source_layer["node"]
 	var duplicated_node := _duplicate_model_node_without_children(source_node)
-	var layer_name: String = source_layer["name"]
+	var layer_name := String(source_node.name)
 	if copy_root_name:
 		layer_name = _make_unique_layer_name(parent_id, "%s Copy" % layer_name)
 
@@ -1014,9 +1071,6 @@ func _duplicate_layer_tree(source_id: int, parent_id: int, copy_root_name: bool)
 
 	duplicated_node.name = layer_name
 	_layers_by_id[layer_id] = {
-		"id": layer_id,
-		"type": source_layer["type"],
-		"name": layer_name,
 		"parent_id": parent_id,
 		"children": [],
 		"node": duplicated_node,
@@ -1035,6 +1089,8 @@ func _duplicate_model_node_without_children(source_node: Node2D) -> Node2D:
 	var duplicated_node := source_node.duplicate()
 	if duplicated_node is not Node2D:
 		return Node2D.new()
+	if duplicated_node.has_meta(TwberModelCodec.LAYER_ID_META):
+		duplicated_node.remove_meta(TwberModelCodec.LAYER_ID_META)
 
 	for child: Node in duplicated_node.get_children():
 		duplicated_node.remove_child(child)
@@ -1067,8 +1123,47 @@ func _delete_layer_tree(layer_id: int) -> void:
 	_layers_by_id.erase(layer_id)
 
 
-func _move_layer(dragged_id: int, target_id: int, drop_section: int) -> void:
-	_move_layers([dragged_id], target_id, drop_section)
+func _prune_parameter_states_for_layer_tree(layer_id: int) -> void:
+	if _model_root == null or not _layers_by_id.has(layer_id):
+		return
+
+	TwberModelCodec.ensure_layer_ids(_model_root)
+	var deleted_model_layer_ids := {}
+	_collect_model_layer_ids(layer_id, deleted_model_layer_ids)
+
+	var stored_parameters: Variant = _model_root.get_meta(
+			TwberModelCodec.MODEL_PARAMETERS_META,
+			[],
+	)
+	if stored_parameters is not Array:
+		return
+
+	for value: Variant in stored_parameters:
+		if value is not TwberParameterResource:
+			continue
+		var parameter: TwberParameterResource = value
+		for position_index: int in range(parameter.positions.size() - 1, -1, -1):
+			var parameter_position := parameter.positions[position_index]
+			if parameter_position == null:
+				parameter.positions.remove_at(position_index)
+				continue
+			for model_layer_id: Variant in deleted_model_layer_ids:
+				parameter_position.remove_state(String(model_layer_id))
+			if parameter_position.layer_states.is_empty():
+				parameter.positions.remove_at(position_index)
+
+	_model_root.set_meta(TwberModelCodec.MODEL_PARAMETERS_META, stored_parameters)
+
+
+func _collect_model_layer_ids(layer_id: int, output: Dictionary) -> void:
+	var layer: Dictionary = _layers_by_id[layer_id]
+	var model_node: Node2D = layer["node"]
+	var model_layer_id := String(model_node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	if not model_layer_id.is_empty():
+		output[model_layer_id] = true
+
+	for child_id: int in layer["children"]:
+		_collect_model_layer_ids(child_id, output)
 
 
 func _move_layers(dragged_ids: Array, target_id: int, drop_section: int) -> void:
@@ -1104,19 +1199,26 @@ func _move_layers(dragged_ids: Array, target_id: int, drop_section: int) -> void
 		var dragged_layer: Dictionary = _layers_by_id[dragged_id]
 		_insert_child_id(new_parent_id, dragged_id, insert_index)
 		dragged_layer["parent_id"] = new_parent_id
-		_layers_by_id[dragged_id] = dragged_layer
 		insert_index += 1
 
-	_rebuild_tree()
 	_sync_model_tree()
+	_rebuild_tree()
 	_select_layer_ids(moving_ids)
 	_set_selected_layer(moving_ids[moving_ids.size() - 1])
 
 
-func _rebuild_tree(selected_layer_id: int = INVALID_LAYER_ID) -> void:
-	var collapsed_state := _get_tree_collapsed_state()
+func _rebuild_tree(
+		selected_layer_id: int = INVALID_LAYER_ID,
+		preserved_collapsed_state: Dictionary = {},
+) -> void:
+	var collapsed_state := preserved_collapsed_state
+	if collapsed_state.is_empty():
+		collapsed_state = _get_tree_collapsed_state()
+	if _model_root != null:
+		TwberModelCodec.ensure_layer_ids(_model_root)
 	_tree.clear()
 	_tree_items_by_id.clear()
+	_tree_state_keys_by_id.clear()
 	_root_item = _tree.create_item()
 
 	_add_layer_items(_root_item, _root_layer_ids, collapsed_state)
@@ -1129,12 +1231,15 @@ func _rebuild_tree(selected_layer_id: int = INVALID_LAYER_ID) -> void:
 func _add_layer_items(parent_item: TreeItem, layer_ids: Array, collapsed_state: Dictionary) -> void:
 	for layer_id: int in layer_ids:
 		var layer: Dictionary = _layers_by_id[layer_id]
+		var model_node: Node2D = layer["node"]
 		var item := _tree.create_item(parent_item)
-		item.set_text(TREE_COLUMN, layer["name"])
+		item.set_text(TREE_COLUMN, model_node.name)
 		item.set_metadata(TREE_COLUMN, layer_id)
 		item.set_editable(TREE_COLUMN, true)
-		if collapsed_state.has(layer_id):
-			item.set_collapsed(collapsed_state[layer_id])
+		var state_key := _get_tree_state_key(model_node)
+		_tree_state_keys_by_id[layer_id] = state_key
+		if collapsed_state.has(state_key):
+			item.set_collapsed(collapsed_state[state_key])
 		_tree_items_by_id[layer_id] = item
 
 		_add_layer_items(item, layer["children"], collapsed_state)
@@ -1184,19 +1289,15 @@ func _import_model_children(parent_node: Node, parent_id: int, child_ids: Array)
 
 		var layer_id := _next_item_id
 		var item_type := _get_item_type_from_model_node(child)
-		var layer_name := child.name
 		_next_item_id += 1
 
 		_layers_by_id[layer_id] = {
-			"id": layer_id,
-			"type": item_type,
-			"name": layer_name,
 			"parent_id": parent_id,
 			"children": [],
 			"node": child,
 		}
 		child_ids.append(layer_id)
-		_remember_imported_item_count(item_type, layer_name)
+		_remember_imported_item_count(item_type, child.name)
 
 		var layer: Dictionary = _layers_by_id[layer_id]
 		_import_model_children(child, layer_id, layer["children"])
@@ -1242,18 +1343,10 @@ func _make_unique_layer_name(parent_id: int, desired_name: String) -> String:
 	var used_names := {}
 	for child_id: int in _get_child_ids(parent_id):
 		var layer: Dictionary = _layers_by_id[child_id]
-		used_names[layer["name"]] = true
+		var model_node: Node2D = layer["node"]
+		used_names[model_node.name] = true
 
-	if not used_names.has(desired_name):
-		return desired_name
-
-	var suffix := 2
-	var unique_name := "%s %d" % [desired_name, suffix]
-	while used_names.has(unique_name):
-		suffix += 1
-		unique_name = "%s %d" % [desired_name, suffix]
-
-	return unique_name
+	return _make_unique_name(desired_name, used_names)
 
 
 func _make_unique_animation_name(animated_sprite: AnimatedSprite2D, desired_name: String, ignored_name: StringName = &"") -> String:
@@ -1270,14 +1363,18 @@ func _make_unique_animation_name(animated_sprite: AnimatedSprite2D, desired_name
 			continue
 		used_names[animation_name] = true
 
-	if not used_names.has(base_name):
-		return base_name
+	return _make_unique_name(base_name, used_names)
+
+
+func _make_unique_name(desired_name: String, used_names: Dictionary) -> String:
+	if not used_names.has(desired_name):
+		return desired_name
 
 	var suffix := 2
-	var unique_name := "%s %d" % [base_name, suffix]
+	var unique_name := "%s %d" % [desired_name, suffix]
 	while used_names.has(unique_name):
 		suffix += 1
-		unique_name = "%s %d" % [base_name, suffix]
+		unique_name = "%s %d" % [desired_name, suffix]
 
 	return unique_name
 
@@ -1287,6 +1384,7 @@ func _sync_model_tree() -> void:
 		return
 
 	_sync_model_children(_model_root, _root_layer_ids)
+	model_render_changed.emit(false, true)
 
 
 func _sync_model_children(parent_node: Node, child_ids: Array) -> void:
@@ -1304,21 +1402,22 @@ func _sync_model_children(parent_node: Node, child_ids: Array) -> void:
 		_sync_model_children(model_node, layer["children"])
 
 
-func _get_tree_collapsed_state() -> Dictionary:
-	var collapsed_state := {}
+func _get_tree_collapsed_state() -> Dictionary[String, bool]:
+	var collapsed_state: Dictionary[String, bool] = {}
 	for layer_id: int in _tree_items_by_id.keys():
 		var item: TreeItem = _tree_items_by_id[layer_id]
-		if item != null:
-			collapsed_state[layer_id] = item.is_collapsed()
+		if item != null and _tree_state_keys_by_id.has(layer_id):
+			collapsed_state[_tree_state_keys_by_id[layer_id]] = item.is_collapsed()
 
 	return collapsed_state
 
 
-func _restore_tree_collapsed_state(collapsed_state: Dictionary) -> void:
-	for layer_id: int in collapsed_state.keys():
-		if _tree_items_by_id.has(layer_id):
-			var item: TreeItem = _tree_items_by_id[layer_id]
-			item.set_collapsed(collapsed_state[layer_id])
+func _get_tree_state_key(node: Node2D) -> String:
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	if not layer_id.is_empty():
+		return "layer:%s" % layer_id
+
+	return "instance:%d" % node.get_instance_id()
 
 
 func _get_selected_layer_ids() -> Array[int]:

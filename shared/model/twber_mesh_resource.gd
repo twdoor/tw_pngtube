@@ -23,7 +23,7 @@ func set_vertices(value: PackedVector2Array) -> void:
 
 
 func set_vertex(index: int, position: Vector2) -> void:
-	if index < 0 or index >= vertices.size():
+	if not _is_valid_vertex_index(index):
 		return
 
 	vertices[index] = position
@@ -32,7 +32,7 @@ func set_vertex(index: int, position: Vector2) -> void:
 
 
 func set_deformed_vertex(index: int, vertex_position: Vector2) -> void:
-	if index < 0 or index >= vertices.size():
+	if not _is_valid_vertex_index(index):
 		return
 
 	ensure_rest_vertices()
@@ -40,12 +40,11 @@ func set_deformed_vertex(index: int, vertex_position: Vector2) -> void:
 
 
 func reset_deformed_vertex(index: int) -> void:
-	if index < 0 or index >= vertices.size():
+	if not _is_valid_vertex_index(index):
 		return
 
 	ensure_rest_vertices()
-	if index < rest_vertices.size():
-		vertices[index] = rest_vertices[index]
+	vertices[index] = rest_vertices[index]
 
 
 func reset_deformation() -> void:
@@ -60,7 +59,7 @@ func add_vertex(position: Vector2, uv_position: Vector2) -> void:
 
 
 func remove_vertex(index: int) -> void:
-	if index < 0 or index >= vertices.size():
+	if not _is_valid_vertex_index(index):
 		return
 
 	vertices.remove_at(index)
@@ -99,6 +98,7 @@ func has_joined_edge(vertex_a: int, vertex_b: int) -> bool:
 
 
 func sanitize_topology() -> void:
+	triangles = _sanitize_triangles(triangles)
 	joined_edges = _sanitize_edges(joined_edges)
 	cut_edges = _sanitize_edges(cut_edges)
 
@@ -121,11 +121,13 @@ func _remove_topology_edges_for_vertex(removed_index: int) -> void:
 func _is_valid_edge(vertex_a: int, vertex_b: int) -> bool:
 	return (
 			vertex_a != vertex_b
-			and vertex_a >= 0
-			and vertex_b >= 0
-			and vertex_a < vertices.size()
-			and vertex_b < vertices.size()
+			and _is_valid_vertex_index(vertex_a)
+			and _is_valid_vertex_index(vertex_b)
 	)
+
+
+func _is_valid_vertex_index(index: int) -> bool:
+	return index >= 0 and index < vertices.size()
 
 
 func _append_edge(edges: PackedInt32Array, vertex_a: int, vertex_b: int) -> PackedInt32Array:
@@ -169,6 +171,29 @@ func _sanitize_edges(edges: PackedInt32Array) -> PackedInt32Array:
 		if _has_edge(output, vertex_a, vertex_b):
 			continue
 		output = _append_edge(output, vertex_a, vertex_b)
+
+	return output
+
+
+func _sanitize_triangles(value: PackedInt32Array) -> PackedInt32Array:
+	var output := PackedInt32Array()
+	for index: int in range(0, value.size() - 2, 3):
+		var vertex_a := int(value[index])
+		var vertex_b := int(value[index + 1])
+		var vertex_c := int(value[index + 2])
+		if (
+				not _is_valid_vertex_index(vertex_a)
+				or not _is_valid_vertex_index(vertex_b)
+				or not _is_valid_vertex_index(vertex_c)
+				or vertex_a == vertex_b
+				or vertex_b == vertex_c
+				or vertex_c == vertex_a
+		):
+			continue
+
+		output.append(vertex_a)
+		output.append(vertex_b)
+		output.append(vertex_c)
 
 	return output
 

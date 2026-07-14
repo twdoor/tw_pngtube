@@ -1,0 +1,255 @@
+[gd_scene format=3 uid="uid://c8sis7p4145wm"]
+
+[ext_resource type="Script" uid="uid://dt4w6u2dd3res" path="res://environment/environment.gd" id="1_environment"]
+[ext_resource type="Script" uid="uid://dqehepip4iv8u" path="res://shared/model/twber_runtime_model.gd" id="2_runtime"]
+[ext_resource type="Script" uid="uid://bnduj0hnc6ce5" path="res://environment/core/twber_input_registry.gd" id="3_registry"]
+[ext_resource type="Script" uid="uid://d4hke14eqja6w" path="res://environment/core/twber_package_manager.gd" id="4_manager"]
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="5_font"]
+
+[node name="Environment" type="Node" unique_id=481477685]
+script = ExtResource("1_environment")
+
+[node name="Background" type="ColorRect" parent="." unique_id=2004424042]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="RuntimeModel" type="Node2D" parent="." unique_id=1237895022]
+unique_name_in_owner = true
+position = Vector2(460, 360)
+script = ExtResource("2_runtime")
+
+[node name="InputRegistry" type="Node" parent="." unique_id=1752308089]
+unique_name_in_owner = true
+script = ExtResource("3_registry")
+
+[node name="PackageManager" type="Node" parent="." unique_id=211723730]
+unique_name_in_owner = true
+script = ExtResource("4_manager")
+
+[node name="Interface" type="CanvasLayer" parent="." unique_id=1400131343]
+layer = 10
+
+[node name="RootMargin" type="MarginContainer" parent="Interface" unique_id=1618282355]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Layout" type="VBoxContainer" parent="Interface/RootMargin" unique_id=1579921599]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Toolbar" type="PanelContainer" parent="Interface/RootMargin/Layout" unique_id=2121536689]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Interface/RootMargin/Layout/Toolbar" unique_id=101257449]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 5
+
+[node name="Items" type="HBoxContainer" parent="Interface/RootMargin/Layout/Toolbar/Margin" unique_id=928827507]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OpenModelButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=2012213384]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+text = "Open model"
+
+[node name="ResetViewButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=1635298662]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+text = "Reset view"
+
+[node name="Spacer" type="Control" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=1876338789]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ModelNameLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=608783282]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+text = "No model loaded"
+
+[node name="Separator" type="VSeparator" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=718182986]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=223313681]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 11
+text = "Waiting for model"
+
+[node name="Body" type="HSplitContainer" parent="Interface/RootMargin/Layout" unique_id=1563576268]
+layout_mode = 2
+size_flags_vertical = 3
+split_offsets = PackedInt32Array(-360)
+split_offset = -360
+
+[node name="PreviewInteraction" type="Control" parent="Interface/RootMargin/Layout/Body" unique_id=481968180]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_default_cursor_shape = 13
+
+[node name="Help" type="Label" parent="Interface/RootMargin/Layout/Body/PreviewInteraction" unique_id=846596096]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 330.0
+offset_bottom = 34.0
+theme_override_colors/font_color = Color(0.48, 0.51, 0.58, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 10
+text = "Wheel to zoom · Middle-drag to pan"
+
+[node name="Margin" type="MarginContainer" parent="Interface/RootMargin/Layout/Body" unique_id=2113704158]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Tabs" type="TabContainer" parent="Interface/RootMargin/Layout/Body/Margin" unique_id=2053464090]
+layout_mode = 2
+tab_alignment = 2
+current_tab = 0
+tabs_position = 1
+clip_tabs = false
+tab_0/title = "[Params]"
+tab_1/title = "[Packs]"
+
+[node name="Params" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs" unique_id=1780125300]
+layout_mode = 2
+metadata/_tab_index = 0
+metadata/_tab_name = "[Params]"
+
+[node name="Params" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params" unique_id=1117055915]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Parameters" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params" unique_id=447972306]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=730591759]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 15
+text = "Model parameters"
+
+[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=1234197542]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 10
+text = "Input sources and their settings are saved for this model automatically."
+autowrap_mode = 2
+
+[node name="EmptyParametersLabel" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=791042934]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.48, 0.51, 0.58, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 11
+text = "Load a .twber model to see its parameters."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ParameterScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=152511291]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ParameterList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters/ParameterScroll" unique_id=1547791865]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Packs" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs" unique_id=243811138]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+metadata/_tab_name = "[Packs]"
+
+[node name="Packs" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs" unique_id=1443717252]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Packages" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs" unique_id=1794548907]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=1624222758]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 15
+text = "Installed packages"
+
+[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=204638564]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 10
+text = "Packages publish typed values that can be connected to model parameters."
+autowrap_mode = 2
+
+[node name="PackageScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=2061584677]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PackageList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages/PackageScroll" unique_id=876175978]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="OpenModelDialog" type="FileDialog" parent="Interface" unique_id=1016109793]
+unique_name_in_owner = true
+oversampling_override = 1.0
+title = "Open a File"
+initial_position = 1
+size = Vector2i(920, 560)
+ok_button_text = "Open"
+file_mode = 0
+access = 2
+
+[node name="ErrorDialog" type="AcceptDialog" parent="Interface" unique_id=582028564]
+unique_name_in_owner = true
+initial_position = 1
+size = Vector2i(480, 180)

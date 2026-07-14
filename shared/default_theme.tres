@@ -1,0 +1,42 @@
+[gd_resource type="Theme" format=3 uid="uid://bsd32vbcsncwc"]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_nq7u3"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vh8kr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nq7u3"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lhcwr"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uvgcw"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kga4s"]
+bg_color = Color(0.6255971, 0.6255971, 0.62559694, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nxxma"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[resource]
+default_font = ExtResource("1_nq7u3")
+TabContainer/colors/font_selected_color = Color(0, 0, 0, 1)
+TabContainer/constants/side_margin = 3
+TabContainer/constants/tab_separation = 4
+TabContainer/styles/panel = SubResource("StyleBoxEmpty_vh8kr")
+TabContainer/styles/tab_disabled = SubResource("StyleBoxFlat_nq7u3")
+TabContainer/styles/tab_focus = SubResource("StyleBoxFlat_lhcwr")
+TabContainer/styles/tab_hovered = SubResource("StyleBoxFlat_uvgcw")
+TabContainer/styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
+TabContainer/styles/tab_unselected = SubResource("StyleBoxFlat_nxxma")

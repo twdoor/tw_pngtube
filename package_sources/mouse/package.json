@@ -1,0 +1,8 @@
+{
+  "api_version": 1,
+  "id": "mouse",
+  "name": "Mouse Input",
+  "version": "1.2.1",
+  "description": "Publishes the global pointer position for display-relative parameter bindings.",
+  "entry_scene": "res://package_sources/mouse/provider.tscn"
+}

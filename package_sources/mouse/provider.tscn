@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://package_sources/mouse/provider.gd" id="1_provider"]
+
+[node name="MouseInputProvider" type="Node"]
+script = ExtResource("1_provider")

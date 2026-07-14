@@ -1,0 +1,9 @@
+{
+  "api_version": 1,
+  "id": "microphone",
+  "name": "Microphone Input",
+  "version": "1.0.0",
+  "description": "Captures a microphone and publishes a smoothed level in decibels.",
+  "entry_scene": "res://package_sources/microphone/provider.tscn",
+  "settings_scene": "res://package_sources/microphone/settings_control.tscn"
+}

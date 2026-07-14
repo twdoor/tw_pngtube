@@ -1,0 +1,84 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://package_sources/microphone/binding_control.gd" id="1_binding"]
+[ext_resource type="Script" path="res://package_sources/microphone/level_meter.gd" id="2_meter"]
+
+[node name="MicrophoneBindingControl" type="VBoxContainer"]
+theme_override_constants/separation = 5
+script = ExtResource("1_binding")
+
+[node name="BoolSettings" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ThresholdRow" type="HBoxContainer" parent="BoolSettings"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BoolSettings/ThresholdRow"]
+custom_minimum_size = Vector2(68, 0)
+layout_mode = 2
+text = "Threshold"
+
+[node name="Threshold" type="SpinBox" parent="BoolSettings/ThresholdRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -80.0
+max_value = 0.0
+step = 1.0
+suffix = " dB"
+
+[node name="BoolMeter" type="Control" parent="BoolSettings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+script = ExtResource("2_meter")
+
+[node name="BoolPreviewLabel" type="Label" parent="BoolSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Waiting for microphone input"
+
+[node name="RangeSettings" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Range" type="HBoxContainer" parent="RangeSettings"]
+layout_mode = 2
+
+[node name="MinLabel" type="Label" parent="RangeSettings/Range"]
+layout_mode = 2
+text = "Min"
+
+[node name="Minimum" type="SpinBox" parent="RangeSettings/Range"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+min_value = -80.0
+max_value = 0.0
+step = 1.0
+suffix = " dB"
+
+[node name="MaxLabel" type="Label" parent="RangeSettings/Range"]
+layout_mode = 2
+text = "Max"
+
+[node name="Maximum" type="SpinBox" parent="RangeSettings/Range"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+min_value = -80.0
+max_value = 0.0
+step = 1.0
+suffix = " dB"
+
+[node name="RangeMeter" type="Control" parent="RangeSettings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+script = ExtResource("2_meter")
+
+[node name="PreviewLabel" type="Label" parent="RangeSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Waiting for microphone input"

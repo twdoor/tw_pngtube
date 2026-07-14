@@ -1,22 +1,27 @@
 [gd_scene format=3 uid="uid://bmfyo5bls4yf3"]
 
-[ext_resource type="Script" path="res://editor/editor_settings_dialog.gd" id="1_settings_dialog"]
+[ext_resource type="Script" uid="uid://duuhyca2phd84" path="res://editor/editor_settings_dialog.gd" id="1_settings_dialog"]
 
 [node name="EditorSettingsDialog" type="ConfirmationDialog" unique_id=937098627]
 oversampling_override = 1.0
 title = "Settings"
 position = Vector2i(0, 36)
-size = Vector2i(420, 150)
+size = Vector2i(420, 340)
 visible = true
 ok_button_text = "Save"
 script = ExtResource("1_settings_dialog")
 
 [node name="Content" type="VBoxContainer" parent="." unique_id=1979954473]
-custom_minimum_size = Vector2(360, 92)
+custom_minimum_size = Vector2(360, 260)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 412.0
-offset_bottom = 101.0
+offset_right = -8.0
+offset_bottom = -49.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/separation = 10
 
 [node name="VramRow" type="HBoxContainer" parent="Content" unique_id=1633089880]
@@ -33,3 +38,92 @@ text = "Compress textures"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="TrimRow" type="HBoxContainer" parent="Content" unique_id=1649132745]
+layout_mode = 2
+tooltip_text = "Remove empty outer pixels before GPU compression while preserving the layer's original position."
+theme_override_constants/separation = 12
+
+[node name="TrimLabel" type="Label" parent="Content/TrimRow" unique_id=1811153231]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Trim empty borders"
+
+[node name="TrimTransparentCheckBox" type="CheckBox" parent="Content/TrimRow" unique_id=1530834033]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+text = "On import"
+
+[node name="TrimThresholdRow" type="HBoxContainer" parent="Content" unique_id=1642898908]
+layout_mode = 2
+tooltip_text = "Pixels at or below this alpha are treated as empty when finding the outer bounds."
+theme_override_constants/separation = 12
+
+[node name="TrimThresholdLabel" type="Label" parent="Content/TrimThresholdRow" unique_id=1339963130]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Alpha threshold"
+
+[node name="TrimAlphaThreshold" type="SpinBox" parent="Content/TrimThresholdRow" unique_id=596945933]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.001
+value = 0.001
+
+[node name="TrimPaddingRow" type="HBoxContainer" parent="Content" unique_id=1151005199]
+layout_mode = 2
+tooltip_text = "Transparent safety border retained around detected content to protect anti-aliased edges."
+theme_override_constants/separation = 12
+
+[node name="TrimPaddingLabel" type="Label" parent="Content/TrimPaddingRow" unique_id=1745712994]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Trim padding"
+
+[node name="TrimPadding" type="SpinBox" parent="Content/TrimPaddingRow" unique_id=1538273310]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 32.0
+value = 2.0
+suffix = " px"
+
+[node name="PixelSnapRow" type="HBoxContainer" parent="Content" unique_id=1486629589]
+layout_mode = 2
+tooltip_text = "Use pixel-aligned positions and mesh points, with stepped scale and rotation edits."
+theme_override_constants/separation = 12
+
+[node name="PixelSnapLabel" type="Label" parent="Content/PixelSnapRow" unique_id=145226706]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Pixel art mode"
+
+[node name="PixelSnapCheckBox" type="CheckBox" parent="Content/PixelSnapRow" unique_id=1282640806]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+text = "Enabled"
+
+[node name="RotationSnapRow" type="HBoxContainer" parent="Content" unique_id=1885590782]
+layout_mode = 2
+tooltip_text = "Rotation increment used while pixel snapping is enabled."
+theme_override_constants/separation = 12
+
+[node name="RotationSnapLabel" type="Label" parent="Content/RotationSnapRow" unique_id=1189128083]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Rotation snap"
+
+[node name="RotationSnapDegrees" type="SpinBox" parent="Content/RotationSnapRow" unique_id=1351624505]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 90.0
+value = 15.0
+suffix = "°"

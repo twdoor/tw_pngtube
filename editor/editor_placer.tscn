@@ -2,10 +2,16 @@
 
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_a7f0c"]
 [ext_resource type="Script" uid="uid://cdm7xuk1eoqj5" path="res://editor/editor_placer.gd" id="2_luu17"]
-[ext_resource type="Texture2D" uid="uid://b6q4pf07yi3em" path="res://shared/assets/Icon_PictoIcon_Plus.Png" id="3_3ohd4"]
-[ext_resource type="Texture2D" uid="uid://bh66mgoqqcsab" path="res://shared/assets/Icon_PictoIcon_Bin.Png" id="4_3ohd4"]
-[ext_resource type="Texture2D" uid="uid://dy03qucgek3jq" path="res://shared/assets/Icon_PictoIcon_Pencil.Png" id="5_10tqb"]
-[ext_resource type="Texture2D" uid="uid://xan4bffygot5" path="res://shared/assets/Icon_PictoIcon_Copy.Png" id="6_121pa"]
+[ext_resource type="Texture2D" uid="uid://cc5o2k383gll" path="res://shared/assets/icons/card.svg" id="3_78d8l"]
+[ext_resource type="Texture2D" uid="uid://lnw3g5w4ewhe" path="res://shared/assets/icons/visible.svg" id="3_ln3a8"]
+[ext_resource type="Texture2D" uid="uid://sq8uhsagffje" path="res://shared/assets/icons/cards.svg" id="4_jnso7"]
+[ext_resource type="Texture2D" uid="uid://cnwknklfei45d" path="res://shared/assets/icons/invisible.svg" id="4_ysb3u"]
+[ext_resource type="Texture2D" uid="uid://cafmrmmi0pxm0" path="res://shared/assets/icons/square.svg" id="5_tfx84"]
+[ext_resource type="Texture2D" uid="uid://d1lvdtk0va1eh" path="res://shared/assets/icons/plus.svg" id="5_xn84x"]
+[ext_resource type="Texture2D" uid="uid://co555kkokpg7f" path="res://shared/assets/icons/cross.svg" id="6_78d8l"]
+[ext_resource type="Texture2D" uid="uid://b7ijnbrim3jfw" path="res://shared/assets/icons/pencil.svg" id="7_jnso7"]
+[ext_resource type="Texture2D" uid="uid://bqi66ctfu5030" path="res://shared/assets/icons/copy.svg" id="8_tfx84"]
+[ext_resource type="Texture2D" uid="uid://b1umouv1xgltw" path="res://shared/assets/icons/trash.svg" id="9_whbxg"]
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_hdak6"]
 size = Vector2(100, 100)
@@ -45,24 +51,39 @@ layout_mode = 2
 
 [node name="LayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "New Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
-text = "Layer"
+icon = ExtResource("3_78d8l")
+icon_alignment = 1
+expand_icon = true
 
 [node name="AnimationLayerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "New Animated Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
-text = "Animated"
+icon = ExtResource("4_jnso7")
+icon_alignment = 1
+expand_icon = true
 
 [node name="EmptyButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "New Empty Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
-text = "Empty"
+icon = ExtResource("5_tfx84")
+icon_alignment = 1
+expand_icon = true
 
 [node name="Tree" type="Tree" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=863067424]
 unique_name_in_owner = true
@@ -123,6 +144,8 @@ unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Visibility toggle"
 theme_override_fonts/font = ExtResource("1_a7f0c")
+theme_override_icons/checked = ExtResource("3_ln3a8")
+theme_override_icons/unchecked = ExtResource("4_ysb3u")
 
 [node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1612645138]
 unique_name_in_owner = true
@@ -169,7 +192,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(32, 32)
 layout_mode = 2
 tooltip_text = "New Animation"
-icon = ExtResource("3_3ohd4")
+icon = ExtResource("5_xn84x")
 icon_alignment = 1
 expand_icon = true
 
@@ -184,7 +207,7 @@ theme_override_colors/icon_focus_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
-icon = ExtResource("4_3ohd4")
+icon = ExtResource("6_78d8l")
 icon_alignment = 1
 expand_icon = true
 
@@ -194,7 +217,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(32, 32)
 layout_mode = 2
 tooltip_text = "Rename Animation"
-icon = ExtResource("5_10tqb")
+icon = ExtResource("7_jnso7")
 icon_alignment = 1
 expand_icon = true
 
@@ -207,9 +230,10 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Duplicate Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
-text = "Duplicate"
-icon = ExtResource("6_121pa")
+icon = ExtResource("8_tfx84")
+icon_alignment = 1
 expand_icon = true
 
 [node name="DeleteButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/GeneralActions" unique_id=1597951933]
@@ -218,6 +242,7 @@ custom_minimum_size = Vector2(32, 32)
 custom_maximum_size = Vector2(-1, 32)
 layout_mode = 2
 size_flags_horizontal = 3
+tooltip_text = "Delete Layer"
 theme_override_colors/font_color = Color(1, 0, 0, 1)
 theme_override_colors/font_focus_color = Color(1, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(1, 0, 0, 1)
@@ -229,10 +254,8 @@ theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
 theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
 theme_override_fonts/font = ExtResource("1_a7f0c")
-text = "Delete"
-icon = ExtResource("4_3ohd4")
-icon_alignment = 2
-expand_icon = true
+icon = ExtResource("9_whbxg")
+icon_alignment = 1
 
 [node name="Panel" type="Panel" parent="." unique_id=2142597381]
 layout_mode = 2

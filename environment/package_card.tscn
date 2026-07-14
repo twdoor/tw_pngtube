@@ -1,0 +1,74 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://environment/package_card.gd" id="1_card"]
+[ext_resource type="FontFile" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+
+[node name="PackageCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 124)
+script = ExtResource("1_card")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Top" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="PackageName" type="Label" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 13
+text = "Package"
+
+[node name="PackageVersion" type="Label" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 9
+text = "v0.0.0"
+
+[node name="PackageEnabled" type="CheckButton" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Enabled"
+
+[node name="PackageSettingsButton" type="Button" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "Settings"
+
+[node name="PackageDescription" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.74, 0.79, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "Package description"
+autowrap_mode = 2
+
+[node name="PackageOutputs" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.52, 0.55, 0.62, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 9
+text = "Outputs"
+autowrap_mode = 2
+
+[node name="PackageSettingsHost" type="VBoxContainer" parent="Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2

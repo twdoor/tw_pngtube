@@ -1,13 +1,7 @@
-class_name EditorMesher extends HSplitContainer
+class_name EditorMesher extends EditorModelTree
 
 signal model_tree_changed
 
-const TREE_COLUMN := 0
-const ROOT_LAYER_ID := 0
-const INVALID_LAYER_ID := -1
-const MODEL_ROOT_NAME := "Textures"
-const HANDLE_RADIUS := 5.0
-const HANDLE_HIT_RADIUS := 12.0
 const EDGE_HIT_RADIUS := 12.0
 const TRIANGLE_COLOR := Color(0.19, 0.75, 1.0, 0.8)
 const EDGE_COLOR := Color(0.9, 0.95, 1.0, 0.75)
@@ -15,60 +9,57 @@ const CUT_EDGE_COLOR := Color(1.0, 0.28, 0.2, 0.95)
 const JOIN_EDGE_COLOR := Color(0.42, 1.0, 0.5, 0.95)
 const HANDLE_COLOR := Color(1.0, 1.0, 1.0, 0.95)
 const SELECTED_HANDLE_COLOR := Color(1.0, 0.78, 0.22, 1.0)
+const SELECTION_STROKE_COLOR := Color(1.0, 0.78, 0.22, 0.95)
+const SELECTION_FILL_COLOR := Color(1.0, 0.78, 0.22, 0.16)
 const SOURCE_TEXTURE_COLOR := Color(1.0, 1.0, 1.0, 0.42)
 const UNSUPPORTED_COLOR := Color(1.0, 0.35, 0.25, 0.75)
+const LASSO_MIN_POINT_DISTANCE := 4.0
+const VISIBLE_PIXEL_ALPHA_THRESHOLD := 0.01
 
 enum MeshMode {
 	ADD_POINT,
 	REMOVE_POINT,
 	EDIT_POINT,
+	RECTANGLE_SELECT,
+	LASSO_SELECT,
 	CUT_EDGE,
 	JOIN_EDGE,
 }
 
 @onready var _add_point_button: Button = %AddPointButton
 @onready var _remove_point_button: Button = %RemovePointButton
-@onready var _edit_point_button: Button = %EditPointButton
+@onready var _rectangle_select_button: Button = %RectangleSelectButton
+@onready var _lasso_select_button: Button = %LassoSelectButton
 @onready var _cut_button: Button = %CutButton
 @onready var _join_button: Button = %JoinButton
-@onready var _tree: Tree = %Tree
+@onready var _fast_mesh_button: Button = %FastMeshButton
+@onready var _horizontal_vertices: SpinBox = %HorizontalVertices
+@onready var _vertical_vertices: SpinBox = %VerticalVertices
+@onready var _fast_mesh_dialog: ConfirmationDialog = %FastMeshDialog
 @onready var _edit_panel: Control = $Panel
-@export var _preview_layer: CanvasLayer
 
-var _root_item: TreeItem
-var _model_root: Node2D
-var _selected_layer_id := INVALID_LAYER_ID
-var _selected_node: Node2D
-var _selected_vertex_index := -1
+var _selected_vertex_indices: Array[int] = []
 var _join_first_vertex_index := -1
 var _dragging_vertex := false
 var _holding_remove := false
 var _holding_cut := false
-var _overlay: Control
-var _layers_by_id: Dictionary = {}
-var _root_layer_ids: Array[int] = []
-var _tree_items_by_id: Dictionary = {}
-var _next_item_id := 1
+var _drag_start_position := Vector2.ZERO
+var _drag_start_vertices := {}
+var _selecting_vertices := false
+var _selection_additive := false
+var _selection_mode := MeshMode.RECTANGLE_SELECT
+var _selection_start_position := Vector2.ZERO
+var _selection_current_position := Vector2.ZERO
+var _lasso_points := PackedVector2Array()
 
 
 func _ready() -> void:
 	_add_point_button.button_pressed = true
-
-	_tree.clear()
-	_tree.columns = 1
-	_tree.hide_root = true
-	_tree.set_column_expand(TREE_COLUMN, true)
-	_tree.item_selected.connect(_on_tree_item_selected)
+	_fast_mesh_button.pressed.connect(_on_fast_mesh_button_pressed)
+	_fast_mesh_dialog.confirmed.connect(_on_generate_grid_button_pressed)
+	_initialize_model_tree()
 	_setup_overlay()
-
-	_setup_preview()
 	reload_from_preview()
-	set_process(true)
-
-
-func _process(_delta: float) -> void:
-	if visible:
-		_queue_overlay_redraw()
 
 
 func _setup_overlay() -> void:
@@ -90,6 +81,7 @@ func _on_overlay_draw() -> void:
 
 	if _selected_node is TwberMeshSprite2D:
 		_draw_mesh_overlay(_selected_node)
+		_draw_selection_overlay()
 	elif _selected_node is Sprite2D:
 		_draw_sprite_bounds(_selected_node)
 	else:
@@ -106,53 +98,34 @@ func _on_overlay_gui_input(event: InputEvent) -> void:
 		_handle_mouse_motion(event, _overlay_local_to_viewport(event.position))
 
 
-func reload_from_preview(selected_node: Node2D = null) -> void:
-	var node_to_select := selected_node
-	if node_to_select == null:
-		node_to_select = _selected_node
-
-	_layers_by_id.clear()
-	_root_layer_ids.clear()
-	_tree_items_by_id.clear()
-	_next_item_id = 1
-
-	if _model_root != null:
-		_import_model_children(_model_root, ROOT_LAYER_ID, _root_layer_ids)
-
-	_rebuild_tree()
-
-	if node_to_select != null:
-		_select_node(node_to_select)
-	elif _selected_layer_id != INVALID_LAYER_ID:
-		_set_selected_layer(_selected_layer_id)
-	else:
-		_set_selected_layer(INVALID_LAYER_ID)
-
-
 func _handle_mouse_button(event: InputEventMouseButton, viewport_position: Vector2) -> void:
 	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
 
 	if not event.pressed:
-		_dragging_vertex = false
-		_holding_remove = false
-		_holding_cut = false
+		_stop_pointer_actions()
+		if _selecting_vertices:
+			_finish_vertex_selection()
 		_overlay.accept_event()
 		return
 
-	match _get_mode():
+	var mode := _get_mode()
+	if mode != MeshMode.JOIN_EDGE:
+		_join_first_vertex_index = -1
+
+	match mode:
 		MeshMode.ADD_POINT:
-			_join_first_vertex_index = -1
 			_add_point_at(viewport_position)
 		MeshMode.REMOVE_POINT:
-			_join_first_vertex_index = -1
 			_holding_remove = true
 			_remove_point_at(viewport_position)
 		MeshMode.EDIT_POINT:
-			_join_first_vertex_index = -1
-			_begin_edit_point_at(viewport_position)
+			_begin_edit_point_at(viewport_position, event.shift_pressed)
+		MeshMode.RECTANGLE_SELECT:
+			_begin_rectangle_selection(viewport_position, event.shift_pressed)
+		MeshMode.LASSO_SELECT:
+			_begin_lasso_selection(viewport_position, event.shift_pressed)
 		MeshMode.CUT_EDGE:
-			_join_first_vertex_index = -1
 			_holding_cut = true
 			_cut_edge_at(viewport_position)
 		MeshMode.JOIN_EDGE:
@@ -163,9 +136,8 @@ func _handle_mouse_button(event: InputEventMouseButton, viewport_position: Vecto
 
 func _handle_mouse_motion(event: InputEventMouseMotion, viewport_position: Vector2) -> void:
 	if (event.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
-		_dragging_vertex = false
-		_holding_remove = false
-		_holding_cut = false
+		_stop_pointer_actions()
+		_selecting_vertices = false
 		return
 
 	if not (_selected_node is TwberMeshSprite2D):
@@ -173,8 +145,20 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport_position: Vecto
 
 	if _dragging_vertex:
 		var mesh_sprite: TwberMeshSprite2D = _selected_node
-		mesh_sprite.set_vertex(_selected_vertex_index, _viewport_to_node_position(mesh_sprite, viewport_position))
+		var drag_offset := _viewport_to_node_position(mesh_sprite, viewport_position) - _drag_start_position
+		for vertex_index: int in _selected_vertex_indices:
+			if not _drag_start_vertices.has(vertex_index):
+				continue
+			var previous_position: Vector2 = mesh_sprite.get_vertex(vertex_index)
+			var start_position: Vector2 = _drag_start_vertices[vertex_index]
+			var next_position := _snap_mesh_position(mesh_sprite, start_position + drag_offset)
+			if not next_position.is_equal_approx(previous_position):
+				mesh_sprite.set_vertex(vertex_index, next_position)
+				_shift_parameter_mesh_vertex_states(mesh_sprite, vertex_index, next_position - previous_position)
 		_queue_overlay_redraw()
+		_overlay.accept_event()
+	elif _selecting_vertices:
+		_update_vertex_selection(viewport_position)
 		_overlay.accept_event()
 	elif _holding_remove:
 		_remove_point_at(viewport_position)
@@ -184,15 +168,35 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport_position: Vecto
 		_overlay.accept_event()
 
 
+func _stop_pointer_actions() -> void:
+	_dragging_vertex = false
+	_holding_remove = false
+	_holding_cut = false
+	_drag_start_vertices.clear()
+
+
+func _reset_interaction_state() -> void:
+	_stop_pointer_actions()
+	_selected_vertex_indices.clear()
+	_join_first_vertex_index = -1
+	_selecting_vertices = false
+	_lasso_points = PackedVector2Array()
+
+
 func _add_point_at(canvas_position: Vector2) -> void:
 	var was_plain_sprite := _selected_node is Sprite2D
 	var mesh_sprite := _ensure_selected_mesh_sprite()
 	if mesh_sprite == null:
 		return
 
-	mesh_sprite.add_vertex(_viewport_to_node_position(mesh_sprite, canvas_position))
+	var vertex_position := _snap_mesh_position(
+			mesh_sprite,
+			_viewport_to_node_position(mesh_sprite, canvas_position),
+	)
+	mesh_sprite.add_vertex(vertex_position)
 	_selected_node = mesh_sprite
-	_selected_vertex_index = mesh_sprite.get_vertex_count() - 1
+	_set_vertex_selection([mesh_sprite.get_vertex_count() - 1])
+	_insert_parameter_mesh_vertex_states(mesh_sprite, mesh_sprite.get_vertex_count() - 1)
 
 	if was_plain_sprite:
 		model_tree_changed.emit()
@@ -212,6 +216,7 @@ func _remove_point_at(canvas_position: Vector2) -> void:
 
 	_join_first_vertex_index = -1
 	mesh_sprite.remove_vertex(vertex_index)
+	_remove_parameter_mesh_vertex_states(mesh_sprite, vertex_index)
 	if mesh_sprite.get_vertex_count() == 0:
 		_holding_remove = false
 		var sprite := _convert_mesh_to_sprite(mesh_sprite)
@@ -219,24 +224,28 @@ func _remove_point_at(canvas_position: Vector2) -> void:
 		reload_from_preview(sprite)
 		return
 
-	_selected_vertex_index = mini(vertex_index, mesh_sprite.get_vertex_count() - 1)
+	_set_vertex_selection([mini(vertex_index, mesh_sprite.get_vertex_count() - 1)])
 	_queue_overlay_redraw()
 
 
-func _begin_edit_point_at(canvas_position: Vector2) -> void:
+func _begin_edit_point_at(canvas_position: Vector2, additive_selection: bool) -> void:
 	if not (_selected_node is TwberMeshSprite2D):
 		return
 
 	var mesh_sprite: TwberMeshSprite2D = _selected_node
 	var vertex_index := _find_vertex_at_canvas_position(mesh_sprite, canvas_position)
 	if vertex_index == -1:
-		_selected_vertex_index = -1
+		if not additive_selection:
+			_selected_vertex_indices.clear()
 		_dragging_vertex = false
 		_queue_overlay_redraw()
 		return
 
-	_selected_vertex_index = vertex_index
-	_dragging_vertex = true
+	if additive_selection:
+		_toggle_vertex_selection(vertex_index)
+		_dragging_vertex = false
+	else:
+		_begin_vertex_drag(mesh_sprite, vertex_index, canvas_position)
 	_queue_overlay_redraw()
 
 
@@ -250,7 +259,7 @@ func _cut_edge_at(canvas_position: Vector2) -> void:
 		return
 
 	mesh_sprite.cut_edge(int(edge[0]), int(edge[1]))
-	_selected_vertex_index = -1
+	_selected_vertex_indices.clear()
 	_queue_overlay_redraw()
 
 
@@ -265,18 +274,18 @@ func _join_edge_at(canvas_position: Vector2) -> void:
 
 	if _join_first_vertex_index == -1:
 		_join_first_vertex_index = vertex_index
-		_selected_vertex_index = vertex_index
+		_set_vertex_selection([vertex_index])
 		_queue_overlay_redraw()
 		return
 
 	if _join_first_vertex_index == vertex_index:
 		_join_first_vertex_index = -1
-		_selected_vertex_index = vertex_index
+		_set_vertex_selection([vertex_index])
 		_queue_overlay_redraw()
 		return
 
 	mesh_sprite.join_edge(_join_first_vertex_index, vertex_index)
-	_selected_vertex_index = vertex_index
+	_set_vertex_selection([vertex_index])
 	_join_first_vertex_index = -1
 	_queue_overlay_redraw()
 
@@ -307,10 +316,13 @@ func _convert_mesh_to_sprite(mesh_sprite: TwberMeshSprite2D) -> Sprite2D:
 	var sprite := Sprite2D.new()
 	sprite.texture = mesh_sprite.texture
 	sprite.centered = true
+	sprite.offset = mesh_sprite.get_texture_origin()
+	if sprite.texture != null:
+		sprite.offset += sprite.texture.get_size() * 0.5
 	_copy_canvas_item_state(mesh_sprite, sprite)
 	_replace_node(mesh_sprite, sprite)
 	_selected_node = sprite
-	_selected_vertex_index = -1
+	_selected_vertex_indices.clear()
 	return sprite
 
 
@@ -342,43 +354,82 @@ func _copy_canvas_item_state(source: Node2D, target: Node2D) -> void:
 	target.texture_repeat = source.texture_repeat
 	target.material = source.material
 
-	if source is CanvasItem and target is CanvasItem:
-		var source_item: CanvasItem = source
-		var target_item: CanvasItem = target
-		target_item.modulate = source_item.modulate
-		target_item.self_modulate = source_item.self_modulate
-		target_item.show_behind_parent = source_item.show_behind_parent
-		target_item.clip_children = source_item.clip_children
-		target_item.light_mask = source_item.light_mask
-		target_item.visibility_layer = source_item.visibility_layer
+	target.modulate = source.modulate
+	target.self_modulate = source.self_modulate
+	target.show_behind_parent = source.show_behind_parent
+	target.clip_children = source.clip_children
+	target.light_mask = source.light_mask
+	target.visibility_layer = source.visibility_layer
+	for metadata_name: StringName in source.get_meta_list():
+		target.set_meta(metadata_name, source.get_meta(metadata_name))
 
 
-func _get_sprite_texture_origin(sprite: Sprite2D) -> Vector2:
-	if sprite.texture == null:
-		return sprite.offset
+func _insert_parameter_mesh_vertex_states(
+		mesh_sprite: TwberMeshSprite2D,
+		vertex_index: int,
+) -> void:
+	var current_vertices := mesh_sprite.mesh_data.vertices
+	for layer_state: TwberLayerStateResource in _get_parameter_layer_states(mesh_sprite):
+		if layer_state.mesh_vertices.size() == current_vertices.size() - 1:
+			layer_state.mesh_vertices.insert(vertex_index, current_vertices[vertex_index])
+		else:
+			layer_state.mesh_vertices = current_vertices.duplicate()
 
-	var origin := sprite.offset
-	if sprite.centered:
-		origin -= sprite.texture.get_size() * 0.5
 
-	return origin
+func _remove_parameter_mesh_vertex_states(
+		mesh_sprite: TwberMeshSprite2D,
+		vertex_index: int,
+) -> void:
+	var current_vertices := mesh_sprite.mesh_data.vertices
+	for layer_state: TwberLayerStateResource in _get_parameter_layer_states(mesh_sprite):
+		if layer_state.mesh_vertices.size() == current_vertices.size() + 1:
+			layer_state.mesh_vertices.remove_at(vertex_index)
+		else:
+			layer_state.mesh_vertices = current_vertices.duplicate()
 
 
-func _find_vertex_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_position: Vector2) -> int:
-	if mesh_sprite.mesh_data == null:
-		return -1
+func _shift_parameter_mesh_vertex_states(
+		mesh_sprite: TwberMeshSprite2D,
+		vertex_index: int,
+		offset: Vector2,
+) -> void:
+	if offset.is_zero_approx():
+		return
+	var current_vertices := mesh_sprite.mesh_data.vertices
+	for layer_state: TwberLayerStateResource in _get_parameter_layer_states(mesh_sprite):
+		if layer_state.mesh_vertices.size() == current_vertices.size():
+			layer_state.mesh_vertices[vertex_index] += offset
+		else:
+			layer_state.mesh_vertices = current_vertices.duplicate()
 
-	var editor_position := _canvas_to_editor_position(canvas_position)
-	var best_index := -1
-	var best_distance := HANDLE_HIT_RADIUS
-	for index: int in mesh_sprite.mesh_data.vertices.size():
-		var vertex_position := _node_to_editor_position(mesh_sprite, mesh_sprite.mesh_data.vertices[index])
-		var distance := editor_position.distance_to(vertex_position)
-		if distance <= best_distance:
-			best_distance = distance
-			best_index = index
 
-	return best_index
+func _get_parameter_layer_states(node: Node2D) -> Array[TwberLayerStateResource]:
+	var output: Array[TwberLayerStateResource] = []
+	if _model_root == null:
+		return output
+
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	if layer_id.is_empty():
+		return output
+
+	var stored_parameters: Variant = _model_root.get_meta(
+			TwberModelCodec.MODEL_PARAMETERS_META,
+			[],
+	)
+	if stored_parameters is not Array:
+		return output
+
+	for value: Variant in stored_parameters:
+		if value is not TwberParameterResource:
+			continue
+		var parameter: TwberParameterResource = value
+		for parameter_position: TwberParameterPositionResource in parameter.positions:
+			if parameter_position == null:
+				continue
+			var layer_state := parameter_position.find_state(layer_id)
+			if layer_state != null:
+				output.append(layer_state)
+	return output
 
 
 func _find_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_position: Vector2) -> PackedInt32Array:
@@ -395,7 +446,14 @@ func _find_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_positi
 		var a := int(triangles[triangle_start])
 		var b := int(triangles[triangle_start + 1])
 		var c := int(triangles[triangle_start + 2])
-		if a >= vertices.size() or b >= vertices.size() or c >= vertices.size():
+		if (
+				a < 0
+				or b < 0
+				or c < 0
+				or a >= vertices.size()
+				or b >= vertices.size()
+				or c >= vertices.size()
+		):
 			continue
 
 		var point_a := _node_to_editor_position(mesh_sprite, vertices[a])
@@ -419,7 +477,12 @@ func _find_edge_at_canvas_position(mesh_sprite: TwberMeshSprite2D, canvas_positi
 	for edge_index: int in range(0, mesh_sprite.mesh_data.joined_edges.size() - 1, 2):
 		var joined_a := int(mesh_sprite.mesh_data.joined_edges[edge_index])
 		var joined_b := int(mesh_sprite.mesh_data.joined_edges[edge_index + 1])
-		if joined_a >= vertices.size() or joined_b >= vertices.size():
+		if (
+				joined_a < 0
+				or joined_b < 0
+				or joined_a >= vertices.size()
+				or joined_b >= vertices.size()
+		):
 			continue
 
 		var joined_distance := _get_distance_to_segment(
@@ -453,15 +516,23 @@ func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
 	var vertices := mesh_sprite.mesh_data.vertices
 	var triangles := mesh_sprite.mesh_data.triangles
 	var edge_color := TRIANGLE_COLOR
-	if _get_mode() == MeshMode.CUT_EDGE:
+	var mode := _get_mode()
+	if mode == MeshMode.CUT_EDGE:
 		edge_color = CUT_EDGE_COLOR
-	elif _get_mode() == MeshMode.JOIN_EDGE:
+	elif mode == MeshMode.JOIN_EDGE:
 		edge_color = JOIN_EDGE_COLOR
 	for index: int in range(0, triangles.size() - 2, 3):
 		var a := int(triangles[index])
 		var b := int(triangles[index + 1])
 		var c := int(triangles[index + 2])
-		if a >= vertices.size() or b >= vertices.size() or c >= vertices.size():
+		if (
+				a < 0
+				or b < 0
+				or c < 0
+				or a >= vertices.size()
+				or b >= vertices.size()
+				or c >= vertices.size()
+		):
 			continue
 
 		var point_a := _node_to_editor_position(mesh_sprite, vertices[a])
@@ -483,7 +554,12 @@ func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
 	for index: int in range(0, mesh_sprite.mesh_data.joined_edges.size() - 1, 2):
 		var vertex_a := int(mesh_sprite.mesh_data.joined_edges[index])
 		var vertex_b := int(mesh_sprite.mesh_data.joined_edges[index + 1])
-		if vertex_a >= vertices.size() or vertex_b >= vertices.size():
+		if (
+				vertex_a < 0
+				or vertex_b < 0
+				or vertex_a >= vertices.size()
+				or vertex_b >= vertices.size()
+		):
 			continue
 		_overlay.draw_line(
 				_node_to_editor_position(mesh_sprite, vertices[vertex_a]),
@@ -494,11 +570,26 @@ func _draw_mesh_overlay(mesh_sprite: TwberMeshSprite2D) -> void:
 
 	for index: int in vertices.size():
 		var color := HANDLE_COLOR
-		if index == _selected_vertex_index:
+		if _selected_vertex_indices.has(index):
 			color = SELECTED_HANDLE_COLOR
 		if index == _join_first_vertex_index:
 			color = JOIN_EDGE_COLOR
 		_overlay.draw_circle(_node_to_editor_position(mesh_sprite, vertices[index]), HANDLE_RADIUS, color)
+
+
+func _draw_selection_overlay() -> void:
+	if not _selecting_vertices:
+		return
+
+	if _selection_mode == MeshMode.RECTANGLE_SELECT:
+		var rect := _get_selection_rect()
+		_overlay.draw_rect(rect, SELECTION_FILL_COLOR, true)
+		_overlay.draw_rect(rect, SELECTION_STROKE_COLOR, false, 1.0)
+	elif _selection_mode == MeshMode.LASSO_SELECT and _lasso_points.size() > 1:
+		var points := _lasso_points.duplicate()
+		if points[points.size() - 1] != _selection_current_position:
+			points.append(_selection_current_position)
+		_overlay.draw_polyline(points, SELECTION_STROKE_COLOR, 1.0)
 
 
 func _draw_source_texture_reference(node: Node2D) -> void:
@@ -550,152 +641,176 @@ func _draw_unsupported_marker(node: Node2D) -> void:
 	_overlay.draw_circle(_node_to_editor_position(node, Vector2.ZERO), HANDLE_RADIUS, UNSUPPORTED_COLOR)
 
 
-func _node_to_editor_position(node: Node2D, local_position: Vector2) -> Vector2:
-	return _canvas_to_editor_position(node.get_global_transform_with_canvas() * local_position)
-
-
-func _viewport_to_node_position(node: Node2D, viewport_position: Vector2) -> Vector2:
-	return node.get_global_transform_with_canvas().affine_inverse() * viewport_position
-
-
-func _canvas_to_editor_position(canvas_position: Vector2) -> Vector2:
-	return _overlay.get_global_transform_with_canvas().affine_inverse() * canvas_position
-
-
 func _get_mode() -> int:
 	if _add_point_button.button_pressed:
 		return MeshMode.ADD_POINT
 	if _remove_point_button.button_pressed:
 		return MeshMode.REMOVE_POINT
+	if _rectangle_select_button.button_pressed:
+		return MeshMode.RECTANGLE_SELECT
+	if _lasso_select_button.button_pressed:
+		return MeshMode.LASSO_SELECT
 	if _cut_button.button_pressed:
 		return MeshMode.CUT_EDGE
 	if _join_button.button_pressed:
 		return MeshMode.JOIN_EDGE
-	if _edit_point_button.button_pressed:
-		return MeshMode.EDIT_POINT
 
 	return MeshMode.EDIT_POINT
 
 
-func _overlay_local_to_viewport(local_position: Vector2) -> Vector2:
-	return _overlay.get_global_transform_with_canvas() * local_position
-
-
-func _queue_overlay_redraw() -> void:
-	if _overlay != null:
-		_overlay.queue_redraw()
-	queue_redraw()
-
-
-func _setup_preview() -> void:
-	if _preview_layer == null:
-		push_warning("EditorMesher needs a preview CanvasLayer.")
-		return
-
-	var existing_node := _preview_layer.get_node_or_null(MODEL_ROOT_NAME)
-	if existing_node is Node2D:
-		_model_root = existing_node
-	else:
-		push_warning("EditorMesher needs a Node2D named %s in the preview layer." % MODEL_ROOT_NAME)
-
-
-func _import_model_children(parent_node: Node, parent_id: int, child_ids: Array) -> void:
-	for child: Node in parent_node.get_children():
-		if child is not Node2D:
-			continue
-
-		var layer_id := _next_item_id
-		_next_item_id += 1
-		_layers_by_id[layer_id] = {
-			"id": layer_id,
-			"name": child.name,
-			"parent_id": parent_id,
-			"children": [],
-			"node": child,
-		}
-		child_ids.append(layer_id)
-
-		var layer: Dictionary = _layers_by_id[layer_id]
-		_import_model_children(child, layer_id, layer["children"])
-
-
-func _rebuild_tree() -> void:
-	var collapsed_state := _get_tree_collapsed_state()
-	_tree.clear()
-	_tree_items_by_id.clear()
-	_root_item = _tree.create_item()
-	_add_layer_items(_root_item, _root_layer_ids, collapsed_state)
-
-
-func _add_layer_items(parent_item: TreeItem, layer_ids: Array, collapsed_state: Dictionary) -> void:
-	for layer_id: int in layer_ids:
-		var layer: Dictionary = _layers_by_id[layer_id]
-		var item := _tree.create_item(parent_item)
-		item.set_text(TREE_COLUMN, layer["name"])
-		item.set_metadata(TREE_COLUMN, layer_id)
-		if collapsed_state.has(layer_id):
-			item.set_collapsed(collapsed_state[layer_id])
-		_tree_items_by_id[layer_id] = item
-		_add_layer_items(item, layer["children"], collapsed_state)
-
-
-func _on_tree_item_selected() -> void:
-	_set_selected_layer(_get_layer_id_from_item(_tree.get_selected()))
-
-
-func _set_selected_layer(layer_id: int) -> void:
-	if not _layers_by_id.has(layer_id):
-		_selected_layer_id = INVALID_LAYER_ID
-		_selected_node = null
-		_selected_vertex_index = -1
-		_queue_overlay_redraw()
-		return
-
-	_selected_layer_id = layer_id
-	var layer: Dictionary = _layers_by_id[layer_id]
-	_selected_node = layer["node"]
-	_selected_vertex_index = -1
+func _on_model_node_selected() -> void:
+	_reset_interaction_state()
 	_queue_overlay_redraw()
 
 
-func _select_node(node: Node2D) -> void:
-	var layer_id := _get_layer_id_for_node(node)
-	if layer_id == INVALID_LAYER_ID:
-		_set_selected_layer(INVALID_LAYER_ID)
+func _begin_vertex_drag(mesh_sprite: TwberMeshSprite2D, vertex_index: int, canvas_position: Vector2) -> void:
+	if not _selected_vertex_indices.has(vertex_index):
+		_set_vertex_selection([vertex_index])
+
+	_drag_start_position = _viewport_to_node_position(mesh_sprite, canvas_position)
+	_drag_start_vertices.clear()
+	for selected_vertex_index: int in _selected_vertex_indices:
+		if selected_vertex_index >= 0 and selected_vertex_index < mesh_sprite.get_vertex_count():
+			_drag_start_vertices[selected_vertex_index] = mesh_sprite.get_vertex(selected_vertex_index)
+	_dragging_vertex = not _drag_start_vertices.is_empty()
+
+
+func _set_vertex_selection(vertex_indices: Array) -> void:
+	_selected_vertex_indices.clear()
+	for vertex_index: int in vertex_indices:
+		if not _selected_vertex_indices.has(vertex_index):
+			_selected_vertex_indices.append(vertex_index)
+
+
+func _toggle_vertex_selection(vertex_index: int) -> void:
+	var selected_index := _selected_vertex_indices.find(vertex_index)
+	if selected_index == -1:
+		_selected_vertex_indices.append(vertex_index)
+	else:
+		_selected_vertex_indices.remove_at(selected_index)
+
+
+func _begin_rectangle_selection(canvas_position: Vector2, additive_selection: bool) -> void:
+	if not (_selected_node is TwberMeshSprite2D):
 		return
 
-	if _tree_items_by_id.has(layer_id):
-		_tree.deselect_all()
-		var item: TreeItem = _tree_items_by_id[layer_id]
-		item.select(TREE_COLUMN)
-	_set_selected_layer(layer_id)
+	_dragging_vertex = false
+	_selecting_vertices = true
+	_selection_additive = additive_selection
+	_selection_mode = MeshMode.RECTANGLE_SELECT
+	_selection_start_position = _canvas_to_editor_position(canvas_position)
+	_selection_current_position = _selection_start_position
+	_lasso_points = PackedVector2Array()
+	_queue_overlay_redraw()
 
 
-func _get_layer_id_for_node(node: Node2D) -> int:
-	for layer_id: int in _layers_by_id.keys():
-		var layer: Dictionary = _layers_by_id[layer_id]
-		if layer["node"] == node:
-			return layer_id
+func _begin_lasso_selection(canvas_position: Vector2, additive_selection: bool) -> void:
+	if not (_selected_node is TwberMeshSprite2D):
+		return
 
-	return INVALID_LAYER_ID
-
-
-func _get_tree_collapsed_state() -> Dictionary:
-	var collapsed_state := {}
-	for layer_id: int in _tree_items_by_id.keys():
-		var item: TreeItem = _tree_items_by_id[layer_id]
-		if item != null:
-			collapsed_state[layer_id] = item.is_collapsed()
-
-	return collapsed_state
+	_dragging_vertex = false
+	_selecting_vertices = true
+	_selection_additive = additive_selection
+	_selection_mode = MeshMode.LASSO_SELECT
+	_selection_start_position = _canvas_to_editor_position(canvas_position)
+	_selection_current_position = _selection_start_position
+	_lasso_points = PackedVector2Array([_selection_start_position])
+	_queue_overlay_redraw()
 
 
-func _get_layer_id_from_item(item: TreeItem) -> int:
-	if item == null:
-		return INVALID_LAYER_ID
+func _update_vertex_selection(canvas_position: Vector2) -> void:
+	_selection_current_position = _canvas_to_editor_position(canvas_position)
+	if _selection_mode == MeshMode.LASSO_SELECT and (
+		_lasso_points.is_empty()
+		or _lasso_points[_lasso_points.size() - 1].distance_to(_selection_current_position) >= LASSO_MIN_POINT_DISTANCE
+	):
+		_lasso_points.append(_selection_current_position)
+	_queue_overlay_redraw()
 
-	var layer_id: Variant = item.get_metadata(TREE_COLUMN)
-	if layer_id is int and _layers_by_id.has(layer_id):
-		return layer_id
 
-	return INVALID_LAYER_ID
+func _finish_vertex_selection() -> void:
+	if not (_selected_node is TwberMeshSprite2D):
+		_selecting_vertices = false
+		return
+
+	if _selection_mode == MeshMode.LASSO_SELECT and (
+		_lasso_points.is_empty() or _lasso_points[_lasso_points.size() - 1] != _selection_current_position
+	):
+		_lasso_points.append(_selection_current_position)
+
+	var mesh_sprite: TwberMeshSprite2D = _selected_node
+	var selected_indices := _find_vertices_in_active_selection(mesh_sprite)
+	if _selection_additive:
+		for vertex_index: int in selected_indices:
+			if not _selected_vertex_indices.has(vertex_index):
+				_selected_vertex_indices.append(vertex_index)
+	else:
+		_set_vertex_selection(selected_indices)
+	_selecting_vertices = false
+	_lasso_points = PackedVector2Array()
+	_queue_overlay_redraw()
+
+
+func _find_vertices_in_active_selection(mesh_sprite: TwberMeshSprite2D) -> Array[int]:
+	var selected_indices: Array[int] = []
+	if mesh_sprite.mesh_data == null:
+		return selected_indices
+
+	for index: int in mesh_sprite.mesh_data.vertices.size():
+		var point := _node_to_editor_position(mesh_sprite, mesh_sprite.mesh_data.vertices[index])
+		if _selection_mode == MeshMode.RECTANGLE_SELECT and _get_selection_rect().has_point(point):
+			selected_indices.append(index)
+		elif _selection_mode == MeshMode.LASSO_SELECT and _lasso_points.size() >= 3 and Geometry2D.is_point_in_polygon(point, _lasso_points):
+			selected_indices.append(index)
+	return selected_indices
+
+
+func _get_selection_rect() -> Rect2:
+	var top_left := _selection_start_position.min(_selection_current_position)
+	return Rect2(top_left, _selection_start_position.max(_selection_current_position) - top_left)
+
+
+func _on_generate_grid_button_pressed() -> void:
+	var was_plain_sprite := _selected_node is Sprite2D
+	var mesh_sprite := _ensure_selected_mesh_sprite()
+	if mesh_sprite == null or mesh_sprite.texture == null:
+		return
+
+	var visible_rect := _get_visible_texture_rect(mesh_sprite.texture)
+	if visible_rect.size.x < 1 or visible_rect.size.y < 1:
+		return
+
+	mesh_sprite.generate_grid_mesh(
+			int(_horizontal_vertices.value),
+			int(_vertical_vertices.value),
+			visible_rect,
+	)
+	_reset_parameter_mesh_vertex_states(mesh_sprite)
+	_set_vertex_selection([])
+	if was_plain_sprite:
+		model_tree_changed.emit()
+		reload_from_preview(mesh_sprite)
+	else:
+		_queue_overlay_redraw()
+
+
+func _on_fast_mesh_button_pressed() -> void:
+	if not (_selected_node is Sprite2D or _selected_node is TwberMeshSprite2D):
+		return
+	_fast_mesh_dialog.popup_centered(Vector2i(300, 150))
+
+
+func _get_visible_texture_rect(texture: Texture2D) -> Rect2i:
+	var metadata_rect := TwberTextureUtils.get_visible_rect(texture)
+	if metadata_rect.size.x > 0 and metadata_rect.size.y > 0:
+		return metadata_rect
+
+	var image := TwberTextureUtils.get_authoring_image(texture)
+	if image == null:
+		return Rect2i()
+	return TwberTextureUtils.find_alpha_used_rect(image, VISIBLE_PIXEL_ALPHA_THRESHOLD)
+
+
+func _reset_parameter_mesh_vertex_states(mesh_sprite: TwberMeshSprite2D) -> void:
+	for layer_state: TwberLayerStateResource in _get_parameter_layer_states(mesh_sprite):
+		layer_state.mesh_vertices = mesh_sprite.mesh_data.vertices.duplicate()
