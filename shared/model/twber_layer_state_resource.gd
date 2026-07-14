@@ -46,7 +46,9 @@ func capture_from_node(node: Node2D) -> void:
 	rotation = node.rotation
 	scale = node.scale
 	visible = node.visible
-	self_modulate = node.self_modulate
+	# Clip-only masks are hidden in alpha-safe previews. Capture the authored
+	# colour instead of that temporary render-only zero alpha.
+	self_modulate = TwberAlphaClipController.get_authored_self_modulate(node)
 	mesh_vertices = PackedVector2Array()
 	animation_name = ""
 	animation_frame_rate = UNSET_ANIMATION_FRAME_RATE

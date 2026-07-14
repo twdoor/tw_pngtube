@@ -380,10 +380,10 @@ func _on_opacity_slider_value_changed(value: float) -> void:
 	var layer: Dictionary = _layers_by_id[_selected_layer_id]
 	var model_node: Node = layer["node"]
 	if model_node is CanvasItem:
-		var canvas_item: CanvasItem = model_node
-		var color := canvas_item.self_modulate
+		var canvas_item := model_node as CanvasItem
+		var color := TwberAlphaClipController.get_authored_self_modulate(canvas_item)
 		color.a = value
-		canvas_item.self_modulate = color
+		TwberAlphaClipController.set_authored_self_modulate(canvas_item, color)
 		if canvas_item is TwberMeshSprite2D:
 			var mesh_sprite: TwberMeshSprite2D = canvas_item
 			mesh_sprite.sync_visual_state()
@@ -398,7 +398,10 @@ func _on_clip_option_button_item_selected(index: int) -> void:
 	var layer: Dictionary = _layers_by_id[_selected_layer_id]
 	var model_node: Node = layer["node"]
 	if model_node is CanvasItem:
-		model_node.clip_children = index
+		TwberAlphaClipController.set_authored_clip_mode(
+			model_node as CanvasItem,
+			index as CanvasItem.ClipChildrenMode,
+		)
 		model_render_changed.emit(false, true)
 
 
@@ -516,8 +519,9 @@ func _refresh_inspector() -> void:
 	if model_node is CanvasItem:
 		var canvas_item: CanvasItem = model_node
 		_visible_check_box.button_pressed = canvas_item.visible
-		_opacity_slider.value = canvas_item.self_modulate.a
-		_clip_option_button.select(clampi(canvas_item.clip_children, 0, _clip_option_button.item_count - 1))
+		_opacity_slider.value = TwberAlphaClipController.get_authored_self_modulate(canvas_item).a
+		var clip_mode := TwberAlphaClipController.get_authored_clip_mode(canvas_item)
+		_clip_option_button.select(clampi(clip_mode, 0, _clip_option_button.item_count - 1))
 
 	if has_layer_actions:
 		_set_texture_button_texture(_get_layer_texture(layer))

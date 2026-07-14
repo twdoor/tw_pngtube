@@ -1,27 +1,29 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://kv21eo8rd76"]
 
-[ext_resource type="Script" path="res://environment/package_card.gd" id="1_card"]
-[ext_resource type="FontFile" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[ext_resource type="Script" uid="uid://bmd4nl3p705ko" path="res://environment/package_card.gd" id="1_card"]
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
 
-[node name="PackageCard" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 124)
+[node name="PackageCard" type="PanelContainer" unique_id=1649401640]
+offset_right = 220.0
+offset_bottom = 77.0
+size_flags_vertical = 4
 script = ExtResource("1_card")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=950323245]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
-[node name="Content" type="VBoxContainer" parent="Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin" unique_id=1715853046]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="Top" type="HBoxContainer" parent="Margin/Content"]
+[node name="Top" type="HBoxContainer" parent="Margin/Content" unique_id=216964837]
 layout_mode = 2
 
-[node name="PackageName" type="Label" parent="Margin/Content/Top"]
+[node name="PackageName" type="Label" parent="Margin/Content/Top" unique_id=1533727003]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -29,7 +31,7 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 13
 text = "Package"
 
-[node name="PackageVersion" type="Label" parent="Margin/Content/Top"]
+[node name="PackageVersion" type="Label" parent="Margin/Content/Top" unique_id=1537914946]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
@@ -37,21 +39,20 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 9
 text = "v0.0.0"
 
-[node name="PackageEnabled" type="CheckButton" parent="Margin/Content/Top"]
+[node name="PackageEnabled" type="CheckButton" parent="Margin/Content/Top" unique_id=634283306]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Enabled"
 
-[node name="PackageSettingsButton" type="Button" parent="Margin/Content/Top"]
+[node name="PackageSettingsButton" type="Button" parent="Margin/Content/Top" unique_id=399354441]
 unique_name_in_owner = true
 layout_mode = 2
-toggle_mode = true
-theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 10
+toggle_mode = true
 text = "Settings"
 
-[node name="PackageDescription" type="Label" parent="Margin/Content"]
+[node name="PackageDescription" type="Label" parent="Margin/Content" unique_id=223006301]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.74, 0.79, 1)
 theme_override_fonts/font = ExtResource("2_font")
@@ -59,8 +60,9 @@ theme_override_font_sizes/font_size = 10
 text = "Package description"
 autowrap_mode = 2
 
-[node name="PackageOutputs" type="Label" parent="Margin/Content"]
+[node name="PackageOutputs" type="Label" parent="Margin/Content" unique_id=931975681]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.52, 0.55, 0.62, 1)
 theme_override_fonts/font = ExtResource("2_font")
@@ -68,7 +70,7 @@ theme_override_font_sizes/font_size = 9
 text = "Outputs"
 autowrap_mode = 2
 
-[node name="PackageSettingsHost" type="VBoxContainer" parent="Margin/Content"]
+[node name="PackageSettingsHost" type="VBoxContainer" parent="Margin/Content" unique_id=1588003095]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2

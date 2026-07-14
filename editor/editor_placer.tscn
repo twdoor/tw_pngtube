@@ -146,6 +146,7 @@ tooltip_text = "Visibility toggle"
 theme_override_fonts/font = ExtResource("1_a7f0c")
 theme_override_icons/checked = ExtResource("3_ln3a8")
 theme_override_icons/unchecked = ExtResource("4_ysb3u")
+flat = true
 
 [node name="OpacitySlider" type="HSlider" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1612645138]
 unique_name_in_owner = true

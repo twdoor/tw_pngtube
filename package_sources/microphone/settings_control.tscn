@@ -1,25 +1,36 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ce55xtgf4djjn"]
 
-[ext_resource type="Script" path="res://package_sources/microphone/settings_control.gd" id="1_settings"]
+[ext_resource type="Script" uid="uid://ioqxbqojpv2d" path="res://package_sources/microphone/settings_control.gd" id="1_settings"]
 
-[node name="MicrophoneSettingsControl" type="VBoxContainer"]
+[node name="MicrophoneSettingsControl" type="VBoxContainer" unique_id=993909774]
+size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_constants/separation = 5
 script = ExtResource("1_settings")
 
-[node name="DeviceRow" type="HBoxContainer" parent="."]
+[node name="DeviceRow" type="HBoxContainer" parent="." unique_id=2071633092]
 layout_mode = 2
+size_flags_vertical = 4
 
-[node name="Label" type="Label" parent="DeviceRow"]
+[node name="Label" type="Label" parent="DeviceRow" unique_id=1300979768]
 custom_minimum_size = Vector2(76, 0)
 layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 13
 text = "Microphone"
 
-[node name="DeviceOption" type="OptionButton" parent="DeviceRow"]
+[node name="DeviceOption" type="OptionButton" parent="DeviceRow" unique_id=1635174750]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+alignment = 2
+text_overrun_behavior = 5
+fit_to_longest_item = false
 
-[node name="Feedback" type="CheckButton" parent="."]
+[node name="Feedback" type="CheckButton" parent="." unique_id=1253334752]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Audio feedback (monitor mic)"
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 13
+text = "Monitor microphone"

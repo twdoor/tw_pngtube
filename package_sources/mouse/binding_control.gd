@@ -57,9 +57,9 @@ func apply_source_value(value: Variant) -> Variant:
 	).clamp(Vector2(-1.0, -1.0), Vector2.ONE)
 
 
-func _find_display_for_position(position: Vector2) -> int:
+func _find_display_for_position(screen_point: Vector2) -> int:
 	for display_index: int in DisplayServer.get_screen_count():
-		if _get_display_rect(display_index).has_point(position):
+		if _get_display_rect(display_index).has_point(screen_point):
 			return display_index
 	return clampi(DisplayServer.window_get_current_screen(), 0, maxi(DisplayServer.get_screen_count() - 1, 0))
 

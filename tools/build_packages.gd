@@ -1,5 +1,5 @@
 @tool
-extends SceneTree
+extends EditorScript
 
 const DEFAULT_SOURCE_ROOT := "res://package_sources"
 const DEFAULT_OUTPUT_ROOT := "res://packages"
@@ -9,26 +9,13 @@ const TEXT_EXTENSIONS := [
 	"cfg", "csv", "gd", "gdshader", "ini", "json", "md", "shader", "tres", "tscn", "txt",
 ]
 
-var _source_root := DEFAULT_SOURCE_ROOT
-var _output_root := DEFAULT_OUTPUT_ROOT
-var _requested_package_ids: Array[String] = []
-
-
 func _run() -> void:
-	_build.call_deferred()
-
-
-func _build() -> void:
-	if not _parse_arguments():
-		quit(1)
-		return
-	var package_ids := _requested_package_ids if not _requested_package_ids.is_empty() else _discover_package_ids()
+	var package_ids := _discover_package_ids()
 	if package_ids.is_empty():
-		push_error("No package folders containing package.json were found in %s." % _source_root)
-		quit(1)
+		push_error("No package folders containing package.json were found in %s." % DEFAULT_SOURCE_ROOT)
 		return
 
-	DirAccess.make_dir_recursive_absolute(_globalize(_output_root))
+	DirAccess.make_dir_recursive_absolute(_globalize(DEFAULT_OUTPUT_ROOT))
 	var failed := false
 	for package_id: String in package_ids:
 		var error := _build_package(package_id)
@@ -36,36 +23,26 @@ func _build() -> void:
 			push_error("Could not build %s.pck: %s" % [package_id, error_string(error)])
 			failed = true
 		else:
-			print("Built %s" % _output_root.path_join("%s.pck" % package_id))
-	quit(1 if failed else 0)
+			print("Built %s" % DEFAULT_OUTPUT_ROOT.path_join("%s.pck" % package_id))
 
-
-func _parse_arguments() -> bool:
-	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--source-root="):
-			_source_root = argument.trim_prefix("--source-root=").trim_suffix("/")
-		elif argument.begins_with("--output-root="):
-			_output_root = argument.trim_prefix("--output-root=").trim_suffix("/")
-		elif argument.begins_with("--"):
-			push_error("Unknown package builder option: %s" % argument)
-			return false
-		else:
-			_requested_package_ids.append(argument)
-	if not _source_root.begins_with("res://"):
-		push_error("The package source root must be inside the Godot project (res://).")
-		return false
-	return true
+	var editor_interface := get_editor_interface()
+	if editor_interface != null:
+		editor_interface.get_resource_filesystem().scan()
+	if failed:
+		push_error("One or more packages failed to build. See the errors above.")
+	else:
+		print("Built %d package(s) successfully." % package_ids.size())
 
 
 func _discover_package_ids() -> Array[String]:
 	var package_ids: Array[String] = []
-	var directory := DirAccess.open(_source_root)
+	var directory := DirAccess.open(DEFAULT_SOURCE_ROOT)
 	if directory == null:
 		return package_ids
 	var child_directories := directory.get_directories()
 	child_directories.sort()
 	for child_directory: String in child_directories:
-		if FileAccess.file_exists(_source_root.path_join(child_directory).path_join("package.json")):
+		if FileAccess.file_exists(DEFAULT_SOURCE_ROOT.path_join(child_directory).path_join("package.json")):
 			package_ids.append(child_directory)
 	return package_ids
 
@@ -74,7 +51,7 @@ func _build_package(package_id: String) -> Error:
 	if not _is_valid_package_id(package_id):
 		push_error("Package folder names may contain only lowercase letters, numbers, underscores, and hyphens.")
 		return ERR_INVALID_PARAMETER
-	var source_directory := _source_root.path_join(package_id)
+	var source_directory := DEFAULT_SOURCE_ROOT.path_join(package_id)
 	var manifest_path := source_directory.path_join("package.json")
 	if not FileAccess.file_exists(manifest_path):
 		push_error("%s does not contain package.json." % source_directory)
@@ -101,7 +78,7 @@ func _build_package(package_id: String) -> Error:
 			return stage_error
 		staged_files.append(staged_path)
 
-	var output_path := _globalize(_output_root.path_join("%s.pck" % package_id))
+	var output_path := _globalize(DEFAULT_OUTPUT_ROOT.path_join("%s.pck" % package_id))
 	var packer := PCKPacker.new()
 	var error := packer.pck_start(output_path)
 	if error == OK:

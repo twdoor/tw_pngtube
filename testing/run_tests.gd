@@ -490,8 +490,137 @@ func _test_editor_model_open_and_reset() -> void:
 			renderer is TwberModelBatchRenderer2D and not renderer.is_batching_active(),
 			"New model keeps the internal renderer ready without stale geometry",
 	)
+
+	var clipped_model := TwberModelResource.new()
+	clipped_model.textures["mask_texture"] = _make_test_texture(Color.WHITE)
+	clipped_model.textures["child_texture"] = _make_test_texture(Color.RED)
+	var mask_layer := TwberLayerResource.new()
+	mask_layer.id = "editor_mask"
+	mask_layer.name = "Editor Mask"
+	mask_layer.type = TwberLayerResource.LayerType.SPRITE
+	mask_layer.texture_id = "mask_texture"
+	mask_layer.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
+	mask_layer.modulate = Color(1.0, 1.0, 1.0, 0.65)
+	mask_layer.children.append("editor_mask_child")
+	var child_layer := TwberLayerResource.new()
+	child_layer.id = "editor_mask_child"
+	child_layer.name = "Editor Mask Child"
+	child_layer.type = TwberLayerResource.LayerType.SPRITE
+	child_layer.texture_id = "child_texture"
+	clipped_model.layers.assign([mask_layer, child_layer])
+	clipped_model.root_layer_ids.append(mask_layer.id)
+	var clipped_model_path := "user://twber_editor_clip_integration_test.tres"
+	_expect(
+		TwberModelCodec.save_resource(clipped_model, clipped_model_path) == OK,
+		"Editor clipping integration fixture saves",
+	)
+	editor.call("_open_model", clipped_model_path)
+	var preview_mask := model_root.get_child(0) as CanvasItem
+	_expect(
+		preview_mask.clip_children == CanvasItem.CLIP_CHILDREN_DISABLED,
+		"Editor preview replaces built-in clipping with alpha-safe clipping",
+	)
+	_expect(
+		TwberAlphaClipController.get_authored_clip_mode(preview_mask) == CanvasItem.CLIP_CHILDREN_ONLY,
+		"Editor tools retain the authored clip mode while alpha-safe preview is active",
+	)
+	_expect(
+		is_equal_approx(TwberAlphaClipController.get_authored_self_modulate(preview_mask).a, 0.65),
+		"Editor tools retain the authored mask opacity while the clip-only mask is hidden",
+	)
+	var edited_color := TwberAlphaClipController.get_authored_self_modulate(preview_mask)
+	edited_color.a = 0.35
+	TwberAlphaClipController.set_authored_self_modulate(preview_mask, edited_color)
+	var rig_capture := TwberLayerStateResource.new()
+	rig_capture.capture_from_node(preview_mask as Node2D)
+	_expect(
+		is_equal_approx(rig_capture.self_modulate.a, 0.35),
+		"Rigger captures edited authored opacity instead of the hidden preview opacity",
+	)
+	TwberAlphaClipController.set_authored_self_modulate(
+		preview_mask,
+		Color(1.0, 1.0, 1.0, 0.65),
+	)
+	var rigger := editor.get_node(
+		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger",
+	) as EditorRigger
+	rigger.reload_from_preview(preview_mask as Node2D)
+	rigger.call("_on_create_parameter_pressed", TwberParameterResource.ValueType.FLOAT)
+	rigger.call("_on_opacity_slider_value_changed", 0.35)
+	rigger.call("_on_bind_position_button_pressed")
+	var rig_parameters: Array[TwberParameterResource] = []
+	for value: Variant in model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, []):
+		if value is TwberParameterResource:
+			rig_parameters.append(value)
+	var bound_opacity := -1.0
+	if not rig_parameters.is_empty() and not rig_parameters[0].positions.is_empty():
+		var bound_state := rig_parameters[0].positions[0].find_state("editor_mask")
+		if bound_state != null:
+			bound_opacity = bound_state.self_modulate.a
+	_expect(
+		is_equal_approx(bound_opacity, 0.35),
+		"Rigger binds clip-mask opacity to the selected parameter position",
+	)
+	rigger.call("_on_create_parameter_pressed", TwberParameterResource.ValueType.BOOL)
+	var bool_parameter := rig_parameters[0]
+	for value: Variant in model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, []):
+		if value is TwberParameterResource and value.value_type == TwberParameterResource.ValueType.BOOL:
+			bool_parameter = value
+			break
+	var parameter_controls := rigger.get("_parameter_value_controls") as Dictionary
+	var bool_control := parameter_controls.get(bool_parameter.id) as HBoxContainer
+	var false_button := bool_control.get_node_or_null("FalseButton") as Button
+	var true_button := bool_control.get_node_or_null("TrueButton") as Button
+	_expect(
+		false_button != null and true_button != null,
+		"Rigger bool parameters use visible False and True buttons",
+	)
+	_expect(
+		false_button != null
+		and true_button != null
+		and false_button.button_group == true_button.button_group
+		and false_button.button_pressed
+		and not true_button.button_pressed,
+		"Rigger bool buttons form one exclusive group with the default value selected",
+	)
+	if true_button != null:
+		true_button.button_pressed = true
+	var preview_values := rigger.get("_parameter_preview_values") as Dictionary
+	_expect(
+		bool(preview_values.get(bool_parameter.id, false)),
+		"Selecting True updates the bool parameter preview value",
+	)
+	if false_button != null:
+		false_button.button_pressed = true
+	_expect(
+		false_button != null
+		and true_button != null
+		and false_button.button_pressed
+		and not true_button.button_pressed
+		and not bool(preview_values.get(bool_parameter.id, true)),
+		"Selecting False updates the preview and unpresses True",
+	)
+	var captured_model := editor.call("_create_model_resource_from_base_state") as TwberModelResource
+	var captured_mask: TwberLayerResource
+	for captured_layer: TwberLayerResource in captured_model.layers:
+		if captured_layer.id == "editor_mask":
+			captured_mask = captured_layer
+			break
+	_expect(
+		captured_mask != null and captured_mask.clip_children == CanvasItem.CLIP_CHILDREN_ONLY,
+		"Editor save capture preserves the authored clip mode",
+	)
+	_expect(
+		captured_mask != null and is_equal_approx(captured_mask.modulate.a, 0.65),
+		"Editor save capture preserves the authored mask opacity",
+	)
+	_expect(
+		preview_mask.clip_children == CanvasItem.CLIP_CHILDREN_DISABLED,
+		"Editor restores alpha-safe clipping after save capture",
+	)
 	editor.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(model_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(clipped_model_path))
 
 
 func _make_test_texture(color: Color) -> Texture2D:

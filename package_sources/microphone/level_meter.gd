@@ -16,9 +16,9 @@ func set_level_db(value: float) -> void:
 	queue_redraw()
 
 
-func set_threshold_db(value: float, visible := true) -> void:
+func set_threshold_db(value: float, show_threshold := true) -> void:
 	_threshold_db = value
-	_show_threshold = visible
+	_show_threshold = show_threshold
 	queue_redraw()
 
 

@@ -23,10 +23,19 @@ func _run() -> void:
 	_expect(package_list.get_child_count() == 2, "Environment auto-generates cards for both PCK packages")
 	var open_button := environment.get_node("%OpenModelButton") as Button
 	var open_dialog := environment.get_node("%OpenModelDialog") as FileDialog
+	_expect(
+		not environment.get_viewport().gui_embed_subwindows,
+		"Environment dialogs use separate windows",
+	)
 	open_button.pressed.emit()
 	await process_frame
-	_expect(open_dialog.visible, "Environment opens its embedded model dialog")
+	_expect(open_dialog.visible, "Environment opens its model dialog")
 	open_dialog.hide()
+	var error_dialog := environment.get_node("%ErrorDialog") as AcceptDialog
+	environment.call("_show_error", "Test error", "Test message")
+	await process_frame
+	_expect(error_dialog.visible, "Environment opens its error dialog")
+	error_dialog.hide()
 
 	var model := _create_test_model()
 	var model_path := "user://twber_environment_test.tres"
@@ -102,7 +111,7 @@ func _run() -> void:
 			"Environment restores the saved dB mapping range",
 	)
 
-	environment.queue_free()
+	environment.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(model_path))
 	MODEL_INPUT_PROFILE.clear_bindings(model_path)
 	_finish()

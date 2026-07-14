@@ -24,12 +24,14 @@ var _default_model_root_scale := Vector2.ONE
 var _default_model_root_rotation := 0.0
 var _editor_settings: TwberEditorSettings
 var _batch_renderer: TwberModelBatchRenderer2D
+var _clip_controller: TwberAlphaClipController
 
 
 func _ready() -> void:
 	_remember_default_model_root_transform()
 	_editor_settings = TwberEditorSettings.load_settings()
 	_batch_renderer = TwberModelBatchRenderer2D.attach_to(_model_root)
+	_clip_controller = TwberAlphaClipController.attach_to(_model_root)
 	_apply_editor_settings()
 
 	var popup := _file_menu_button.get_popup()
@@ -57,6 +59,8 @@ func _on_file_menu_id_pressed(id: int) -> void:
 
 
 func _new_model() -> void:
+	if _clip_controller != null:
+		_clip_controller.clear()
 	for child: Node in _model_root.get_children():
 		_model_root.remove_child(child)
 		child.queue_free()
@@ -116,6 +120,8 @@ func _open_model(path: String) -> void:
 	if model == null:
 		return
 
+	if _clip_controller != null:
+		_clip_controller.clear()
 	TwberModelCodec.apply_to_model_root(model, _model_root)
 	_optimize_editor_rendering(
 			path.get_extension().to_lower() != TwberModelCodec.TWBER_EXTENSION,
@@ -206,8 +212,7 @@ func _apply_editor_settings() -> void:
 	_editor_placer.set_editor_settings(_editor_settings)
 	_editor_mesher.set_editor_settings(_editor_settings)
 	_editor_rigger.set_editor_settings(_editor_settings)
-	if _batch_renderer != null:
-		_batch_renderer.configure(_model_root)
+	_optimize_editor_rendering(false)
 	if _editor_rigger.visible:
 		_editor_rigger.preview_parameters()
 
@@ -247,6 +252,9 @@ func _on_placer_model_render_changed(
 
 
 func _optimize_editor_rendering(rebuild_atlases: bool) -> void:
+	if _clip_controller == null:
+		_clip_controller = TwberAlphaClipController.attach_to(_model_root)
+	_clip_controller.clear()
 	if rebuild_atlases and _editor_settings != null:
 		TwberTextureAtlasBuilder.optimize_model_root(
 				_model_root,
@@ -254,12 +262,12 @@ func _optimize_editor_rendering(rebuild_atlases: bool) -> void:
 		)
 	if _batch_renderer == null:
 		_batch_renderer = TwberModelBatchRenderer2D.attach_to(_model_root)
+	_clip_controller.configure(_model_root)
 	_batch_renderer.configure(_model_root)
 
 
 func _reload_editors_from_preview() -> void:
-	if _batch_renderer != null:
-		_batch_renderer.configure(_model_root)
+	_optimize_editor_rendering(false)
 	_editor_placer.reload_from_preview()
 	_editor_mesher.reload_from_preview()
 	_editor_rigger.reload_from_preview()
@@ -268,7 +276,10 @@ func _reload_editors_from_preview() -> void:
 func _create_model_resource_from_base_state() -> TwberModelResource:
 	var should_restore_preview := _editor_rigger.visible
 	_editor_rigger.restore_parameter_preview_base()
+	if _clip_controller != null:
+		_clip_controller.clear()
 	var model := TwberModelCodec.from_model_root(_model_root)
+	_optimize_editor_rendering(false)
 	if should_restore_preview:
 		_editor_rigger.preview_parameters()
 	return model

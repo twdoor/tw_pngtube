@@ -77,26 +77,11 @@ An authoring manifest points to its editable source scene:
 
 ## Building Packages
 
-Build every package folder found under `package_sources/` with:
+Build every package folder found under `package_sources/` directly from Godot:
 
-```bash
-godot --headless --path . --script tools/build_packages.gd
-```
-
-Build only one or more named packages with:
-
-```bash
-godot --headless --path . --script tools/build_packages.gd -- mouse
-godot --headless --path . --script tools/build_packages.gd -- mouse microphone
-```
-
-The source and output roots can also be changed, provided the source remains inside `res://`:
-
-```bash
-godot --headless --path . --script tools/build_packages.gd -- \
-  --source-root=res://my_package_projects \
-  --output-root=res://my_package_builds
-```
+1. Open `tools/build_packages.gd` in the Script workspace.
+2. Press the script editor's **Run** button.
+3. Watch the Output panel for each package result.
 
 The builder writes:
 

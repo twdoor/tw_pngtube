@@ -1,6 +1,8 @@
 class_name TwberAlphaClipController extends Node
 
 const CLIP_SHADER := preload("res://shared/model/twber_alpha_clip.gdshader")
+const AUTHORED_CLIP_MODE_META := &"twber_alpha_clip_authored_mode"
+const AUTHORED_SELF_MODULATE_META := &"twber_alpha_clip_authored_self_modulate"
 
 var _groups: Array[Dictionary] = []
 
@@ -13,6 +15,32 @@ static func attach_to(model_root: Node2D) -> TwberAlphaClipController:
 	controller.name = "TwberAlphaClipController"
 	model_root.add_child(controller, false, Node.INTERNAL_MODE_FRONT)
 	return controller
+
+
+static func get_authored_clip_mode(item: CanvasItem) -> CanvasItem.ClipChildrenMode:
+	return int(item.get_meta(AUTHORED_CLIP_MODE_META, item.clip_children)) as CanvasItem.ClipChildrenMode
+
+
+static func set_authored_clip_mode(item: CanvasItem, mode: CanvasItem.ClipChildrenMode) -> void:
+	if item.has_meta(AUTHORED_CLIP_MODE_META):
+		item.set_meta(AUTHORED_CLIP_MODE_META, int(mode))
+	else:
+		item.clip_children = mode
+
+
+static func get_authored_self_modulate(item: CanvasItem) -> Color:
+	return item.get_meta(AUTHORED_SELF_MODULATE_META, item.self_modulate) as Color
+
+
+static func set_authored_self_modulate(item: CanvasItem, color: Color) -> void:
+	if item.has_meta(AUTHORED_SELF_MODULATE_META):
+		item.set_meta(AUTHORED_SELF_MODULATE_META, color)
+		var preview_color := color
+		if get_authored_clip_mode(item) == CanvasItem.CLIP_CHILDREN_ONLY:
+			preview_color.a = 0.0
+		item.self_modulate = preview_color
+	else:
+		item.self_modulate = color
 
 
 func configure(model_root: Node2D) -> void:
@@ -30,8 +58,10 @@ func clear() -> void:
 		var mask_value: Variant = (group["mask"] as WeakRef).get_ref()
 		if mask_value is CanvasItem:
 			var mask := mask_value as CanvasItem
-			mask.clip_children = int(group["clip_mode"]) as CanvasItem.ClipChildrenMode
-			mask.self_modulate = group["self_modulate"] as Color
+			mask.clip_children = get_authored_clip_mode(mask)
+			mask.self_modulate = get_authored_self_modulate(mask)
+			mask.remove_meta(AUTHORED_CLIP_MODE_META)
+			mask.remove_meta(AUTHORED_SELF_MODULATE_META)
 		for target_state: Dictionary in group["targets"]:
 			var target_value: Variant = (target_state["node"] as WeakRef).get_ref()
 			if target_value is CanvasItem:
@@ -74,6 +104,8 @@ func _create_group(mask: CanvasItem) -> void:
 		"self_modulate": mask.self_modulate,
 		"targets": targets,
 	}
+	mask.set_meta(AUTHORED_CLIP_MODE_META, int(mask.clip_children))
+	mask.set_meta(AUTHORED_SELF_MODULATE_META, mask.self_modulate)
 	mask.clip_children = CanvasItem.CLIP_CHILDREN_DISABLED
 	if int(group["clip_mode"]) == CanvasItem.CLIP_CHILDREN_ONLY:
 		var hidden_color := mask.self_modulate
@@ -106,6 +138,15 @@ func _sync_group(group: Dictionary, capture_mask_opacity: bool) -> void:
 	if mask_value is not CanvasItem:
 		return
 	var mask := mask_value as CanvasItem
+	if capture_mask_opacity:
+		group["self_modulate"] = mask.self_modulate
+		group["mask_opacity"] = mask.self_modulate.a
+		mask.set_meta(AUTHORED_SELF_MODULATE_META, mask.self_modulate)
+	else:
+		var authored_color := get_authored_self_modulate(mask)
+		if authored_color != group["self_modulate"]:
+			group["self_modulate"] = authored_color
+			group["mask_opacity"] = authored_color.a
 	var mask_texture := _get_mask_texture(mask)
 	if mask_texture == null:
 		return
@@ -118,11 +159,9 @@ func _sync_group(group: Dictionary, capture_mask_opacity: bool) -> void:
 		return
 	var mask_top_left := _get_mask_top_left(mask, texture_size)
 	var mask_inverse := (mask as Node2D).global_transform.affine_inverse()
-	if capture_mask_opacity:
-		group["mask_opacity"] = mask.self_modulate.a
 	var mask_opacity := float(group.get("mask_opacity", (group["self_modulate"] as Color).a))
 	if int(group["clip_mode"]) == CanvasItem.CLIP_CHILDREN_ONLY:
-		var hidden_color := mask.self_modulate
+		var hidden_color := group["self_modulate"] as Color
 		hidden_color.a = 0.0
 		mask.self_modulate = hidden_color
 	for target_state: Dictionary in group["targets"]:

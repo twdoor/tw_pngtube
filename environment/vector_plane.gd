@@ -116,13 +116,13 @@ func _draw() -> void:
 	draw_string(font, text_position, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, Color(0.68, 0.71, 0.76, 1.0))
 
 
-func _set_value_from_position(position: Vector2) -> void:
+func _set_value_from_position(pointer_position: Vector2) -> void:
 	var plane := Rect2(
 		Vector2(PADDING, PADDING),
 		Vector2(maxf(size.x - PADDING * 2.0, 1.0), maxf(size.y - PADDING * 2.0, 1.0)),
 	)
-	var amount_x := clampf((position.x - plane.position.x) / plane.size.x, 0.0, 1.0)
-	var amount_y := clampf((position.y - plane.position.y) / plane.size.y, 0.0, 1.0)
+	var amount_x := clampf((pointer_position.x - plane.position.x) / plane.size.x, 0.0, 1.0)
+	var amount_y := clampf((pointer_position.y - plane.position.y) / plane.size.y, 0.0, 1.0)
 	set_value(Vector2(
 		lerpf(_minimum.x, _maximum.x, amount_x),
 		lerpf(_maximum.y, _minimum.y, amount_y),

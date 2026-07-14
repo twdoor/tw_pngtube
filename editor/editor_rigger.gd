@@ -430,9 +430,9 @@ func _on_opacity_slider_value_changed(value: float) -> void:
 		return
 
 	var canvas_item: CanvasItem = _selected_node
-	var color := canvas_item.self_modulate
+	var color := TwberAlphaClipController.get_authored_self_modulate(canvas_item)
 	color.a = value
-	canvas_item.self_modulate = color
+	TwberAlphaClipController.set_authored_self_modulate(canvas_item, color)
 	if canvas_item is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = canvas_item
 		mesh_sprite.sync_visual_state()
@@ -495,7 +495,7 @@ func _refresh_inspector() -> void:
 	_updating_inspector = true
 	_inspector.visible = true
 	_visible_check_box.button_pressed = _selected_node.visible
-	_opacity_slider.value = _selected_node.self_modulate.a
+	_opacity_slider.value = TwberAlphaClipController.get_authored_self_modulate(_selected_node).a
 	_animation_frame_rate.visible = is_animated_layer
 	_animations_box.visible = is_animated_layer
 
@@ -761,14 +761,25 @@ func _create_parameter_value_control(parameter: TwberParameterResource) -> Contr
 
 	match parameter.value_type:
 		TwberParameterResource.ValueType.BOOL:
-			var check_box := CheckBox.new()
-			check_box.text = "True"
-			check_box.tooltip_text = "Preview false or true"
-			check_box.button_pressed = bool(active_value)
-			check_box.toggled.connect(func(enabled: bool) -> void:
-				_on_parameter_value_changed(parameter, enabled)
-			)
-			return check_box
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 4)
+			var group := ButtonGroup.new()
+			group.allow_unpress = false
+			for option_value: bool in [false, true]:
+				var option_button := Button.new()
+				option_button.name = "TrueButton" if option_value else "FalseButton"
+				option_button.text = "True" if option_value else "False"
+				option_button.tooltip_text = "Preview the parameter as %s" % option_button.text.to_lower()
+				option_button.toggle_mode = true
+				option_button.button_group = group
+				option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				option_button.button_pressed = bool(active_value) == option_value
+				option_button.toggled.connect(func(enabled: bool) -> void:
+					if enabled:
+						_on_parameter_value_changed(parameter, option_value)
+				)
+				row.add_child(option_button)
+			return row
 		TwberParameterResource.ValueType.VECTOR2:
 			var vector_field := ParameterVectorField.new()
 			vector_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1047,8 +1058,11 @@ func _on_bind_position_button_pressed() -> void:
 
 	var base_state := TwberLayerStateResource.new()
 	base_state.capture_from_node(_selected_node)
-	for affected_layer_id: String in _apply_parameter_preview_values(parameter.id):
+	var other_affected_layer_ids := _apply_parameter_preview_values(parameter.id)
+	for affected_layer_id: String in other_affected_layer_ids:
 		_previewed_layer_ids[affected_layer_id] = true
+	var clip_controller := TwberAlphaClipController.attach_to(_model_root)
+	clip_controller.sync_now(other_affected_layer_ids)
 
 	var other_parameters_state := TwberLayerStateResource.new()
 	other_parameters_state.capture_from_node(_selected_node)
@@ -1175,8 +1189,11 @@ func preview_parameters() -> void:
 		return
 	restore_parameter_preview_base()
 	if _model_root != null:
-		for layer_id: String in _apply_parameter_preview_values():
+		var affected_layer_ids := _apply_parameter_preview_values()
+		for layer_id: String in affected_layer_ids:
 			_previewed_layer_ids[layer_id] = true
+		var clip_controller := TwberAlphaClipController.attach_to(_model_root)
+		clip_controller.sync_now(affected_layer_ids)
 
 	if _selected_node != null:
 		_refresh_inspector()
@@ -1362,7 +1379,7 @@ func _reset_layer_to_initial_state(node: Node2D, restore_children := true) -> vo
 	node.rotation = state["rotation"]
 	node.scale = state["scale"]
 	node.visible = state["visible"]
-	node.self_modulate = state["self_modulate"]
+	TwberAlphaClipController.set_authored_self_modulate(node, state["self_modulate"])
 	_restore_layer_content_state(node, state, restore_children)
 
 
@@ -1376,7 +1393,7 @@ func _remember_initial_layer_state(node: Node2D) -> void:
 		"rotation": node.rotation,
 		"scale": node.scale,
 		"visible": node.visible,
-		"self_modulate": node.self_modulate,
+		"self_modulate": TwberAlphaClipController.get_authored_self_modulate(node),
 		"content": _capture_layer_content_state(node),
 		"child_positions": _capture_direct_child_positions(node),
 	}

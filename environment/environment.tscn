@@ -6,6 +6,13 @@
 [ext_resource type="Script" uid="uid://d4hke14eqja6w" path="res://environment/core/twber_package_manager.gd" id="4_manager"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="5_font"]
 
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_hdak6"]
+color = Color(0.61960787, 0.6509804, 0.69803923, 1)
+grow_begin = -2.0
+grow_end = -2.0
+thickness = 2
+vertical = true
+
 [node name="Environment" type="Node" unique_id=481477685]
 script = ExtResource("1_environment")
 
@@ -50,65 +57,71 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="Toolbar" type="PanelContainer" parent="Interface/RootMargin/Layout" unique_id=2121536689]
-custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="Interface/RootMargin/Layout/Toolbar" unique_id=101257449]
+[node name="MarginContainer" type="MarginContainer" parent="Interface/RootMargin/Layout/Toolbar" unique_id=313948407]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_right = 4
 
-[node name="Items" type="HBoxContainer" parent="Interface/RootMargin/Layout/Toolbar/Margin" unique_id=928827507]
+[node name="Items" type="HBoxContainer" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer" unique_id=928827507]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/separation = 8
 
-[node name="OpenModelButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=2012213384]
+[node name="OpenModelButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=2012213384]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 12
-text = "Open model"
+text = "Open"
+flat = true
 
-[node name="ResetViewButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=1635298662]
+[node name="ResetViewButton" type="Button" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1635298662]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 12
-text = "Reset view"
+text = "Reset
+"
+flat = true
 
-[node name="Spacer" type="Control" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=1876338789]
+[node name="Spacer" type="Control" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=1876338789]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 4
 mouse_filter = 2
 
-[node name="ModelNameLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=608783282]
+[node name="ModelNameLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=608783282]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_fonts/font = ExtResource("5_font")
+size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 12
 text = "No model loaded"
 
-[node name="Separator" type="VSeparator" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=718182986]
+[node name="VSeparator" type="VSeparator" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=19387517]
 layout_mode = 2
+theme_override_constants/separation = 4
+theme_override_styles/separator = SubResource("StyleBoxLine_hdak6")
 
-[node name="StatusLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/Margin/Items" unique_id=223313681]
+[node name="StatusLabel" type="Label" parent="Interface/RootMargin/Layout/Toolbar/MarginContainer/Items" unique_id=223313681]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
-theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 11
 text = "Waiting for model"
 
 [node name="Body" type="HSplitContainer" parent="Interface/RootMargin/Layout" unique_id=1563576268]
 layout_mode = 2
 size_flags_vertical = 3
-split_offsets = PackedInt32Array(-360)
-split_offset = -360
+split_offsets = PackedInt32Array(-344)
+split_offset = -344
 
 [node name="PreviewInteraction" type="Control" parent="Interface/RootMargin/Layout/Body" unique_id=481968180]
 unique_name_in_owner = true
@@ -128,14 +141,7 @@ theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 10
 text = "Wheel to zoom · Middle-drag to pan"
 
-[node name="Margin" type="MarginContainer" parent="Interface/RootMargin/Layout/Body" unique_id=2113704158]
-layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="Tabs" type="TabContainer" parent="Interface/RootMargin/Layout/Body/Margin" unique_id=2053464090]
+[node name="Tabs" type="TabContainer" parent="Interface/RootMargin/Layout/Body" unique_id=2053464090]
 layout_mode = 2
 tab_alignment = 2
 current_tab = 0
@@ -144,29 +150,29 @@ clip_tabs = false
 tab_0/title = "[Params]"
 tab_1/title = "[Packs]"
 
-[node name="Params" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs" unique_id=1780125300]
+[node name="Params" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Tabs" unique_id=1780125300]
 layout_mode = 2
 metadata/_tab_index = 0
 metadata/_tab_name = "[Params]"
 
-[node name="Params" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params" unique_id=1117055915]
+[node name="Params" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Params" unique_id=1117055915]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Parameters" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params" unique_id=447972306]
+[node name="Parameters" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params" unique_id=447972306]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=730591759]
+[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params/Parameters" unique_id=730591759]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 15
 text = "Model parameters"
 
-[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=1234197542]
+[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params/Parameters" unique_id=1234197542]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
 theme_override_fonts/font = ExtResource("5_font")
@@ -174,7 +180,7 @@ theme_override_font_sizes/font_size = 10
 text = "Input sources and their settings are saved for this model automatically."
 autowrap_mode = 2
 
-[node name="EmptyParametersLabel" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=791042934]
+[node name="EmptyParametersLabel" type="Label" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params/Parameters" unique_id=791042934]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -186,41 +192,41 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="ParameterScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters" unique_id=152511291]
+[node name="ParameterScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params/Parameters" unique_id=152511291]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="ParameterList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Params/Params/Parameters/ParameterScroll" unique_id=1547791865]
+[node name="ParameterList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Params/Params/Parameters/ParameterScroll" unique_id=1547791865]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="Packs" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs" unique_id=243811138]
+[node name="Packs" type="PanelContainer" parent="Interface/RootMargin/Layout/Body/Tabs" unique_id=243811138]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 metadata/_tab_name = "[Packs]"
 
-[node name="Packs" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs" unique_id=1443717252]
+[node name="Packs" type="MarginContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Packs" unique_id=1443717252]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Packages" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs" unique_id=1794548907]
+[node name="Packages" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Packs/Packs" unique_id=1794548907]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=1624222758]
+[node name="Heading" type="Label" parent="Interface/RootMargin/Layout/Body/Tabs/Packs/Packs/Packages" unique_id=1624222758]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 15
 text = "Installed packages"
 
-[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=204638564]
+[node name="Description" type="Label" parent="Interface/RootMargin/Layout/Body/Tabs/Packs/Packs/Packages" unique_id=204638564]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
 theme_override_fonts/font = ExtResource("5_font")
@@ -228,12 +234,12 @@ theme_override_font_sizes/font_size = 10
 text = "Packages publish typed values that can be connected to model parameters."
 autowrap_mode = 2
 
-[node name="PackageScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages" unique_id=2061584677]
+[node name="PackageScroll" type="ScrollContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Packs/Packs/Packages" unique_id=2061584677]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PackageList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Margin/Tabs/Packs/Packs/Packages/PackageScroll" unique_id=876175978]
+[node name="PackageList" type="VBoxContainer" parent="Interface/RootMargin/Layout/Body/Tabs/Packs/Packs/Packages/PackageScroll" unique_id=876175978]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -243,13 +249,16 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 oversampling_override = 1.0
 title = "Open a File"
-initial_position = 1
+initial_position = 2
 size = Vector2i(920, 560)
+transient = true
 ok_button_text = "Open"
 file_mode = 0
 access = 2
 
 [node name="ErrorDialog" type="AcceptDialog" parent="Interface" unique_id=582028564]
 unique_name_in_owner = true
-initial_position = 1
+oversampling_override = 1.0
+initial_position = 2
 size = Vector2i(480, 180)
+transient = true

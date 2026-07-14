@@ -2,41 +2,107 @@
 
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_nq7u3"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nq7u3"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0, 0, 0, 0.78431374)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wlwun"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.78431374)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_d8ywk"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q77iv"]
+bg_color = Color(0, 0, 0, 0.78431374)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1gxip"]
+bg_color = Color(0, 0, 0, 0.78431374)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vh8kr"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nq7u3"]
-bg_color = Color(0, 0, 0, 0.39215687)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x6ra2"]
+bg_color = Color(0, 0, 0, 0.78431374)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lhcwr"]
-bg_color = Color(0, 0, 0, 0.39215687)
+bg_color = Color(0, 0, 0, 0.78431374)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uvgcw"]
-bg_color = Color(0, 0, 0, 0.39215687)
+bg_color = Color(0, 0, 0, 0.78431374)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kga4s"]
-bg_color = Color(0.6255971, 0.6255971, 0.62559694, 1)
+bg_color = Color(1, 1, 1, 0.78431374)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nxxma"]
-bg_color = Color(0, 0, 0, 0.39215687)
+bg_color = Color(0, 0, 0, 0.78431374)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x2wa3"]
+bg_color = Color(0, 0, 0, 0.39215687)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_06tt2"]
+bg_color = Color(0, 0, 0, 0.78431374)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ehb6n"]
+bg_color = Color(0, 0, 0, 0.78431374)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [resource]
 default_font = ExtResource("1_nq7u3")
+AcceptDialog/styles/panel = SubResource("StyleBoxFlat_nq7u3")
+Button/colors/font_pressed_color = Color(0, 0, 0, 1)
+Button/colors/icon_pressed_color = Color(0, 0, 0, 1)
+Button/styles/pressed = SubResource("StyleBoxFlat_wlwun")
+CheckButton/styles/pressed = SubResource("StyleBoxEmpty_d8ywk")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_q77iv")
+PopupMenu/styles/panel = SubResource("StyleBoxFlat_1gxip")
 TabContainer/colors/font_selected_color = Color(0, 0, 0, 1)
 TabContainer/constants/side_margin = 3
 TabContainer/constants/tab_separation = 4
 TabContainer/styles/panel = SubResource("StyleBoxEmpty_vh8kr")
-TabContainer/styles/tab_disabled = SubResource("StyleBoxFlat_nq7u3")
+TabContainer/styles/tab_disabled = SubResource("StyleBoxFlat_x6ra2")
 TabContainer/styles/tab_focus = SubResource("StyleBoxFlat_lhcwr")
 TabContainer/styles/tab_hovered = SubResource("StyleBoxFlat_uvgcw")
 TabContainer/styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
 TabContainer/styles/tab_unselected = SubResource("StyleBoxFlat_nxxma")
+Tree/styles/panel = SubResource("StyleBoxFlat_x2wa3")
+Window/styles/embedded_border = SubResource("StyleBoxFlat_06tt2")
+Window/styles/embedded_unfocused_border = SubResource("StyleBoxFlat_ehb6n")

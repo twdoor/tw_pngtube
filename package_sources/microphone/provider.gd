@@ -125,14 +125,14 @@ func _ensure_capture_effect() -> AudioEffectCapture:
 		AudioServer.set_bus_name(bus_index, CAPTURE_BUS_NAME)
 		AudioServer.set_bus_send(bus_index, &"Master")
 	for effect_index: int in AudioServer.get_bus_effect_count(bus_index):
-		var effect := AudioServer.get_bus_effect(bus_index, effect_index)
-		if effect is AudioEffectCapture:
+		var existing_effect := AudioServer.get_bus_effect(bus_index, effect_index)
+		if existing_effect is AudioEffectCapture:
 			_apply_audio_feedback()
-			return effect
-	var effect := AudioEffectCapture.new()
-	AudioServer.add_bus_effect(bus_index, effect)
+			return existing_effect
+	var capture_effect := AudioEffectCapture.new()
+	AudioServer.add_bus_effect(bus_index, capture_effect)
 	_apply_audio_feedback()
-	return effect
+	return capture_effect
 
 
 func _apply_audio_feedback() -> void:

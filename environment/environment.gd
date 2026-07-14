@@ -33,11 +33,11 @@ var _environment_settings
 
 
 func _ready() -> void:
-	get_viewport().gui_embed_subwindows = true
+	get_viewport().gui_embed_subwindows = false
 	_environment_settings = ENVIRONMENT_SETTINGS.new()
 	_environment_settings.load()
 	_open_model_dialog.filters = PackedStringArray(MODEL_FILTERS)
-	_open_model_button.pressed.connect(_open_model_dialog.popup_centered_ratio.bind(0.72))
+	_open_model_button.pressed.connect(_popup_open_model_dialog)
 	_reset_view_button.pressed.connect(reset_model_view)
 	_open_model_dialog.file_selected.connect(load_model)
 	_input_registry.value_changed.connect(_on_input_value_changed)
@@ -49,6 +49,10 @@ func _ready() -> void:
 	_environment_settings.mark_all_packages_uninstalled()
 	_package_manager.discover_packages()
 	_update_model_transform.call_deferred()
+
+
+func _popup_open_model_dialog() -> void:
+	_open_model_dialog.show()
 
 
 func load_model(path: String) -> Error:
@@ -261,4 +265,4 @@ func _update_model_transform() -> void:
 func _show_error(title: String, message: String) -> void:
 	_error_dialog.title = title
 	_error_dialog.dialog_text = message
-	_error_dialog.popup_centered(Vector2i(480, 180))
+	_error_dialog.show()

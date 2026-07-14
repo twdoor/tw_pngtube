@@ -355,12 +355,17 @@ func _copy_canvas_item_state(source: Node2D, target: Node2D) -> void:
 	target.material = source.material
 
 	target.modulate = source.modulate
-	target.self_modulate = source.self_modulate
+	target.self_modulate = TwberAlphaClipController.get_authored_self_modulate(source)
 	target.show_behind_parent = source.show_behind_parent
-	target.clip_children = source.clip_children
+	target.clip_children = TwberAlphaClipController.get_authored_clip_mode(source)
 	target.light_mask = source.light_mask
 	target.visibility_layer = source.visibility_layer
 	for metadata_name: StringName in source.get_meta_list():
+		if metadata_name in [
+			TwberAlphaClipController.AUTHORED_CLIP_MODE_META,
+			TwberAlphaClipController.AUTHORED_SELF_MODULATE_META,
+		]:
+			continue
 		target.set_meta(metadata_name, source.get_meta(metadata_name))
 
 
