@@ -402,6 +402,7 @@ static func _layer_from_node(
 		layer.visible = canvas_item.visible
 		layer.modulate = canvas_item.self_modulate
 		layer.clip_children = canvas_item.clip_children
+		layer.show_behind_parent = canvas_item.show_behind_parent
 
 	if node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
@@ -530,6 +531,7 @@ static func _node_from_layer(layer: TwberLayerResource, model: TwberModelResourc
 			CanvasItem.CLIP_CHILDREN_AND_DRAW,
 			CanvasItem.CLIP_CHILDREN_DISABLED,
 	) as CanvasItem.ClipChildrenMode
+	node.show_behind_parent = layer.show_behind_parent
 	if node is TwberMeshSprite2D:
 		var mesh_sprite: TwberMeshSprite2D = node
 		mesh_sprite.sync_visual_state()
@@ -750,6 +752,7 @@ static func _layer_to_dictionary(layer: TwberLayerResource) -> Dictionary:
 		"rotation": layer.rotation,
 		"modulate": _color_to_array(layer.modulate),
 		"clip_children": layer.clip_children,
+		"show_behind_parent": layer.show_behind_parent,
 		"texture_id": layer.texture_id,
 		"offset": _vector2_to_array(layer.offset),
 		"centered": layer.centered,
@@ -785,6 +788,7 @@ static func _layer_from_dictionary(data: Dictionary) -> TwberLayerResource:
 			CanvasItem.CLIP_CHILDREN_AND_DRAW,
 			CanvasItem.CLIP_CHILDREN_DISABLED,
 	) as CanvasItem.ClipChildrenMode
+	layer.show_behind_parent = _variant_to_bool(data.get("show_behind_parent", false), false)
 	layer.texture_id = _variant_to_string(data.get("texture_id", ""))
 	layer.offset = _array_to_vector2(data.get("offset", []), Vector2.ZERO)
 	layer.centered = _variant_to_bool(data.get("centered", true), true)

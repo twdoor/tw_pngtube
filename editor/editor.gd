@@ -16,6 +16,7 @@ const SETTINGS_DIALOG_SCENE := preload("res://editor/editor_settings_dialog.tscn
 @onready var _editor_status_label: Label = %EditorStatusLabel
 @onready var _model_root: Node2D = $ModelPreview/Textures
 @onready var _model_preview: ModelPreview = $ModelPreview
+@onready var _preview_background: ColorRect = $ModelPreview/Background
 @onready var _editor_placer: EditorPlacer = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer
 @onready var _editor_mesher: EditorMesher = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorMesher
 @onready var _editor_rigger: EditorRigger = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger
@@ -224,7 +225,7 @@ func _open_settings_dialog() -> void:
 		_apply_editor_settings()
 	)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(420, 340))
+	dialog.popup_centered(Vector2i(420, 390))
 
 
 func _show_performance_report() -> void:
@@ -274,6 +275,7 @@ func _show_performance_report() -> void:
 
 
 func _apply_editor_settings() -> void:
+	_preview_background.color = _editor_settings.background_color
 	_editor_placer.set_editor_settings(_editor_settings)
 	_editor_mesher.set_editor_settings(_editor_settings)
 	_editor_rigger.set_editor_settings(_editor_settings)
@@ -302,6 +304,7 @@ func _on_mesher_model_tree_changed() -> void:
 
 
 func _on_model_preview_view_changed() -> void:
+	_editor_placer.refresh_overlay()
 	_editor_mesher.refresh_overlay()
 	_editor_rigger.refresh_overlay()
 

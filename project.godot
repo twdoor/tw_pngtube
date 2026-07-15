@@ -13,7 +13,11 @@ config_version=5
 config/name="twber"
 run/main_scene="res://environment/environment.tscn"
 config/features=PackedStringArray("4.7")
-config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.050980393, 0.16862746, 0.27058825, 1)
+boot_splash/stretch_mode=0
+boot_splash/use_filter=false
+boot_splash/image="uid://d2a14j8bk0uqc"
+config/icon="uid://t3ak4pd7stqj"
 
 [audio]
 
@@ -43,3 +47,4 @@ theme/custom="uid://bsd32vbcsncwc"
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

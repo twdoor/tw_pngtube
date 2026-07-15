@@ -9,6 +9,8 @@ const TRIM_PADDING_KEY := "trim_padding"
 const EDITING_SECTION := "editing"
 const PIXEL_SNAP_ENABLED_KEY := "pixel_snap_enabled"
 const ROTATION_SNAP_DEGREES_KEY := "rotation_snap_degrees"
+const APPEARANCE_SECTION := "appearance"
+const BACKGROUND_COLOR_KEY := "background_color"
 const VRAM_THRESHOLD_DISABLED := -1
 const VRAM_THRESHOLD_ALWAYS := 0
 const DEFAULT_VRAM_THRESHOLD_PX := 1024
@@ -21,6 +23,7 @@ const DEFAULT_PIXEL_SNAP_ENABLED := true
 const DEFAULT_ROTATION_SNAP_DEGREES := 15.0
 const MIN_ROTATION_SNAP_DEGREES := 1.0
 const MAX_ROTATION_SNAP_DEGREES := 90.0
+const DEFAULT_BACKGROUND_COLOR := Color(0.050980393, 0.16862746, 0.27058825, 1.0)
 const SCALE_SNAP_STEP := 0.05
 const VRAM_THRESHOLD_OPTIONS: Array[int] = [
 	VRAM_THRESHOLD_DISABLED,
@@ -36,6 +39,7 @@ var trim_alpha_threshold := DEFAULT_TRIM_ALPHA_THRESHOLD
 var trim_padding := DEFAULT_TRIM_PADDING
 var pixel_snap_enabled := DEFAULT_PIXEL_SNAP_ENABLED
 var rotation_snap_degrees := DEFAULT_ROTATION_SNAP_DEGREES
+var background_color := DEFAULT_BACKGROUND_COLOR
 
 
 static func load_settings() -> TwberEditorSettings:
@@ -107,6 +111,16 @@ static func load_settings() -> TwberEditorSettings:
 	else:
 		push_warning("Ignoring invalid rotation-snap setting in editor settings.")
 
+	var saved_background_color: Variant = config.get_value(
+		APPEARANCE_SECTION,
+		BACKGROUND_COLOR_KEY,
+		DEFAULT_BACKGROUND_COLOR,
+	)
+	if saved_background_color is Color:
+		settings.background_color = saved_background_color
+	else:
+		push_warning("Ignoring invalid background color in editor settings.")
+
 	return settings
 
 
@@ -118,6 +132,7 @@ func save() -> Error:
 	config.set_value(TEXTURES_SECTION, TRIM_PADDING_KEY, trim_padding)
 	config.set_value(EDITING_SECTION, PIXEL_SNAP_ENABLED_KEY, pixel_snap_enabled)
 	config.set_value(EDITING_SECTION, ROTATION_SNAP_DEGREES_KEY, rotation_snap_degrees)
+	config.set_value(APPEARANCE_SECTION, BACKGROUND_COLOR_KEY, background_color)
 	return config.save(CONFIG_PATH)
 
 

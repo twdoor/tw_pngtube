@@ -164,6 +164,7 @@ func _test_archive_and_legacy_round_trip() -> void:
 		layer.name = "Layer %d" % index
 		layer.type = TwberLayerResource.LayerType.SPRITE
 		layer.texture_id = texture_id
+		layer.show_behind_parent = index == 1
 		model.layers.append(layer)
 		model.root_layer_ids.append(layer.id)
 
@@ -189,6 +190,13 @@ func _test_archive_and_legacy_round_trip() -> void:
 	_expect(loaded != null, "Archive loads")
 	if loaded != null:
 		_expect(loaded.layers.size() == 3, "Archive retains layers")
+		_expect(
+			loaded.layers[1].show_behind_parent,
+			"Archive retains the Show behind parent layer setting",
+		)
+		# Keep the existing compatible-batching coverage below independent from
+		# this render-order persistence check.
+		loaded.layers[1].show_behind_parent = false
 		var first: Texture2D = loaded.textures.get("texture_001") as Texture2D
 		var second: Texture2D = loaded.textures.get("texture_002") as Texture2D
 		var third: Texture2D = loaded.textures.get("texture_003") as Texture2D
@@ -457,12 +465,21 @@ func _test_editor_model_open_and_reset() -> void:
 	var model := TwberModelResource.new()
 	for index: int in 2:
 		var texture_id := "editor_texture_%d" % index
-		model.textures[texture_id] = _make_test_texture(Color.RED if index == 0 else Color.BLUE)
+		var texture := _make_test_texture(Color.RED if index == 0 else Color.BLUE)
+		if index == 0:
+			TwberTextureUtils.apply_metadata(texture, {
+				"original_size": Vector2i(10, 8),
+				"trim_rect": Rect2i(3, 2, 2, 2),
+				"visible_rect": Rect2i(0, 0, 2, 2),
+				"alpha_threshold": 0.001,
+			})
+		model.textures[texture_id] = texture
 		var layer := TwberLayerResource.new()
 		layer.id = "editor_layer_%d" % index
 		layer.name = "Editor Layer %d" % index
 		layer.type = TwberLayerResource.LayerType.SPRITE
 		layer.texture_id = texture_id
+		layer.offset = TwberTextureUtils.get_centered_sprite_offset(texture)
 		model.layers.append(layer)
 		model.root_layer_ids.append(layer.id)
 	var model_path := "user://twber_editor_integration_test.tres"
@@ -476,6 +493,16 @@ func _test_editor_model_open_and_reset() -> void:
 	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
 	var renderer := TwberModelBatchRenderer2D.find_on(model_root)
 	var file_menu := (editor.get_node("%FileMenuButton") as MenuButton).get_popup()
+	var editor_settings := editor.get("_editor_settings") as TwberEditorSettings
+	var custom_background_color := Color(0.21, 0.32, 0.43, 0.75)
+	editor_settings.background_color = custom_background_color
+	editor.call("_apply_editor_settings")
+	_expect(
+		(editor.get_node("ModelPreview/Background") as ColorRect).color.is_equal_approx(
+			custom_background_color,
+		),
+		"Editor settings apply the configured preview background color",
+	)
 	_expect(
 		file_menu.get_item_index(TwberEditor.MENU_SAVE_AS) >= 0,
 		"Editor File menu provides Save As",
@@ -495,6 +522,116 @@ func _test_editor_model_open_and_reset() -> void:
 	)
 	if renderer is TwberModelBatchRenderer2D:
 		_expect(renderer.get_batch_count() == 1, "Editor preview uses one atlas render batch")
+	var pivot_sprite := model_root.get_child(0) as Sprite2D
+	var rigger := editor.get_node(
+		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger",
+	) as EditorRigger
+	var editor_menus := rigger.get_parent() as TabContainer
+	editor_menus.current_tab = rigger.get_index()
+	rigger.reload_from_preview(pivot_sprite)
+	var old_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	var old_node_origin := pivot_sprite.get_global_transform_with_canvas().origin
+	rigger.call("_change_node_pivot", pivot_sprite, old_node_origin + Vector2(6.0, 4.0))
+	var new_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	_expect(
+		new_texture_origin.is_equal_approx(old_texture_origin),
+		"Changing a trimmed sprite pivot keeps its texture fixed in the editor preview",
+	)
+	rigger.call(
+		"_on_create_parameter_pressed",
+		TwberParameterResource.ValueType.FLOAT,
+	)
+	rigger.call("_on_bind_position_button_pressed")
+	var bound_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	_expect(
+		bound_texture_origin.is_equal_approx(old_texture_origin),
+		"Binding a parameter after changing a pivot keeps the texture fixed",
+	)
+	pivot_sprite.position += Vector2(9.0, 3.0)
+	rigger.call("_on_bind_position_button_pressed")
+	var posed_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	var posed_node_origin := pivot_sprite.get_global_transform_with_canvas().origin
+	rigger.call("_change_node_pivot", pivot_sprite, posed_node_origin + Vector2(3.0, 2.0))
+	var rebased_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	_expect(
+		rebased_texture_origin.is_equal_approx(posed_texture_origin),
+		"Changing a pivot rebases an existing parameter pose without moving its texture",
+	)
+	rigger.call("_on_bind_position_button_pressed")
+	var rebound_texture_origin: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	_expect(
+		rebound_texture_origin.is_equal_approx(posed_texture_origin),
+		"Rebinding an existing pose after changing its pivot keeps the texture fixed",
+	)
+	var placer := editor.get_node(
+		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer",
+	) as EditorPlacer
+	editor_menus.current_tab = placer.get_index()
+	placer.reload_from_preview()
+	var placer_layers: Dictionary = placer.get("_layers_by_id")
+	var pivot_layer_id := -1
+	var nested_layer_id := -1
+	for placer_layer_id: Variant in placer_layers:
+		var placer_node := (placer_layers[placer_layer_id] as Dictionary)["node"] as Node2D
+		if placer_node == pivot_sprite:
+			pivot_layer_id = int(placer_layer_id)
+		elif placer_node == model_root.get_child(1):
+			nested_layer_id = int(placer_layer_id)
+	placer.call("_set_selected_layer", pivot_layer_id)
+	var placer_pivot_texture_before: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	placer.call(
+		"_change_selected_pivot",
+		pivot_sprite.get_global_transform_with_canvas().origin + Vector2(2.0, 1.0),
+	)
+	var placer_pivot_texture_after: Vector2 = (
+		pivot_sprite.get_global_transform_with_canvas()
+		* (rigger.call("_get_sprite_texture_origin", pivot_sprite) as Vector2)
+	)
+	_expect(
+		placer_pivot_texture_after.is_equal_approx(placer_pivot_texture_before),
+		"Placer pivot tool changes the origin without moving the texture",
+	)
+	var nested_node := (placer_layers[nested_layer_id] as Dictionary)["node"] as Node2D
+	var nested_global_before := nested_node.global_transform
+	placer.call("_move_layers", [nested_layer_id], pivot_layer_id, 0)
+	_expect(
+		nested_node.get_parent() == pivot_sprite
+		and nested_node.global_transform.is_equal_approx(nested_global_before),
+		"Nesting under a pivot-modified layer preserves the child's global transform",
+	)
+	placer.call("_set_selected_layer", nested_layer_id)
+	placer.call("_on_show_behind_parent_toggled", true)
+	_expect(
+		nested_node.show_behind_parent,
+		"Placer inspector applies Show behind parent to the selected layer",
+	)
+	placer.call("_move_layers", [nested_layer_id], pivot_layer_id, 1)
+	_expect(
+		nested_node.get_parent() == model_root
+		and nested_node.global_transform.is_equal_approx(nested_global_before),
+		"Unnesting from a pivot-modified layer also preserves the global transform",
+	)
 	var saved_twber_path := "user://twber_editor_current_model_test.twber"
 	_expect(
 		int(editor.call("_save_model_to_path", saved_twber_path, true)) == OK,
@@ -605,7 +742,7 @@ func _test_editor_model_open_and_reset() -> void:
 		preview_mask,
 		Color(1.0, 1.0, 1.0, 0.65),
 	)
-	var rigger := editor.get_node(
+	rigger = editor.get_node(
 		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger",
 	) as EditorRigger
 	rigger.reload_from_preview(preview_mask as Node2D)

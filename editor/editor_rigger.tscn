@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dqqu1rj0obmqq" path="res://editor/editor_rigger.gd" id="1_rigger"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_2ael8"]
+[ext_resource type="Texture2D" uid="uid://vrys3fecv8md" path="res://shared/assets/icons/cursor-default-02.svg" id="3_folvi"]
 [ext_resource type="Texture2D" uid="uid://b8rkam22a3uut" path="res://shared/assets/icons/cursor-move.svg" id="3_yrcqg"]
 [ext_resource type="Texture2D" uid="uid://bpjb5ofpa8ers" path="res://shared/assets/icons/change.svg" id="4_folvi"]
 [ext_resource type="Texture2D" uid="uid://83jdb8ri4wy5" path="res://shared/assets/icons/expand-02.svg" id="5_0auf0"]
@@ -14,7 +15,85 @@
 [ext_resource type="Texture2D" uid="uid://lnw3g5w4ewhe" path="res://shared/assets/icons/visible.svg" id="12_7owhd"]
 [ext_resource type="Texture2D" uid="uid://cnwknklfei45d" path="res://shared/assets/icons/invisible.svg" id="13_aison"]
 
-[sub_resource type="ButtonGroup" id="ButtonGroup_hdak6"]
+[sub_resource type="ButtonGroup" id="ButtonGroup_folvi"]
+
+[sub_resource type="InputEventKey" id="InputEventKey_7owhd"]
+device = -1
+keycode = 81
+unicode = 113
+
+[sub_resource type="Shortcut" id="Shortcut_3snna"]
+events = [SubResource("InputEventKey_7owhd")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_aison"]
+device = -1
+keycode = 87
+unicode = 119
+
+[sub_resource type="Shortcut" id="Shortcut_folvi"]
+events = [SubResource("InputEventKey_aison")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_folvi"]
+device = -1
+keycode = 69
+unicode = 101
+
+[sub_resource type="Shortcut" id="Shortcut_nl0op"]
+events = [SubResource("InputEventKey_folvi")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_0auf0"]
+device = -1
+keycode = 82
+unicode = 114
+
+[sub_resource type="Shortcut" id="Shortcut_m5ilg"]
+events = [SubResource("InputEventKey_0auf0")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_skge1"]
+device = -1
+keycode = 84
+unicode = 116
+
+[sub_resource type="Shortcut" id="Shortcut_8l5iw"]
+events = [SubResource("InputEventKey_skge1")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_d1grl"]
+device = -1
+keycode = 80
+unicode = 112
+
+[sub_resource type="Shortcut" id="Shortcut_f8tu1"]
+events = [SubResource("InputEventKey_d1grl")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_xv5wb"]
+device = -1
+keycode = 77
+unicode = 109
+
+[sub_resource type="Shortcut" id="Shortcut_uy2vj"]
+events = [SubResource("InputEventKey_xv5wb")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_vmst1"]
+device = -1
+keycode = 76
+unicode = 108
+
+[sub_resource type="Shortcut" id="Shortcut_l70a2"]
+events = [SubResource("InputEventKey_vmst1")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_y4xg0"]
+device = -1
+keycode = 4194308
+
+[sub_resource type="Shortcut" id="Shortcut_vq0ru"]
+events = [SubResource("InputEventKey_y4xg0")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_rnnyd"]
+device = -1
+keycode = 4194312
+
+[sub_resource type="Shortcut" id="Shortcut_hvu4b"]
+events = [SubResource("InputEventKey_rnnyd")]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
@@ -49,6 +128,21 @@ layout_mode = 2
 [node name="NodeButtons" type="HFlowContainer" parent="ItemWindow/MarginContainer/VBoxContainer" unique_id=963447440]
 layout_mode = 2
 
+[node name="PointerButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=147540766]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Pointer"
+theme_override_fonts/font = ExtResource("2_2ael8")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_3snna")
+icon = ExtResource("3_folvi")
+icon_alignment = 1
+expand_icon = true
+
 [node name="TransformButton" type="Button" parent="ItemWindow/MarginContainer/VBoxContainer/NodeButtons" unique_id=272185880]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
@@ -58,7 +152,8 @@ size_flags_horizontal = 3
 tooltip_text = "Move layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_folvi")
 icon = ExtResource("3_yrcqg")
 icon_alignment = 1
 expand_icon = true
@@ -72,7 +167,8 @@ size_flags_horizontal = 3
 tooltip_text = "Rotate layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_nl0op")
 icon = ExtResource("4_folvi")
 icon_alignment = 1
 expand_icon = true
@@ -86,7 +182,8 @@ size_flags_horizontal = 3
 tooltip_text = "Scale layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_m5ilg")
 icon = ExtResource("5_0auf0")
 icon_alignment = 1
 expand_icon = true
@@ -100,7 +197,8 @@ size_flags_horizontal = 3
 tooltip_text = "Change pivot"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_8l5iw")
 icon = ExtResource("6_skge1")
 icon_alignment = 1
 expand_icon = true
@@ -114,7 +212,8 @@ size_flags_horizontal = 3
 tooltip_text = "Deform vertex"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_f8tu1")
 icon = ExtResource("7_d1grl")
 icon_alignment = 1
 expand_icon = true
@@ -128,7 +227,8 @@ size_flags_horizontal = 3
 tooltip_text = "Rectangle select"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_uy2vj")
 icon = ExtResource("8_xv5wb")
 icon_alignment = 1
 expand_icon = true
@@ -142,7 +242,8 @@ size_flags_horizontal = 3
 tooltip_text = "Lasso select"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_l70a2")
 icon = ExtResource("9_vmst1")
 icon_alignment = 1
 expand_icon = true
@@ -156,7 +257,8 @@ size_flags_horizontal = 3
 tooltip_text = "Reset vertex"
 theme_override_fonts/font = ExtResource("2_2ael8")
 toggle_mode = true
-button_group = SubResource("ButtonGroup_hdak6")
+button_group = SubResource("ButtonGroup_folvi")
+shortcut = SubResource("Shortcut_vq0ru")
 icon = ExtResource("10_y4xg0")
 icon_alignment = 1
 expand_icon = true
@@ -169,6 +271,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Reset layer"
 theme_override_fonts/font = ExtResource("2_2ael8")
+shortcut = SubResource("Shortcut_hvu4b")
 icon = ExtResource("11_rnnyd")
 icon_alignment = 1
 expand_icon = true

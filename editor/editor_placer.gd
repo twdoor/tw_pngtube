@@ -12,6 +12,10 @@ const TEXTURE_PREVIEW_ALPHA_THRESHOLD := 0.001
 const TEXTURE_RUNTIME_COMPRESS_MODE := Image.COMPRESS_S3TC
 const TEXTURE_RUNTIME_COMPRESS_SOURCE := Image.COMPRESS_SOURCE_GENERIC
 const TEXTURE_PREVIEW_CACHE_LIMIT := 128
+const MIN_LAYER_SCALE_DISTANCE := 0.001
+const LAYER_ORIGIN_COLOR := Color(1.0, 0.78, 0.22, 0.95)
+const LAYER_GUIDE_COLOR := Color(1.0, 0.78, 0.22, 0.65)
+const HANDLE_RADIUS := 5.0
 
 enum PlacerItemType {
 	LAYER,
@@ -19,14 +23,28 @@ enum PlacerItemType {
 	EMPTY,
 }
 
+enum TransformMode {
+	POINTER,
+	MOVE,
+	ROTATE,
+	SCALE,
+	PIVOT,
+}
+
 @onready var _layer_button: Button = %LayerButton
 @onready var _animation_layer_button: Button = %AnimationLayerButton
 @onready var _empty_button: Button = %EmptyButton
+@onready var _pointer_button: Button = %PointerButton
+@onready var _move_button: Button = %MoveButton
+@onready var _rotate_button: Button = %RotateButton
+@onready var _scale_button: Button = %ScaleButton
+@onready var _pivot_button: Button = %PivotButton
 @onready var _tree: Tree = %Tree
 @onready var _inspector: PanelContainer = %Inspector
 @onready var _layer_actions: Control = %LayerActions
 @onready var _change_texture_button: TextureButton = %ChangeTextureButton
 @onready var _visible_check_box: CheckBox = %VisibleCheckBox
+@onready var _show_behind_parent_check_box: CheckBox = %ShowBehindParentCheckBox
 @onready var _opacity_slider: HSlider = %OpacitySlider
 @onready var _clip_option_button: OptionButton = %ClipOptionButton
 @onready var _animation_frame_rate: SpinBox = %AnimationFrameRate
@@ -37,6 +55,7 @@ enum PlacerItemType {
 @onready var _rename_animation_button: Button = %RenameAnimationButton
 @onready var _duplicate_button: Button = %DuplicateButton
 @onready var _delete_button: Button = %DeleteButton
+@onready var _edit_panel: Control = $Panel
 @export var _preview_layer: CanvasLayer
 @export var _new_model_root_position := Vector2.ZERO
 @export var _new_model_root_scale := Vector2(0.1, 0.1)
@@ -59,9 +78,21 @@ var _item_counts: Dictionary = {
 	PlacerItemType.ANIMATION_LAYER: 0,
 	PlacerItemType.EMPTY: 0,
 }
+var _overlay: Control
+var _dragging_transform := false
+var _transform_mode: int = TransformMode.POINTER
+var _transform_start_mouse := Vector2.ZERO
+var _transform_current_mouse := Vector2.ZERO
+var _transform_start_origin := Vector2.ZERO
+var _transform_start_position := Vector2.ZERO
+var _transform_start_rotation := 0.0
+var _transform_start_scale := Vector2.ONE
+var _transform_start_mouse_angle := 0.0
+var _transform_start_mouse_distance := 1.0
 
 
 func _ready() -> void:
+	_pointer_button.button_pressed = true
 	_layer_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.LAYER))
 	_animation_layer_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.ANIMATION_LAYER))
 	_empty_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.EMPTY))
@@ -69,6 +100,7 @@ func _ready() -> void:
 	_delete_button.pressed.connect(_on_delete_button_pressed)
 	_change_texture_button.pressed.connect(_on_change_texture_button_pressed)
 	_visible_check_box.toggled.connect(_on_visible_check_box_toggled)
+	_show_behind_parent_check_box.toggled.connect(_on_show_behind_parent_toggled)
 	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
 	_clip_option_button.item_selected.connect(_on_clip_option_button_item_selected)
 	_animation_frame_rate.value_changed.connect(_on_animation_frame_rate_value_changed)
@@ -78,6 +110,7 @@ func _ready() -> void:
 	_rename_animation_button.pressed.connect(_on_rename_animation_button_pressed)
 
 	_setup_preview()
+	_setup_transform_overlay()
 
 	_tree.clear()
 	_tree.columns = 1
@@ -124,6 +157,315 @@ func set_editor_settings(settings: TwberEditorSettings) -> void:
 	_texture_preview_cache.clear()
 	_texture_preview_cache_order.clear()
 	_refresh_inspector()
+
+
+func refresh_overlay() -> void:
+	if _overlay != null:
+		_overlay.queue_redraw()
+
+
+func _setup_transform_overlay() -> void:
+	_edit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_edit_panel.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
+	_overlay = Control.new()
+	_overlay.name = "PlacerOverlay"
+	_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
+	_overlay.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
+	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay.gui_input.connect(_on_overlay_gui_input)
+	_overlay.draw.connect(_on_overlay_draw)
+	_edit_panel.add_child(_overlay)
+
+
+func _on_overlay_draw() -> void:
+	var node := _get_selected_model_node()
+	if node == null:
+		return
+	var origin := _canvas_to_overlay_position(_get_node_canvas_origin(node))
+	_overlay.draw_circle(origin, HANDLE_RADIUS, LAYER_ORIGIN_COLOR)
+	if (
+		_dragging_transform
+		and (_transform_mode == TransformMode.ROTATE or _transform_mode == TransformMode.SCALE)
+	):
+		_overlay.draw_line(
+			origin,
+			_canvas_to_overlay_position(_transform_current_mouse),
+			LAYER_GUIDE_COLOR,
+			1.0,
+		)
+
+
+func _on_overlay_gui_input(event: InputEvent) -> void:
+	if not visible or _model_root == null:
+		return
+	if event is InputEventMouseButton:
+		_handle_transform_mouse_button(
+			event,
+			_overlay.get_global_transform_with_canvas() * event.position,
+		)
+	elif event is InputEventMouseMotion:
+		_handle_transform_mouse_motion(
+			event,
+			_overlay.get_global_transform_with_canvas() * event.position,
+		)
+
+
+func _handle_transform_mouse_button(event: InputEventMouseButton, canvas_position: Vector2) -> void:
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if not event.pressed:
+		_finish_transform_drag()
+		_overlay.accept_event()
+		return
+
+	var mode := _get_transform_mode()
+	if mode == TransformMode.PIVOT:
+		_change_selected_pivot(canvas_position)
+	elif mode != TransformMode.POINTER:
+		_begin_transform_drag(canvas_position, mode)
+	_overlay.accept_event()
+
+
+func _handle_transform_mouse_motion(event: InputEventMouseMotion, canvas_position: Vector2) -> void:
+	if (event.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
+		_finish_transform_drag()
+		return
+	if not _dragging_transform:
+		return
+	_update_transform_drag(canvas_position)
+	_overlay.accept_event()
+
+
+func _begin_transform_drag(canvas_position: Vector2, mode: int) -> void:
+	var node := _get_selected_model_node()
+	if node == null:
+		return
+	_dragging_transform = true
+	_transform_mode = mode
+	_transform_start_mouse = canvas_position
+	_transform_current_mouse = canvas_position
+	_transform_start_origin = _get_node_canvas_origin(node)
+	_transform_start_position = node.position
+	_transform_start_rotation = node.rotation
+	_transform_start_scale = node.scale
+	var mouse_offset := canvas_position - _transform_start_origin
+	_transform_start_mouse_angle = mouse_offset.angle()
+	_transform_start_mouse_distance = maxf(mouse_offset.length(), MIN_LAYER_SCALE_DISTANCE)
+	refresh_overlay()
+
+
+func _update_transform_drag(canvas_position: Vector2) -> void:
+	var node := _get_selected_model_node()
+	if node == null:
+		return
+	_transform_current_mouse = canvas_position
+	match _transform_mode:
+		TransformMode.MOVE:
+			_set_node_canvas_origin(
+				node,
+				_transform_start_origin + canvas_position - _transform_start_mouse,
+			)
+		TransformMode.ROTATE:
+			var mouse_offset := canvas_position - _transform_start_origin
+			if mouse_offset.length_squared() > MIN_LAYER_SCALE_DISTANCE:
+				node.rotation = wrapf(
+					_snap_rotation(
+						_transform_start_rotation
+						+ angle_difference(_transform_start_mouse_angle, mouse_offset.angle()),
+					),
+					-PI,
+					PI,
+				)
+		TransformMode.SCALE:
+			var mouse_distance := maxf(
+				(canvas_position - _transform_start_origin).length(),
+				MIN_LAYER_SCALE_DISTANCE,
+			)
+			var factor := _snap_scale_factor(mouse_distance / _transform_start_mouse_distance)
+			node.scale = _transform_start_scale * factor
+	model_render_changed.emit(false, false)
+	refresh_overlay()
+
+
+func _finish_transform_drag() -> void:
+	if not _dragging_transform:
+		return
+	var node := _get_selected_model_node()
+	_dragging_transform = false
+	if node != null:
+		_rebase_parameter_states_for_neutral_transform(
+			node,
+			node.position - _transform_start_position,
+			angle_difference(_transform_start_rotation, node.rotation),
+			node.scale - _transform_start_scale,
+		)
+	refresh_overlay()
+
+
+func _get_transform_mode() -> int:
+	if _move_button.button_pressed:
+		return TransformMode.MOVE
+	if _rotate_button.button_pressed:
+		return TransformMode.ROTATE
+	if _scale_button.button_pressed:
+		return TransformMode.SCALE
+	if _pivot_button.button_pressed:
+		return TransformMode.PIVOT
+	return TransformMode.POINTER
+
+
+func _get_selected_model_node() -> Node2D:
+	if not _layers_by_id.has(_selected_layer_id):
+		return null
+	return _layers_by_id[_selected_layer_id]["node"] as Node2D
+
+
+func _get_node_canvas_origin(node: Node2D) -> Vector2:
+	return node.get_global_transform_with_canvas().origin
+
+
+func _canvas_to_overlay_position(canvas_position: Vector2) -> Vector2:
+	return _overlay.get_global_transform_with_canvas().affine_inverse() * canvas_position
+
+
+func _set_node_canvas_origin(
+		node: Node2D,
+		canvas_origin: Vector2,
+		snap_to_grid := true,
+) -> void:
+	var parent := node.get_parent()
+	if parent is CanvasItem:
+		var local_position := (
+			(parent as CanvasItem).get_global_transform_with_canvas().affine_inverse()
+			* canvas_origin
+		)
+		node.position = _snap_pixel_position(local_position) if snap_to_grid else local_position
+	else:
+		node.global_position = _snap_pixel_position(canvas_origin) if snap_to_grid else canvas_origin
+
+
+func _snap_pixel_position(value: Vector2) -> Vector2:
+	return _editor_settings.snap_pixel_position(value) if _editor_settings != null else value
+
+
+func _snap_rotation(value: float) -> float:
+	return _editor_settings.snap_rotation(value) if _editor_settings != null else value
+
+
+func _snap_scale_factor(value: float) -> float:
+	return _editor_settings.snap_scale_factor(value) if _editor_settings != null else value
+
+
+func _change_selected_pivot(canvas_origin: Vector2) -> void:
+	var node := _get_selected_model_node()
+	if node == null:
+		return
+	var old_transform := node.get_global_transform_with_canvas()
+	var local_pivot := _snap_pixel_position(old_transform.affine_inverse() * canvas_origin)
+	var snapped_canvas_origin := old_transform * local_pivot
+	var next_transform := old_transform
+	next_transform.origin = snapped_canvas_origin
+	var local_shift := next_transform.affine_inverse() * old_transform.origin
+	var old_rotation := node.rotation
+	var old_scale := node.scale
+
+	_set_node_canvas_origin(node, snapped_canvas_origin, false)
+	_shift_node_local_content(node, local_shift)
+	_rebase_parameter_states_for_pivot(
+		node,
+		local_pivot,
+		local_shift,
+		old_rotation,
+		old_scale,
+	)
+	model_render_changed.emit(false, false)
+	refresh_overlay()
+
+
+func _shift_node_local_content(node: Node2D, local_shift: Vector2) -> void:
+	if node is TwberMeshSprite2D:
+		(node as TwberMeshSprite2D).shift_local_geometry(local_shift)
+	elif node is Sprite2D:
+		(node as Sprite2D).offset += local_shift
+	elif node is AnimatedSprite2D:
+		(node as AnimatedSprite2D).offset += local_shift
+	for child: Node in node.get_children():
+		if child is Node2D:
+			child.position += local_shift
+
+
+func _rebase_parameter_states_for_neutral_transform(
+		node: Node2D,
+		position_delta: Vector2,
+		rotation_delta: float,
+		scale_delta: Vector2,
+) -> void:
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	if layer_id.is_empty():
+		return
+	for state: TwberLayerStateResource in _get_parameter_states_for_layer(layer_id):
+		if state.has_channel(TwberLayerStateResource.Channel.POSITION):
+			state.position += position_delta
+		if state.has_channel(TwberLayerStateResource.Channel.ROTATION):
+			state.rotation = wrapf(state.rotation + rotation_delta, -PI, PI)
+		if state.has_channel(TwberLayerStateResource.Channel.SCALE):
+			state.scale += scale_delta
+
+
+func _rebase_parameter_states_for_pivot(
+		node: Node2D,
+		local_pivot: Vector2,
+		local_shift: Vector2,
+		base_rotation: float,
+		base_scale: Vector2,
+) -> void:
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	for state: TwberLayerStateResource in _get_parameter_states_for_layer(layer_id):
+		if state.has_channel(TwberLayerStateResource.Channel.POSITION):
+			var state_rotation := (
+				state.rotation
+				if state.has_channel(TwberLayerStateResource.Channel.ROTATION)
+				else base_rotation
+			)
+			var state_scale := (
+				state.scale
+				if state.has_channel(TwberLayerStateResource.Channel.SCALE)
+				else base_scale
+			)
+			state.position += Vector2(
+				local_pivot.x * state_scale.x,
+				local_pivot.y * state_scale.y,
+			).rotated(state_rotation)
+		if state.has_channel(TwberLayerStateResource.Channel.MESH):
+			for vertex_index: int in state.mesh_vertices.size():
+				state.mesh_vertices[vertex_index] += local_shift
+
+	for child: Node in node.get_children():
+		if child is not Node2D:
+			continue
+		var child_layer_id := String(child.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+		for child_state: TwberLayerStateResource in _get_parameter_states_for_layer(child_layer_id):
+			if child_state.has_channel(TwberLayerStateResource.Channel.POSITION):
+				child_state.position += local_shift
+
+
+func _get_parameter_states_for_layer(layer_id: String) -> Array[TwberLayerStateResource]:
+	var output: Array[TwberLayerStateResource] = []
+	if layer_id.is_empty() or _model_root == null:
+		return output
+	var stored_parameters: Variant = _model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, [])
+	if stored_parameters is not Array:
+		return output
+	for value: Variant in stored_parameters:
+		if value is not TwberParameterResource:
+			continue
+		for parameter_position: TwberParameterPositionResource in value.positions:
+			if parameter_position == null:
+				continue
+			var state := parameter_position.find_state(layer_id)
+			if state != null:
+				output.append(state)
+	return output
 
 
 func _get_tree_drag_data(at_position: Vector2) -> Variant:
@@ -373,6 +715,16 @@ func _on_visible_check_box_toggled(enabled: bool) -> void:
 		canvas_item.visible = enabled
 
 
+func _on_show_behind_parent_toggled(enabled: bool) -> void:
+	if _updating_inspector or not _layers_by_id.has(_selected_layer_id):
+		return
+	var model_node := _layers_by_id[_selected_layer_id]["node"] as CanvasItem
+	if model_node == null:
+		return
+	model_node.show_behind_parent = enabled
+	model_render_changed.emit(false, true)
+
+
 func _on_opacity_slider_value_changed(value: float) -> void:
 	if _updating_inspector or not _layers_by_id.has(_selected_layer_id):
 		return
@@ -484,6 +836,7 @@ func _set_selected_layer(layer_id: int) -> void:
 	if not _layers_by_id.has(layer_id):
 		_selected_layer_id = INVALID_LAYER_ID
 		_hide_inspector()
+		refresh_overlay()
 		return
 
 	_selected_layer_id = layer_id
@@ -519,6 +872,7 @@ func _refresh_inspector() -> void:
 	if model_node is CanvasItem:
 		var canvas_item: CanvasItem = model_node
 		_visible_check_box.button_pressed = canvas_item.visible
+		_show_behind_parent_check_box.button_pressed = canvas_item.show_behind_parent
 		_opacity_slider.value = TwberAlphaClipController.get_authored_self_modulate(canvas_item).a
 		var clip_mode := TwberAlphaClipController.get_authored_clip_mode(canvas_item)
 		_clip_option_button.select(clampi(clip_mode, 0, _clip_option_button.item_count - 1))
@@ -539,6 +893,7 @@ func _refresh_inspector() -> void:
 		_animations_option_button.clear()
 
 	_updating_inspector = false
+	refresh_overlay()
 
 
 func _refresh_animation_controls(animated_sprite: AnimatedSprite2D) -> void:
@@ -1183,6 +1538,16 @@ func _move_layers(dragged_ids: Array, target_id: int, drop_section: int) -> void
 	if drop_section != 0:
 		var target_layer: Dictionary = _layers_by_id[target_id]
 		new_parent_id = target_layer["parent_id"]
+	var new_parent_node: Node2D = (
+		_model_root
+		if new_parent_id == ROOT_LAYER_ID
+		else _layers_by_id[new_parent_id]["node"] as Node2D
+	)
+	for dragged_id: int in moving_ids:
+		var moving_node := _layers_by_id[dragged_id]["node"] as Node2D
+		var old_parent := moving_node.get_parent() as Node2D
+		if old_parent != null and old_parent != new_parent_node:
+			_rebase_parameter_states_for_reparent(moving_node, old_parent, new_parent_node)
 
 	for dragged_id: int in moving_ids:
 		var dragged_layer: Dictionary = _layers_by_id[dragged_id]
@@ -1398,12 +1763,52 @@ func _sync_model_children(parent_node: Node, child_ids: Array) -> void:
 		var model_node: Node = layer["node"]
 
 		if model_node.get_parent() != parent_node:
-			if model_node.get_parent() != null:
-				model_node.get_parent().remove_child(model_node)
-			parent_node.add_child(model_node)
+			model_node.reparent(parent_node, true)
 
 		parent_node.move_child(model_node, index)
 		_sync_model_children(model_node, layer["children"])
+
+
+func _rebase_parameter_states_for_reparent(
+		node: Node2D,
+		old_parent: Node2D,
+		new_parent: Node2D,
+) -> void:
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	if layer_id.is_empty():
+		return
+	var old_to_new := (
+		new_parent.get_global_transform_with_canvas().affine_inverse()
+		* old_parent.get_global_transform_with_canvas()
+	)
+	for state: TwberLayerStateResource in _get_parameter_states_for_layer(layer_id):
+		var state_position := (
+			state.position
+			if state.has_channel(TwberLayerStateResource.Channel.POSITION)
+			else node.position
+		)
+		var state_rotation := (
+			state.rotation
+			if state.has_channel(TwberLayerStateResource.Channel.ROTATION)
+			else node.rotation
+		)
+		var state_scale := (
+			state.scale
+			if state.has_channel(TwberLayerStateResource.Channel.SCALE)
+			else node.scale
+		)
+		var rebased := old_to_new * Transform2D(
+			state_rotation,
+			state_scale,
+			0.0,
+			state_position,
+		)
+		if state.has_channel(TwberLayerStateResource.Channel.POSITION):
+			state.position = rebased.origin
+		if state.has_channel(TwberLayerStateResource.Channel.ROTATION):
+			state.rotation = rebased.get_rotation()
+		if state.has_channel(TwberLayerStateResource.Channel.SCALE):
+			state.scale = rebased.get_scale()
 
 
 func _get_tree_collapsed_state() -> Dictionary[String, bool]:

@@ -12,11 +12,44 @@
 [ext_resource type="Texture2D" uid="uid://b7ijnbrim3jfw" path="res://shared/assets/icons/pencil.svg" id="7_jnso7"]
 [ext_resource type="Texture2D" uid="uid://bqi66ctfu5030" path="res://shared/assets/icons/copy.svg" id="8_tfx84"]
 [ext_resource type="Texture2D" uid="uid://b1umouv1xgltw" path="res://shared/assets/icons/trash.svg" id="9_whbxg"]
+[ext_resource type="Texture2D" uid="uid://vrys3fecv8md" path="res://shared/assets/icons/cursor-default-02.svg" id="10_pointer"]
+[ext_resource type="Texture2D" uid="uid://b8rkam22a3uut" path="res://shared/assets/icons/cursor-move.svg" id="11_move"]
+[ext_resource type="Texture2D" uid="uid://bpjb5ofpa8ers" path="res://shared/assets/icons/change.svg" id="12_rotate"]
+[ext_resource type="Texture2D" uid="uid://83jdb8ri4wy5" path="res://shared/assets/icons/expand-02.svg" id="13_scale"]
+[ext_resource type="Texture2D" uid="uid://c2xf3ons8p7ni" path="res://shared/assets/icons/circle-ring.svg" id="14_pivot"]
+
+[sub_resource type="InputEventKey" id="InputEventKey_78d8l"]
+device = -1
+keycode = 78
+unicode = 110
+
+[sub_resource type="Shortcut" id="Shortcut_aws7q"]
+events = [SubResource("InputEventKey_78d8l")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_jnso7"]
+device = -1
+shift_pressed = true
+keycode = 78
+unicode = 78
+
+[sub_resource type="Shortcut" id="Shortcut_yyul4"]
+events = [SubResource("InputEventKey_jnso7")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_tfx84"]
+device = -1
+ctrl_pressed = true
+keycode = 78
+unicode = 110
+
+[sub_resource type="Shortcut" id="Shortcut_dblv8"]
+events = [SubResource("InputEventKey_tfx84")]
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_hdak6"]
 size = Vector2(100, 100)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_transform"]
 
 [node name="EditorPlacer" type="HSplitContainer" unique_id=795151654]
 anchors_preset = 15
@@ -57,6 +90,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "New Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_aws7q")
 icon = ExtResource("3_78d8l")
 icon_alignment = 1
 expand_icon = true
@@ -69,6 +103,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "New Animated Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_yyul4")
 icon = ExtResource("4_jnso7")
 icon_alignment = 1
 expand_icon = true
@@ -81,7 +116,71 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "New Empty Layer"
 theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_dblv8")
 icon = ExtResource("5_tfx84")
+icon_alignment = 1
+expand_icon = true
+
+[node name="TransformButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PointerButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Pointer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+icon = ExtResource("10_pointer")
+icon_alignment = 1
+expand_icon = true
+
+[node name="MoveButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Move layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+icon = ExtResource("11_move")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RotateButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Rotate layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+icon = ExtResource("12_rotate")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ScaleButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Scale layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+icon = ExtResource("13_scale")
+icon_alignment = 1
+expand_icon = true
+
+[node name="PivotButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Change pivot"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+icon = ExtResource("14_pivot")
 icon_alignment = 1
 expand_icon = true
 
@@ -157,6 +256,13 @@ tooltip_text = "Set Opacity"
 max_value = 1.0
 step = 0.01
 value = 1.0
+
+[node name="ShowBehindParentCheckBox" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Draw this layer behind its parent"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Behind parent"
 
 [node name="ClipOptionButton" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/Inspector/VBoxContainer/LayerActions/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=335308101]
 unique_name_in_owner = true

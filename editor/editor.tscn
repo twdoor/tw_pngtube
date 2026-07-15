@@ -24,7 +24,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.2901961, 0.2901961, 0.2901961, 0)
+color = Color(0.050980393, 0.16862746, 0.27058825, 1)
 
 [node name="Textures" type="Node2D" parent="ModelPreview" unique_id=1130443414]
 position = Vector2(720, 360)

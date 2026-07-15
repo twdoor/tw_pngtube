@@ -13,6 +13,70 @@
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_j3ejx"]
 
+[sub_resource type="InputEventKey" id="InputEventKey_j3ejx"]
+device = -1
+keycode = 66
+unicode = 98
+
+[sub_resource type="Shortcut" id="Shortcut_whbxg"]
+events = [SubResource("InputEventKey_j3ejx")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_kkspo"]
+device = -1
+keycode = 69
+unicode = 101
+
+[sub_resource type="Shortcut" id="Shortcut_mgdss"]
+events = [SubResource("InputEventKey_kkspo")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_q4vkf"]
+device = -1
+keycode = 80
+unicode = 112
+
+[sub_resource type="Shortcut" id="Shortcut_5jk4d"]
+events = [SubResource("InputEventKey_q4vkf")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_dpdyg"]
+device = -1
+keycode = 77
+unicode = 109
+
+[sub_resource type="Shortcut" id="Shortcut_sxkf2"]
+events = [SubResource("InputEventKey_dpdyg")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_486mv"]
+device = -1
+keycode = 76
+unicode = 108
+
+[sub_resource type="Shortcut" id="Shortcut_fsx1x"]
+events = [SubResource("InputEventKey_486mv")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_agxpy"]
+device = -1
+keycode = 88
+unicode = 120
+
+[sub_resource type="Shortcut" id="Shortcut_qvw7n"]
+events = [SubResource("InputEventKey_agxpy")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_4ufbe"]
+device = -1
+keycode = 74
+unicode = 106
+
+[sub_resource type="Shortcut" id="Shortcut_81ylp"]
+events = [SubResource("InputEventKey_4ufbe")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_43b6n"]
+device = -1
+keycode = 71
+unicode = 103
+
+[sub_resource type="Shortcut" id="Shortcut_jqd1t"]
+events = [SubResource("InputEventKey_43b6n")]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
 [node name="EditorMesher" type="HSplitContainer" unique_id=795151654]
@@ -56,6 +120,7 @@ tooltip_text = "Add vertex"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_whbxg")
 icon = ExtResource("3_qqpn1")
 icon_alignment = 1
 expand_icon = true
@@ -70,6 +135,7 @@ tooltip_text = "Remove vertex"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_mgdss")
 icon = ExtResource("4_dxlek")
 icon_alignment = 1
 expand_icon = true
@@ -84,6 +150,7 @@ tooltip_text = "Edit vertex"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_5jk4d")
 icon = ExtResource("5_51hi1")
 icon_alignment = 1
 expand_icon = true
@@ -98,6 +165,7 @@ tooltip_text = "Rectangle select vertices (Shift adds)"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_sxkf2")
 icon = ExtResource("8_select")
 icon_alignment = 1
 expand_icon = true
@@ -112,6 +180,7 @@ tooltip_text = "Lasso select vertices (Shift adds)"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_fsx1x")
 icon = ExtResource("9_lasso")
 icon_alignment = 1
 expand_icon = true
@@ -126,19 +195,8 @@ tooltip_text = "Cut edge"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_qvw7n")
 icon = ExtResource("6_j3ejx")
-icon_alignment = 1
-expand_icon = true
-
-[node name="FastMeshButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2100020199]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Generate a grid mesh within the opaque texture bounds"
-theme_override_fonts/font = ExtResource("2_sjag6")
-icon = ExtResource("9_j3ejx")
 icon_alignment = 1
 expand_icon = true
 
@@ -152,7 +210,21 @@ tooltip_text = "Join vertices"
 theme_override_fonts/font = ExtResource("2_sjag6")
 toggle_mode = true
 button_group = SubResource("ButtonGroup_j3ejx")
+shortcut = SubResource("Shortcut_81ylp")
 icon = ExtResource("7_kkspo")
+icon_alignment = 1
+expand_icon = true
+
+[node name="FastMeshButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2100020199]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Generate a grid mesh within the opaque texture bounds"
+theme_override_fonts/font = ExtResource("2_sjag6")
+shortcut = SubResource("Shortcut_jqd1t")
+icon = ExtResource("9_j3ejx")
 icon_alignment = 1
 expand_icon = true
 

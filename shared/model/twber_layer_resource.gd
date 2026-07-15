@@ -17,6 +17,7 @@ enum LayerType {
 @export var rotation := 0.0
 @export var modulate := Color.WHITE
 @export var clip_children := CanvasItem.CLIP_CHILDREN_DISABLED
+@export var show_behind_parent := false
 @export var texture_id := ""
 @export var offset := Vector2.ZERO
 @export var centered := true

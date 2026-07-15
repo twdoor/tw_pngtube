@@ -6,20 +6,20 @@
 oversampling_override = 1.0
 title = "Settings"
 position = Vector2i(0, 36)
-size = Vector2i(420, 340)
+size = Vector2i(420, 390)
 visible = true
 ok_button_text = "Save"
 script = ExtResource("1_settings_dialog")
 
 [node name="Content" type="VBoxContainer" parent="." unique_id=1979954473]
-custom_minimum_size = Vector2(360, 260)
+custom_minimum_size = Vector2(360, 310)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 404.0
-offset_bottom = 284.0
+offset_bottom = 334.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
@@ -127,3 +127,21 @@ min_value = 1.0
 max_value = 90.0
 value = 15.0
 suffix = "°"
+
+[node name="BackgroundColorRow" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+tooltip_text = "Color shown behind the model in the editor preview."
+theme_override_constants/separation = 12
+
+[node name="BackgroundColorLabel" type="Label" parent="Content/BackgroundColorRow"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Editor background"
+
+[node name="BackgroundColorPicker" type="ColorPickerButton" parent="Content/BackgroundColorRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+edit_alpha = true
+color = Color(0.050980393, 0.16862746, 0.27058825, 1)

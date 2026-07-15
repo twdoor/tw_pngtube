@@ -5,6 +5,7 @@ const PACKAGE_CARD_SCENE := preload("res://environment/package_card.tscn")
 const MODEL_INSTANCE_SCENE := preload("res://environment/environment_model.tscn")
 const MODEL_INPUT_PROFILE := preload("res://environment/core/twber_model_input_profile.gd")
 const ENVIRONMENT_SETTINGS := preload("res://environment/core/twber_environment_settings.gd")
+const INPUT_DRAG := -10.0
 const MODEL_FILTERS := [
 	"*.twber ; Twber model packages",
 	"*.tres, *.res ; Editable model resources",
@@ -17,10 +18,15 @@ const MODEL_FILTERS := [
 @onready var _package_manager: TwberPackageManager = %PackageManager
 @onready var _package_list: VBoxContainer = %PackageList
 @onready var _preview_interaction: Control = %PreviewInteraction
+@onready var _preview_help: Label = %Help
+@onready var _embedded_dock: PanelContainer = %EmbeddedDock
+@onready var _control_dock: VBoxContainer = %ControlDock
+@onready var _detach_controls_button: Button = %DetachControlsButton
+@onready var _detached_controls_window: Window = %DetachedControlsWindow
+@onready var _detached_dock_margin: MarginContainer = %DetachedDockMargin
 @onready var _open_model_button: Button = %OpenModelButton
 @onready var _remove_model_button: Button = %RemoveModelButton
 @onready var _reset_view_button: Button = %ResetViewButton
-@onready var _output_window_button: Button = %OutputWindowButton
 @onready var _model_selector: OptionButton = %ModelSelector
 @onready var _status_label: Label = %StatusLabel
 @onready var _operation_status_label: Label = %OperationStatusLabel
@@ -29,7 +35,6 @@ const MODEL_FILTERS := [
 @onready var _model_control_storage: VBoxContainer = %ModelControlStorage
 @onready var _open_model_dialog: FileDialog = %OpenModelDialog
 @onready var _error_dialog: AcceptDialog = %ErrorDialog
-@onready var _output_window: Window = %OutputWindow
 
 var _parameter_controls: Dictionary[String, TwberEnvironmentParameterControl] = {}
 var _model_entries: Array[Dictionary] = []
@@ -59,9 +64,8 @@ func _ready() -> void:
 	_open_model_button.pressed.connect(_popup_open_model_dialog)
 	_remove_model_button.pressed.connect(remove_selected_model)
 	_reset_view_button.pressed.connect(reset_selected_model_transform)
-	_output_window_button.toggled.connect(_on_output_window_toggled)
-	_output_window.close_requested.connect(_on_output_window_close_requested)
-	_output_window.world_2d = get_viewport().world_2d
+	_detach_controls_button.pressed.connect(_toggle_controls_detached)
+	_detached_controls_window.close_requested.connect(_embed_controls)
 	_model_selector.item_selected.connect(_on_model_selector_item_selected)
 	_open_model_dialog.files_selected.connect(_add_selected_model_files)
 	_input_registry.value_changed.connect(_on_input_value_changed)
@@ -77,20 +81,32 @@ func _popup_open_model_dialog() -> void:
 	_open_model_dialog.show()
 
 
-func _on_output_window_toggled(open: bool) -> void:
-	if open:
-		_output_window.size = get_window().size
-		_output_window.show()
-		_output_window_button.text = "Close Output"
+func _toggle_controls_detached() -> void:
+	if _control_dock.get_parent() == _detached_dock_margin:
+		_embed_controls()
 	else:
-		_output_window.hide()
-		_output_window_button.text = "Open Output"
+		_detach_controls()
 
 
-func _on_output_window_close_requested() -> void:
-	_output_window.hide()
-	_output_window_button.set_pressed_no_signal(false)
-	_output_window_button.text = "Open Output"
+func _detach_controls() -> void:
+	if _control_dock.get_parent() == _detached_dock_margin:
+		return
+	_control_dock.reparent(_detached_dock_margin)
+	_embedded_dock.visible = false
+	_preview_help.visible = false
+	_detach_controls_button.text = "↙"
+	_detach_controls_button.tooltip_text = "Return controls to the environment window"
+	_detached_controls_window.show()
+
+
+func _embed_controls() -> void:
+	if _control_dock.get_parent() != _embedded_dock.get_node("DockMargin"):
+		_control_dock.reparent(_embedded_dock.get_node("DockMargin"))
+	_detached_controls_window.hide()
+	_embedded_dock.visible = true
+	_preview_help.visible = true
+	_detach_controls_button.text = "↗"
+	_detach_controls_button.tooltip_text = "Move controls to a separate window"
 
 
 func _set_stage_background_color(color: Color) -> void:
@@ -158,6 +174,7 @@ func _add_model_instance(model: TwberModelResource, path: String) -> TwberRuntim
 		"path": path,
 		"bindings": MODEL_INPUT_PROFILE.load_bindings(path),
 		"controls": {},
+		"source_targets": {},
 	}
 	_model_entries.append(entry)
 	_create_parameter_controls(entry)
@@ -482,6 +499,10 @@ func _on_parameter_value_changed(
 		value: Variant,
 		runtime_model: TwberRuntimeModel,
 ) -> void:
+	var entry := _get_model_entry(runtime_model)
+	var source_targets := entry.get("source_targets") as Dictionary
+	if source_targets != null:
+		source_targets.erase(parameter_id)
 	runtime_model.set_parameter_value(parameter_id, value)
 
 
@@ -494,6 +515,7 @@ func _on_parameter_source_changed(
 	var bindings := entry.get("bindings") as Dictionary
 	if source_id.is_empty():
 		bindings.erase(parameter_id)
+		(entry.get("source_targets") as Dictionary).erase(parameter_id)
 		_save_model_profile(entry)
 		return
 	bindings[parameter_id] = {"source_id": source_id, "configuration": {}}
@@ -529,6 +551,7 @@ func _on_input_value_changed(source_id: StringName, value: Variant) -> void:
 					parameter_id,
 					value,
 					entry.get("model") == _selected_model,
+					true,
 				)
 
 
@@ -537,6 +560,7 @@ func _apply_source_value(
 		parameter_id: String,
 		raw_value: Variant,
 		update_preview: bool,
+		smooth := false,
 ) -> void:
 	var runtime_model := entry.get("model") as TwberRuntimeModel
 	var controls := entry.get("controls") as Dictionary
@@ -544,11 +568,66 @@ func _apply_source_value(
 	if control == null or runtime_model == null:
 		return
 	var mapped_value: Variant = control.apply_source_value(raw_value)
+	var source_targets := entry.get("source_targets") as Dictionary
+	if smooth and (mapped_value is float or mapped_value is int or mapped_value is Vector2):
+		var state: Dictionary = source_targets.get(parameter_id, {})
+		if state.is_empty():
+			state["current"] = runtime_model.get_parameter_value(parameter_id)
+		state["target"] = mapped_value
+		state["raw"] = raw_value
+		source_targets[parameter_id] = state
+		return
+	source_targets.erase(parameter_id)
 	runtime_model.set_parameter_value(parameter_id, mapped_value)
 	if update_preview:
 		var applied_value: Variant = runtime_model.get_parameter_value(parameter_id)
 		control.set_value(applied_value)
 		control.set_source_preview(raw_value, applied_value)
+
+
+func _process(delta: float) -> void:
+	var weight := 1.0 - exp(INPUT_DRAG * delta)
+	for entry: Dictionary in _model_entries:
+		var runtime_model := entry.get("model") as TwberRuntimeModel
+		var source_targets := entry.get("source_targets") as Dictionary
+		var controls := entry.get("controls") as Dictionary
+		if runtime_model == null or source_targets == null or source_targets.is_empty():
+			continue
+		for parameter_key: Variant in source_targets.keys():
+			var parameter_id := String(parameter_key)
+			var state: Dictionary = source_targets.get(parameter_id, {})
+			var current: Variant = state.get("current")
+			var target: Variant = state.get("target")
+			var next_value: Variant = _lerp_input_value(current, target, weight)
+			if _input_values_are_close(next_value, target):
+				next_value = target
+				source_targets.erase(parameter_id)
+			else:
+				state["current"] = next_value
+				source_targets[parameter_id] = state
+			runtime_model.set_parameter_value(parameter_id, next_value)
+			if runtime_model == _selected_model:
+				var control := controls.get(parameter_id) as TwberEnvironmentParameterControl
+				if control != null:
+					var applied_value: Variant = runtime_model.get_parameter_value(parameter_id)
+					control.set_value(applied_value)
+					control.set_source_preview(state.get("raw"), applied_value)
+
+
+static func _lerp_input_value(current: Variant, target: Variant, weight: float) -> Variant:
+	if current is Vector2 and target is Vector2:
+		return lerp(current as Vector2, target as Vector2, weight)
+	if (current is float or current is int) and (target is float or target is int):
+		return lerpf(float(current), float(target), weight)
+	return target
+
+
+static func _input_values_are_close(value: Variant, target: Variant) -> bool:
+	if value is Vector2 and target is Vector2:
+		return (value as Vector2).distance_squared_to(target as Vector2) <= 0.000001
+	if (value is float or value is int) and (target is float or target is int):
+		return absf(float(value) - float(target)) <= 0.0005
+	return value == target
 
 
 func _save_model_profile(entry: Dictionary) -> void:

@@ -22,6 +22,7 @@ enum RigMode {
 	RESET_VERTEX,
 }
 
+@onready var _pointer_button: Button = %PointerButton
 @onready var _transform_button: Button = %TransformButton
 @onready var _rotate_button: Button = %RotateButton
 @onready var _scale_button: Button = %ScaleButton
@@ -76,7 +77,7 @@ var _parameter_evaluator := TwberParameterEvaluator.new()
 
 
 func _ready() -> void:
-	_transform_button.button_pressed = true
+	_pointer_button.button_pressed = true
 	_reset_layer_button.pressed.connect(_on_reset_layer_button_pressed)
 	_visible_check_box.toggled.connect(_on_visible_check_box_toggled)
 	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
@@ -1388,7 +1389,15 @@ func _remember_initial_layer_state(node: Node2D) -> void:
 	if _initial_layer_states_by_node_id.has(node_id):
 		return
 
-	_initial_layer_states_by_node_id[node_id] = {
+	_initial_layer_states_by_node_id[node_id] = _capture_initial_layer_state(node)
+
+
+func _replace_initial_layer_state(node: Node2D) -> void:
+	_initial_layer_states_by_node_id[node.get_instance_id()] = _capture_initial_layer_state(node)
+
+
+func _capture_initial_layer_state(node: Node2D) -> Dictionary:
+	return {
 		"position": node.position,
 		"rotation": node.rotation,
 		"scale": node.scale,
@@ -1695,9 +1704,18 @@ func _get_node_canvas_origin(node: Node2D) -> Vector2:
 
 
 func _change_node_pivot(node: Node2D, canvas_origin: Vector2) -> void:
-	var old_transform := node.get_global_transform_with_canvas()
-	var local_pivot := old_transform.affine_inverse() * canvas_origin
+	# A pivot is part of the layer's neutral coordinate system, not a parameter
+	# pose. Resolve the clicked point in local space, return to the neutral model,
+	# then migrate every saved pose into that new coordinate system.
+	var preview_transform := node.get_global_transform_with_canvas()
+	var local_pivot := preview_transform.affine_inverse() * canvas_origin
 	local_pivot = _snap_pixel_position(local_pivot)
+	restore_parameter_preview_base()
+	_reset_layer_to_initial_state(node)
+
+	var old_transform := node.get_global_transform_with_canvas()
+	var old_rotation := node.rotation
+	var old_scale := node.scale
 	var snapped_canvas_origin := old_transform * local_pivot
 	var next_transform := old_transform
 	next_transform.origin = snapped_canvas_origin
@@ -1705,6 +1723,77 @@ func _change_node_pivot(node: Node2D, canvas_origin: Vector2) -> void:
 
 	_set_node_canvas_origin(node, snapped_canvas_origin, false)
 	_shift_node_local_content(node, local_shift)
+	_rebase_parameter_states_for_pivot(
+			node,
+			local_pivot,
+			local_shift,
+			old_rotation,
+			old_scale,
+	)
+	_replace_initial_layer_state(node)
+	for child: Node in node.get_children():
+		if child is Node2D:
+			_replace_initial_layer_state(child)
+	_set_model_parameters(_get_model_parameters())
+	preview_parameters()
+	_refresh_pivot_render_geometry()
+
+
+func _rebase_parameter_states_for_pivot(
+		node: Node2D,
+		local_pivot: Vector2,
+		local_shift: Vector2,
+		base_rotation: float,
+		base_scale: Vector2,
+) -> void:
+	var layer_id := String(node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	var child_layer_ids := {}
+	for child: Node in node.get_children():
+		if child is not Node2D:
+			continue
+		var child_layer_id := String(child.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+		if not child_layer_id.is_empty():
+			child_layer_ids[child_layer_id] = true
+
+	for parameter: TwberParameterResource in _get_model_parameters():
+		for parameter_position: TwberParameterPositionResource in parameter.positions:
+			if parameter_position == null:
+				continue
+			for state: TwberLayerStateResource in parameter_position.layer_states:
+				if state == null:
+					continue
+				if state.layer_id == layer_id:
+					if state.has_channel(TwberLayerStateResource.Channel.POSITION):
+						var state_rotation := (
+							state.rotation
+							if state.has_channel(TwberLayerStateResource.Channel.ROTATION)
+							else base_rotation
+						)
+						var state_scale := (
+							state.scale
+							if state.has_channel(TwberLayerStateResource.Channel.SCALE)
+							else base_scale
+						)
+						state.position += Vector2(
+							local_pivot.x * state_scale.x,
+							local_pivot.y * state_scale.y,
+						).rotated(state_rotation)
+					if state.has_channel(TwberLayerStateResource.Channel.MESH):
+						for vertex_index: int in state.mesh_vertices.size():
+							state.mesh_vertices[vertex_index] += local_shift
+				elif (
+					child_layer_ids.has(state.layer_id)
+					and state.has_channel(TwberLayerStateResource.Channel.POSITION)
+				):
+					state.position += local_shift
+
+
+func _refresh_pivot_render_geometry() -> void:
+	if _model_root == null:
+		return
+	var renderer := TwberModelBatchRenderer2D.find_on(_model_root)
+	if renderer != null and renderer.is_batching_active():
+		renderer.update_dynamic_geometry()
 
 
 func _shift_node_local_content(node: Node2D, local_shift: Vector2) -> void:

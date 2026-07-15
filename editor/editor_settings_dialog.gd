@@ -8,6 +8,7 @@ signal settings_applied(settings: TwberEditorSettings)
 @onready var _trim_padding: SpinBox = %TrimPadding
 @onready var _pixel_snap_check_box: CheckBox = %PixelSnapCheckBox
 @onready var _rotation_snap_degrees: SpinBox = %RotationSnapDegrees
+@onready var _background_color_picker: ColorPickerButton = %BackgroundColorPicker
 
 var _settings: TwberEditorSettings
 
@@ -35,12 +36,14 @@ func _refresh_controls() -> void:
 	var trim_enabled := TwberEditorSettings.DEFAULT_TRIM_TRANSPARENT_BORDERS
 	var trim_alpha_threshold := TwberEditorSettings.DEFAULT_TRIM_ALPHA_THRESHOLD
 	var trim_padding := TwberEditorSettings.DEFAULT_TRIM_PADDING
+	var background_color := TwberEditorSettings.DEFAULT_BACKGROUND_COLOR
 	if _settings != null:
 		pixel_snap_enabled = _settings.pixel_snap_enabled
 		rotation_snap_degrees = _settings.rotation_snap_degrees
 		trim_enabled = _settings.trim_transparent_borders
 		trim_alpha_threshold = _settings.trim_alpha_threshold
 		trim_padding = _settings.trim_padding
+		background_color = _settings.background_color
 
 	_trim_transparent_check_box.set_pressed_no_signal(trim_enabled)
 	_trim_alpha_threshold.value = trim_alpha_threshold
@@ -49,6 +52,7 @@ func _refresh_controls() -> void:
 	_pixel_snap_check_box.set_pressed_no_signal(pixel_snap_enabled)
 	_rotation_snap_degrees.value = rotation_snap_degrees
 	_rotation_snap_degrees.editable = pixel_snap_enabled
+	_background_color_picker.color = background_color
 
 
 func _refresh_threshold_options() -> void:
@@ -82,6 +86,7 @@ func _on_confirmed() -> void:
 	_settings.trim_padding = int(_trim_padding.value)
 	_settings.pixel_snap_enabled = _pixel_snap_check_box.button_pressed
 	_settings.rotation_snap_degrees = _rotation_snap_degrees.value
+	_settings.background_color = _background_color_picker.color
 	var error := _settings.save()
 	if error != OK:
 		push_warning("Could not save editor settings: %s" % error_string(error))

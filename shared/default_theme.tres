@@ -23,6 +23,9 @@ corner_detail = 5
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_d8ywk"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yb38n"]
+bg_color = Color(0, 0, 0, 0.78431374)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q77iv"]
 bg_color = Color(0, 0, 0, 0.78431374)
 corner_radius_top_left = 6
@@ -72,18 +75,36 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_06tt2"]
-bg_color = Color(0, 0, 0, 0.78431374)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 28.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+expand_margin_left = 8.0
+expand_margin_top = 32.0
+expand_margin_right = 8.0
+expand_margin_bottom = 6.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ehb6n"]
-bg_color = Color(0, 0, 0, 0.78431374)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_184p3"]
+content_margin_left = 10.0
+content_margin_top = 28.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+expand_margin_left = 8.0
+expand_margin_top = 32.0
+expand_margin_right = 8.0
+expand_margin_bottom = 6.0
 
 [resource]
 default_font = ExtResource("1_nq7u3")
@@ -92,6 +113,7 @@ Button/colors/font_pressed_color = Color(0, 0, 0, 1)
 Button/colors/icon_pressed_color = Color(0, 0, 0, 1)
 Button/styles/pressed = SubResource("StyleBoxFlat_wlwun")
 CheckButton/styles/pressed = SubResource("StyleBoxEmpty_d8ywk")
+Panel/styles/panel = SubResource("StyleBoxFlat_yb38n")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_q77iv")
 PopupMenu/styles/panel = SubResource("StyleBoxFlat_1gxip")
 TabContainer/colors/font_selected_color = Color(0, 0, 0, 1)
@@ -105,4 +127,4 @@ TabContainer/styles/tab_selected = SubResource("StyleBoxFlat_kga4s")
 TabContainer/styles/tab_unselected = SubResource("StyleBoxFlat_nxxma")
 Tree/styles/panel = SubResource("StyleBoxFlat_x2wa3")
 Window/styles/embedded_border = SubResource("StyleBoxFlat_06tt2")
-Window/styles/embedded_unfocused_border = SubResource("StyleBoxFlat_ehb6n")
+Window/styles/embedded_unfocused_border = SubResource("StyleBoxFlat_184p3")

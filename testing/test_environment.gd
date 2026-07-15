@@ -36,23 +36,28 @@ func _run() -> void:
 	await process_frame
 	_expect(error_dialog.visible, "Environment opens its error dialog")
 	error_dialog.hide()
-	var output_button := environment.get_node("%OutputWindowButton") as Button
-	var output_window := environment.get_node("%OutputWindow") as Window
-	var interface_root := environment.get_node("%RootMargin") as Control
-	_expect(
-		output_window.world_2d == environment.get_viewport().world_2d
-		and output_window.canvas_cull_mask == 1
-		and interface_root.visibility_layer == 2,
-		"Output window shares only the presentation canvas, excluding the interface layer",
-	)
-	output_button.button_pressed = true
+	var embedded_dock := environment.get_node("%EmbeddedDock") as PanelContainer
+	var control_dock := environment.get_node("%ControlDock") as VBoxContainer
+	var detach_button := environment.get_node("%DetachControlsButton") as Button
+	var detached_window := environment.get_node("%DetachedControlsWindow") as Window
+	var detached_host := environment.get_node("%DetachedDockMargin") as MarginContainer
+	detach_button.pressed.emit()
 	await process_frame
-	_expect(output_window.visible, "Output toolbar button opens the clean presentation window")
-	output_window.close_requested.emit()
 	_expect(
-		not output_window.visible and not output_button.button_pressed,
-		"Closing the presentation window resets its toolbar toggle",
+		control_dock.get_parent() == detached_host
+		and detached_window.visible
+		and not embedded_dock.visible,
+		"Environment controls detach into their own window",
 	)
+	detached_window.close_requested.emit()
+	await process_frame
+	_expect(
+		control_dock.get_parent() != detached_host
+		and not detached_window.visible
+		and embedded_dock.visible,
+		"Closing the detached controls window embeds the dock again",
+	)
+	var package_manager := environment.get_node("%PackageManager") as TwberPackageManager
 
 	var model := _create_test_model()
 	var model_path := "user://twber_environment_test.tres"
@@ -121,8 +126,13 @@ func _run() -> void:
 	microphone_provider.value_changed.emit(&"level_db", -35.0)
 	_expect(runtime_model.get_parameter_value("enabled") == true, "Microphone bool threshold enables loud audio")
 	_expect(
-			is_equal_approx(float(runtime_model.get_parameter_value("volume")), 0.5),
-			"Microphone dB range maps to its bound float parameter",
+		float(runtime_model.get_parameter_value("volume")) < 0.5,
+		"Continuous package inputs do not jump directly to their target",
+	)
+	environment.call("_process", 0.25)
+	_expect(
+		is_equal_approx(float(runtime_model.get_parameter_value("volume")), 0.5),
+		"Microphone dB range eases to its bound float parameter",
 	)
 	var first_runtime_model := runtime_model
 	_expect(environment.load_model(model_path) == OK, "Environment adds another model with its saved profile")
@@ -259,7 +269,6 @@ func _run() -> void:
 	var asset_image := Image.create(20, 12, false, Image.FORMAT_RGBA8)
 	asset_image.fill(Color(0.8, 0.2, 0.4, 1.0))
 	_expect(asset_image.save_png(asset_path) == OK, "Image asset fixture saves")
-	var package_manager := environment.get_node("%PackageManager") as TwberPackageManager
 	var background_record: Dictionary = package_manager.get_packages().get(&"background", {})
 	var background_package := background_record.get("package") as TwberEnvironmentPackage
 	var background_color := Color(0.12, 0.34, 0.56, 0.78)

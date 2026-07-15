@@ -22,6 +22,7 @@ theme_override_constants/separation = 5
 
 [node name="Top" type="HBoxContainer" parent="Margin/Content" unique_id=216964837]
 layout_mode = 2
+theme_override_constants/separation = 6
 
 [node name="PackageName" type="Label" parent="Margin/Content/Top" unique_id=1533727003]
 unique_name_in_owner = true
@@ -34,6 +35,7 @@ text = "Package"
 [node name="PackageVersion" type="Label" parent="Margin/Content/Top" unique_id=1537914946]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 9
