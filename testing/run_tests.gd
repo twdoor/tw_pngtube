@@ -165,6 +165,8 @@ func _test_archive_and_legacy_round_trip() -> void:
 		layer.type = TwberLayerResource.LayerType.SPRITE
 		layer.texture_id = texture_id
 		layer.show_behind_parent = index == 1
+		layer.flip_h = index == 1
+		layer.flip_v = index == 2
 		model.layers.append(layer)
 		model.root_layer_ids.append(layer.id)
 
@@ -194,6 +196,18 @@ func _test_archive_and_legacy_round_trip() -> void:
 			loaded.layers[1].show_behind_parent,
 			"Archive retains the Show behind parent layer setting",
 		)
+		_expect(
+			loaded.layers[1].flip_h and loaded.layers[2].flip_v,
+			"Archive retains mirrored sprite texture orientation",
+		)
+		var loaded_root := Node2D.new()
+		TwberModelCodec.apply_to_model_root(loaded, loaded_root)
+		_expect(
+			(loaded_root.get_child(1) as Sprite2D).flip_h
+			and (loaded_root.get_child(2) as Sprite2D).flip_v,
+			"Loaded model nodes restore mirrored sprite texture orientation",
+		)
+		loaded_root.free()
 		# Keep the existing compatible-batching coverage below independent from
 		# this render-order persistence check.
 		loaded.layers[1].show_behind_parent = false
@@ -249,9 +263,33 @@ func _test_archive_and_legacy_round_trip() -> void:
 	_expect(resource_loaded != null and resource_loaded.textures.size() == 3, "Editable resource reloads")
 	if resource_loaded != null:
 		_expect(
-				TwberTextureUtils.get_original_size(resource_loaded.textures["texture_001"]) == Vector2i(8, 8),
-				"Editable resource retains texture metadata",
+			TwberTextureUtils.get_original_size(resource_loaded.textures["texture_001"]) == Vector2i(8, 8),
+			"Editable resource retains texture metadata",
 		)
+		_expect(
+			resource_loaded.layers[1].flip_h and resource_loaded.layers[2].flip_v,
+			"Editable resource retains mirrored sprite texture orientation",
+		)
+
+	var animated_root := Node2D.new()
+	var mirrored_animation := AnimatedSprite2D.new()
+	mirrored_animation.name = "Mirrored animation"
+	mirrored_animation.flip_h = true
+	mirrored_animation.flip_v = true
+	animated_root.add_child(mirrored_animation)
+	var animated_model := TwberModelCodec.from_model_root(animated_root)
+	var restored_animated_root := Node2D.new()
+	TwberModelCodec.apply_to_model_root(animated_model, restored_animated_root)
+	var restored_animation := restored_animated_root.get_child(0) as AnimatedSprite2D
+	_expect(
+		animated_model.layers[0].flip_h
+		and animated_model.layers[0].flip_v
+		and restored_animation.flip_h
+		and restored_animation.flip_v,
+		"Animated sprite mirror orientation survives model capture and restore",
+	)
+	animated_root.free()
+	restored_animated_root.free()
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(archive_path))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_path))
@@ -547,6 +585,31 @@ func _test_editor_model_open_and_reset() -> void:
 		"_on_create_parameter_pressed",
 		TwberParameterResource.ValueType.FLOAT,
 	)
+	var parameter_list := rigger.get_node("%ParameterList") as VBoxContainer
+	var parameter_card := parameter_list.get_child(0) as PanelContainer
+	var parameter_body := parameter_card.find_child("Body", true, false) as Control
+	var parameter_button := parameter_card.find_child("SelectButton", true, false) as Button
+	var collapse_click := InputEventMouseButton.new()
+	collapse_click.button_index = MOUSE_BUTTON_RIGHT
+	collapse_click.pressed = true
+	parameter_button.gui_input.emit(collapse_click)
+	_expect(
+		not parameter_body.visible and parameter_button.text.begins_with("▸"),
+		"Right-clicking a parameter type button collapses its card body",
+	)
+	rigger.call("_refresh_parameter_panel")
+	parameter_card = parameter_list.get_child(0) as PanelContainer
+	parameter_body = parameter_card.find_child("Body", true, false) as Control
+	parameter_button = parameter_card.find_child("SelectButton", true, false) as Button
+	_expect(
+		not parameter_body.visible,
+		"Collapsed parameter state survives a parameter panel rebuild",
+	)
+	parameter_button.gui_input.emit(collapse_click)
+	_expect(
+		parameter_body.visible and parameter_button.text.begins_with("▾"),
+		"Right-clicking a collapsed parameter expands it again",
+	)
 	rigger.call("_on_bind_position_button_pressed")
 	var bound_texture_origin: Vector2 = (
 		pivot_sprite.get_global_transform_with_canvas()
@@ -586,6 +649,22 @@ func _test_editor_model_open_and_reset() -> void:
 	) as EditorPlacer
 	editor_menus.current_tab = placer.get_index()
 	placer.reload_from_preview()
+	var layer_count_before_empty := (placer.get("_layers_by_id") as Dictionary).size()
+	placer.call(
+		"_create_layer",
+		EditorPlacer.PlacerItemType.EMPTY,
+		"Empty regression fixture",
+		[],
+	)
+	var empty_layer_id := int(placer.get("_selected_layer_id"))
+	var layers_with_empty: Dictionary = placer.get("_layers_by_id")
+	var empty_node := (layers_with_empty[empty_layer_id] as Dictionary)["node"] as Node2D
+	_expect(
+		layers_with_empty.size() == layer_count_before_empty + 1
+		and empty_node.get_parent() == model_root,
+		"Placer can add a fresh empty layer without reparenting an orphan node",
+	)
+	placer.call("_on_delete_button_pressed")
 	var placer_layers: Dictionary = placer.get("_layers_by_id")
 	var pivot_layer_id := -1
 	var nested_layer_id := -1
@@ -632,6 +711,98 @@ func _test_editor_model_open_and_reset() -> void:
 		and nested_node.global_transform.is_equal_approx(nested_global_before),
 		"Unnesting from a pivot-modified layer also preserves the global transform",
 	)
+	placer.call("_move_layers", [nested_layer_id], pivot_layer_id, 0)
+	var mirror_settings := {
+		"geometry_x": true,
+		"geometry_y": false,
+		"bindings_x": false,
+		"bindings_y": false,
+		"new_parameter": false,
+	}
+	placer.call("_mirror_layers", mirror_settings, [pivot_layer_id])
+	var mirrored_root_id := int(placer.get("_selected_layer_id"))
+	var mirrored_layers: Dictionary = placer.get("_layers_by_id")
+	var mirrored_layer: Dictionary = mirrored_layers[mirrored_root_id]
+	var mirrored_sprite := mirrored_layer["node"] as Sprite2D
+	var source_layer_id := String(pivot_sprite.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	var mirrored_layer_id := String(mirrored_sprite.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	var mirrored_parameters: Array[TwberParameterResource] = []
+	for parameter_value: Variant in model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, []):
+		if parameter_value is TwberParameterResource:
+			mirrored_parameters.append(parameter_value)
+	var source_parameter := mirrored_parameters[0]
+	var source_position := source_parameter.positions[0]
+	var vector_axis_fixture := TwberParameterResource.new()
+	vector_axis_fixture.value_type = TwberParameterResource.ValueType.VECTOR2
+	vector_axis_fixture.min_vector2 = Vector2(-2.0, -3.0)
+	vector_axis_fixture.max_vector2 = Vector2(4.0, 5.0)
+	var mirrored_y_coordinate: Vector2 = placer.call(
+		"_mirror_parameter_coordinate",
+		vector_axis_fixture,
+		Vector2(-1.0, 2.0),
+		{"bindings_x": false, "bindings_y": true},
+	)
+	_expect(
+		mirrored_y_coordinate.is_equal_approx(Vector2(-1.0, 0.0)),
+		"Mirror binding Y reflects only the vector parameter's Y coordinate",
+	)
+	_expect(
+		mirrored_sprite.position.is_equal_approx(Vector2(-pivot_sprite.position.x, pivot_sprite.position.y))
+		and mirrored_sprite.offset.is_equal_approx(Vector2(-pivot_sprite.offset.x, pivot_sprite.offset.y))
+		and mirrored_sprite.flip_h != pivot_sprite.flip_h
+		and (mirrored_layer["children"] as Array).size() == 1,
+		"Mirror Duplicate reflects an editable hierarchy around its parent pivot",
+	)
+	_expect(
+		source_position.find_state(source_layer_id) != null
+		and source_position.find_state(mirrored_layer_id) != null,
+		"Mirror Duplicate can add copied bindings to the existing parameter coordinate",
+	)
+	placer.call("_on_delete_button_pressed")
+
+	var parameter_count_before_new_mirror := mirrored_parameters.size()
+	mirror_settings["bindings_x"] = true
+	mirror_settings["new_parameter"] = true
+	placer.call("_mirror_layers", mirror_settings, [pivot_layer_id])
+	mirrored_root_id = int(placer.get("_selected_layer_id"))
+	mirrored_layers = placer.get("_layers_by_id")
+	mirrored_sprite = (mirrored_layers[mirrored_root_id] as Dictionary)["node"] as Sprite2D
+	mirrored_layer_id = String(mirrored_sprite.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+	mirrored_parameters.clear()
+	for parameter_value: Variant in model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, []):
+		if parameter_value is TwberParameterResource:
+			mirrored_parameters.append(parameter_value)
+	var separated_parameter := mirrored_parameters[mirrored_parameters.size() - 1]
+	var separated_coordinate := Vector2(
+		source_parameter.get_scalar_min() + source_parameter.get_scalar_max() - source_position.coordinate.x,
+		0.0,
+	)
+	var separated_position := separated_parameter.find_position(separated_coordinate)
+	var source_separated_position := source_parameter.find_position(separated_coordinate)
+	_expect(
+		mirrored_parameters.size() == parameter_count_before_new_mirror + 1
+		and separated_parameter.id != source_parameter.id
+		and separated_parameter.name != source_parameter.name
+		and is_equal_approx(
+			separated_parameter.default_float,
+			source_parameter.get_scalar_max() - source_parameter.default_float,
+		),
+		"Mirror into new parameter creates an independent uniquely named parameter",
+	)
+	_expect(
+		separated_position != null
+		and separated_position.find_state(mirrored_layer_id) != null
+		and separated_position.find_state(source_layer_id) == null
+		and (
+			source_separated_position == null
+			or source_separated_position.find_state(mirrored_layer_id) == null
+		),
+		"A separated mirrored parameter reverses X without modifying the source parameter",
+	)
+	placer.call("_on_delete_button_pressed")
+	mirrored_parameters.resize(parameter_count_before_new_mirror)
+	model_root.set_meta(TwberModelCodec.MODEL_PARAMETERS_META, mirrored_parameters)
+	placer.call("_move_layers", [nested_layer_id], pivot_layer_id, 1)
 	var saved_twber_path := "user://twber_editor_current_model_test.twber"
 	_expect(
 		int(editor.call("_save_model_to_path", saved_twber_path, true)) == OK,

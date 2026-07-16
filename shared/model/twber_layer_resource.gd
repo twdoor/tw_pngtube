@@ -21,6 +21,8 @@ enum LayerType {
 @export var texture_id := ""
 @export var offset := Vector2.ZERO
 @export var centered := true
+@export var flip_h := false
+@export var flip_v := false
 @export var current_animation := "default"
 @export var animations: Array[TwberAnimationResource] = []
 @export var mesh: TwberMeshResource

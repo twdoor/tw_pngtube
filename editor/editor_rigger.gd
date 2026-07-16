@@ -73,6 +73,7 @@ var _parameter_preview_values := {}
 var _parameter_value_controls := {}
 var _parameter_select_buttons := {}
 var _previewed_layer_ids := {}
+var _collapsed_parameter_ids := {}
 var _parameter_evaluator := TwberParameterEvaluator.new()
 
 
@@ -565,6 +566,7 @@ func _refresh_parameter_panel() -> void:
 
 	var parameters := _get_model_parameters()
 	_sync_parameter_preview_values(parameters)
+	_prune_collapsed_parameter_ids(parameters)
 	if not _has_parameter_id(_selected_parameter_id):
 		_selected_parameter_id = parameters[0].id if not parameters.is_empty() else ""
 
@@ -592,6 +594,7 @@ func _sync_parameter_preview_values(parameters: Array[TwberParameterResource]) -
 
 func _create_parameter_card(parameter: TwberParameterResource) -> Control:
 	var card := PanelContainer.new()
+	card.name = "ParameterCard_%s" % parameter.id
 	card.custom_minimum_size = Vector2(0.0, 0.0)
 
 	var margin := MarginContainer.new()
@@ -609,14 +612,17 @@ func _create_parameter_card(parameter: TwberParameterResource) -> Control:
 	margin.add_child(content)
 
 	var header := HBoxContainer.new()
+	header.name = "Header"
 	header.add_theme_constant_override("separation", 4)
 	content.add_child(header)
 
 	var select_button := Button.new()
+	select_button.name = "SelectButton"
 	select_button.custom_minimum_size = Vector2(48.0, 28.0)
 	select_button.toggle_mode = true
-	select_button.text = _get_parameter_type_label(parameter.value_type).to_upper()
-	select_button.tooltip_text = _get_parameter_position_count_text(parameter)
+	select_button.tooltip_text = "%s\nRight-click to collapse or expand" % (
+		_get_parameter_position_count_text(parameter)
+	)
 	select_button.pressed.connect(func() -> void:
 		_select_parameter(parameter.id)
 	)
@@ -645,13 +651,65 @@ func _create_parameter_card(parameter: TwberParameterResource) -> Control:
 	)
 	header.add_child(delete_button)
 
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", 6)
+	content.add_child(body)
+	var card_is_collapsed := _collapsed_parameter_ids.has(parameter.id)
+	body.visible = not card_is_collapsed
+	_update_parameter_disclosure_button(select_button, parameter, card_is_collapsed)
+	select_button.gui_input.connect(func(event: InputEvent) -> void:
+		if (
+			event is InputEventMouseButton
+			and event.button_index == MOUSE_BUTTON_RIGHT
+			and event.pressed
+		):
+			_toggle_parameter_collapsed(parameter, body, select_button)
+			select_button.accept_event()
+	)
+
 	if parameter.value_type != TwberParameterResource.ValueType.BOOL:
-		content.add_child(_create_parameter_range_editor(parameter))
+		body.add_child(_create_parameter_range_editor(parameter))
 
 	var value_control := _create_parameter_value_control(parameter)
-	content.add_child(value_control)
+	body.add_child(value_control)
 	_parameter_value_controls[parameter.id] = value_control
 	return card
+
+
+func _toggle_parameter_collapsed(
+		parameter: TwberParameterResource,
+		body: Control,
+		select_button: Button,
+) -> void:
+	var card_is_collapsed := not _collapsed_parameter_ids.has(parameter.id)
+	if card_is_collapsed:
+		_collapsed_parameter_ids[parameter.id] = true
+	else:
+		_collapsed_parameter_ids.erase(parameter.id)
+	body.visible = not card_is_collapsed
+	_update_parameter_disclosure_button(select_button, parameter, card_is_collapsed)
+
+
+func _update_parameter_disclosure_button(
+		button: Button,
+		parameter: TwberParameterResource,
+		card_is_collapsed: bool,
+) -> void:
+	button.text = "%s%s" % [
+		"▸" if card_is_collapsed else "▾",
+		_get_parameter_type_label(parameter.value_type).to_upper(),
+	]
+
+
+func _prune_collapsed_parameter_ids(parameters: Array[TwberParameterResource]) -> void:
+	var valid_ids := {}
+	for parameter: TwberParameterResource in parameters:
+		if parameter != null:
+			valid_ids[parameter.id] = true
+	for parameter_id: Variant in _collapsed_parameter_ids.keys():
+		if not valid_ids.has(String(parameter_id)):
+			_collapsed_parameter_ids.erase(parameter_id)
 
 
 func _create_parameter_range_editor(parameter: TwberParameterResource) -> Control:

@@ -12,6 +12,7 @@ const TEXTURE_PREVIEW_ALPHA_THRESHOLD := 0.001
 const TEXTURE_RUNTIME_COMPRESS_MODE := Image.COMPRESS_S3TC
 const TEXTURE_RUNTIME_COMPRESS_SOURCE := Image.COMPRESS_SOURCE_GENERIC
 const TEXTURE_PREVIEW_CACHE_LIMIT := 128
+const MIRROR_DIALOG_SCENE := preload("res://editor/mirror_dialog.tscn")
 const MIN_LAYER_SCALE_DISTANCE := 0.001
 const LAYER_ORIGIN_COLOR := Color(1.0, 0.78, 0.22, 0.95)
 const LAYER_GUIDE_COLOR := Color(1.0, 0.78, 0.22, 0.65)
@@ -39,6 +40,7 @@ enum TransformMode {
 @onready var _rotate_button: Button = %RotateButton
 @onready var _scale_button: Button = %ScaleButton
 @onready var _pivot_button: Button = %PivotButton
+@onready var _mirror_button: Button = %MirrorButton
 @onready var _tree: Tree = %Tree
 @onready var _inspector: PanelContainer = %Inspector
 @onready var _layer_actions: Control = %LayerActions
@@ -96,6 +98,7 @@ func _ready() -> void:
 	_layer_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.LAYER))
 	_animation_layer_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.ANIMATION_LAYER))
 	_empty_button.pressed.connect(_on_add_item_pressed.bind(PlacerItemType.EMPTY))
+	_mirror_button.pressed.connect(_open_mirror_dialog)
 	_duplicate_button.pressed.connect(_on_duplicate_button_pressed)
 	_delete_button.pressed.connect(_on_delete_button_pressed)
 	_change_texture_button.pressed.connect(_on_change_texture_button_pressed)
@@ -143,6 +146,42 @@ func _on_add_item_pressed(item_type: int) -> void:
 			_open_animation_texture_dialog()
 		PlacerItemType.EMPTY:
 			_create_layer(PlacerItemType.EMPTY, "", [])
+
+
+func _open_mirror_dialog() -> void:
+	var source_ids := _filter_top_level_layer_ids(_get_selected_layer_ids())
+	if source_ids.is_empty():
+		return
+	var dialog := MIRROR_DIALOG_SCENE.instantiate() as AcceptDialog
+	dialog.connect(&"mirror_requested", _mirror_layers.bind(source_ids))
+	add_child(dialog)
+	_show_dialog_on_editor_screen(dialog)
+
+
+func _show_dialog_on_editor_screen(dialog: Window) -> void:
+	var host_window := get_window()
+	var screen_index := 0
+	if host_window != null and DisplayServer.get_screen_count() > 0:
+		screen_index = clampi(
+			DisplayServer.window_get_current_screen(host_window.get_window_id()),
+			0,
+			DisplayServer.get_screen_count() - 1,
+		)
+	var usable_rect := DisplayServer.screen_get_usable_rect(screen_index)
+	if usable_rect.size.x <= 0 or usable_rect.size.y <= 0:
+		usable_rect = Rect2i(
+			DisplayServer.screen_get_position(screen_index),
+			DisplayServer.screen_get_size(screen_index),
+		)
+	var centered_position := usable_rect.position + Vector2i(
+		maxi(floori(float(usable_rect.size.x - dialog.size.x) / 2.0), 0),
+		maxi(floori(float(usable_rect.size.y - dialog.size.y) / 2.0), 0),
+	)
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_ABSOLUTE
+	dialog.position = centered_position
+	# Window.popup* recalculates global coordinates and rejects valid positions on
+	# some multi-monitor Wayland layouts. The position is already resolved here.
+	dialog.show()
 
 
 func reload_from_preview() -> void:
@@ -1417,6 +1456,294 @@ func _create_sprite_frames(textures: Array) -> SpriteFrames:
 	return sprite_frames
 
 
+func _mirror_layers(settings: Dictionary, requested_source_ids: Array) -> void:
+	var source_ids := _filter_top_level_layer_ids(requested_source_ids)
+	if source_ids.is_empty() or _model_root == null:
+		return
+	TwberModelCodec.ensure_layer_ids(_model_root)
+
+	var placer_id_mapping := {}
+	var duplicated_root_ids: Array[int] = []
+	for source_id: int in source_ids:
+		if not _layers_by_id.has(source_id):
+			continue
+		var source_layer: Dictionary = _layers_by_id[source_id]
+		var parent_id: int = source_layer["parent_id"]
+		var duplicate_id := _duplicate_layer_tree(source_id, parent_id, false)
+		_map_mirrored_layer_tree(source_id, duplicate_id, placer_id_mapping)
+		_apply_mirror_to_layer_tree(
+			source_id,
+			duplicate_id,
+			bool(settings.get("geometry_x", true)),
+			bool(settings.get("geometry_y", false)),
+		)
+		var siblings := _get_child_ids(parent_id)
+		var source_index := siblings.find(source_id)
+		siblings.insert(source_index + 1 if source_index >= 0 else siblings.size(), duplicate_id)
+		duplicated_root_ids.append(duplicate_id)
+
+	if duplicated_root_ids.is_empty():
+		return
+	_sync_model_tree()
+	TwberModelCodec.ensure_layer_ids(_model_root)
+	_copy_mirrored_parameter_bindings(settings, placer_id_mapping)
+	_rebuild_tree()
+	_select_layer_ids(duplicated_root_ids)
+	_set_selected_layer(duplicated_root_ids[duplicated_root_ids.size() - 1])
+
+
+func _map_mirrored_layer_tree(source_id: int, duplicate_id: int, output: Dictionary) -> void:
+	output[source_id] = duplicate_id
+	var source_children: Array = _layers_by_id[source_id]["children"]
+	var duplicate_children: Array = _layers_by_id[duplicate_id]["children"]
+	for index: int in mini(source_children.size(), duplicate_children.size()):
+		_map_mirrored_layer_tree(source_children[index], duplicate_children[index], output)
+
+
+func _apply_mirror_to_layer_tree(
+		source_id: int,
+		duplicate_id: int,
+		mirror_x: bool,
+		mirror_y: bool,
+) -> void:
+	var source_layer: Dictionary = _layers_by_id[source_id]
+	var duplicate_layer: Dictionary = _layers_by_id[duplicate_id]
+	var duplicate_node := duplicate_layer["node"] as Node2D
+	var parent_id: int = duplicate_layer["parent_id"]
+	duplicate_node.name = _make_unique_layer_name(
+		parent_id,
+		_get_mirrored_name(String((source_layer["node"] as Node2D).name)),
+	)
+	_mirror_node_data(duplicate_node, mirror_x, mirror_y)
+
+	var source_children: Array = source_layer["children"]
+	var duplicate_children: Array = duplicate_layer["children"]
+	for index: int in mini(source_children.size(), duplicate_children.size()):
+		_apply_mirror_to_layer_tree(
+			source_children[index],
+			duplicate_children[index],
+			mirror_x,
+			mirror_y,
+		)
+
+
+func _mirror_node_data(node: Node2D, mirror_x: bool, mirror_y: bool) -> void:
+	node.position = _mirror_vector(node.position, mirror_x, mirror_y)
+	if mirror_x != mirror_y:
+		node.rotation = wrapf(-node.rotation, -PI, PI)
+
+	if node is TwberMeshSprite2D:
+		var mesh_sprite := node as TwberMeshSprite2D
+		if mesh_sprite.mesh_data != null:
+			mesh_sprite.mesh_data.texture_origin = _mirror_vector(
+				mesh_sprite.mesh_data.texture_origin,
+				mirror_x,
+				mirror_y,
+			)
+			_mirror_packed_vectors(mesh_sprite.mesh_data.vertices, mirror_x, mirror_y)
+			_mirror_packed_vectors(mesh_sprite.mesh_data.rest_vertices, mirror_x, mirror_y)
+			mesh_sprite.sync_mesh()
+	elif node is Sprite2D:
+		var sprite := node as Sprite2D
+		sprite.offset = _mirror_vector(sprite.offset, mirror_x, mirror_y)
+		if mirror_x:
+			sprite.flip_h = not sprite.flip_h
+		if mirror_y:
+			sprite.flip_v = not sprite.flip_v
+	elif node is AnimatedSprite2D:
+		var animated_sprite := node as AnimatedSprite2D
+		animated_sprite.offset = _mirror_vector(animated_sprite.offset, mirror_x, mirror_y)
+		if mirror_x:
+			animated_sprite.flip_h = not animated_sprite.flip_h
+		if mirror_y:
+			animated_sprite.flip_v = not animated_sprite.flip_v
+
+
+func _copy_mirrored_parameter_bindings(settings: Dictionary, placer_id_mapping: Dictionary) -> void:
+	var layer_id_mapping := {}
+	for source_placer_id: Variant in placer_id_mapping:
+		var duplicate_placer_id := int(placer_id_mapping[source_placer_id])
+		var source_node := _layers_by_id[int(source_placer_id)]["node"] as Node2D
+		var duplicate_node := _layers_by_id[duplicate_placer_id]["node"] as Node2D
+		var source_layer_id := String(source_node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+		var duplicate_layer_id := String(duplicate_node.get_meta(TwberModelCodec.LAYER_ID_META, ""))
+		if not source_layer_id.is_empty() and not duplicate_layer_id.is_empty():
+			layer_id_mapping[source_layer_id] = duplicate_layer_id
+
+	var parameters: Array[TwberParameterResource] = []
+	for value: Variant in _model_root.get_meta(TwberModelCodec.MODEL_PARAMETERS_META, []):
+		if value is TwberParameterResource:
+			parameters.append(value)
+	var source_parameters := parameters.duplicate()
+	var create_new_parameters := bool(settings.get("new_parameter", false))
+	for parameter: TwberParameterResource in source_parameters:
+		var target_parameter := parameter
+		if create_new_parameters:
+			target_parameter = _make_mirrored_parameter(parameter, parameters, settings)
+		var copied_any := _copy_parameter_layer_states(
+			parameter,
+			target_parameter,
+			layer_id_mapping,
+			settings,
+		)
+		if create_new_parameters and copied_any:
+			parameters.append(target_parameter)
+
+	_model_root.set_meta(TwberModelCodec.MODEL_PARAMETERS_META, parameters)
+
+
+func _copy_parameter_layer_states(
+		source_parameter: TwberParameterResource,
+		target_parameter: TwberParameterResource,
+		layer_id_mapping: Dictionary,
+		settings: Dictionary,
+) -> bool:
+	var copied_any := false
+	var source_positions := source_parameter.positions.duplicate()
+	for source_position: TwberParameterPositionResource in source_positions:
+		if source_position == null:
+			continue
+		var mirrored_states: Array[TwberLayerStateResource] = []
+		var source_states := source_position.layer_states.duplicate()
+		for source_state: TwberLayerStateResource in source_states:
+			if source_state == null or not layer_id_mapping.has(source_state.layer_id):
+				continue
+			var mirrored_state := source_state.duplicate(true) as TwberLayerStateResource
+			mirrored_state.layer_id = String(layer_id_mapping[source_state.layer_id])
+			_mirror_layer_state_geometry(
+				mirrored_state,
+				bool(settings.get("geometry_x", true)),
+				bool(settings.get("geometry_y", false)),
+			)
+			mirrored_states.append(mirrored_state)
+		if mirrored_states.is_empty():
+			continue
+
+		var coordinate := _mirror_parameter_coordinate(source_parameter, source_position.coordinate, settings)
+		var target_position := target_parameter.find_position(coordinate)
+		if target_position == null:
+			target_position = TwberParameterPositionResource.new()
+			target_position.coordinate = coordinate
+			target_parameter.positions.append(target_position)
+		for mirrored_state: TwberLayerStateResource in mirrored_states:
+			target_position.upsert_state(mirrored_state)
+		copied_any = true
+	return copied_any
+
+
+func _make_mirrored_parameter(
+		source: TwberParameterResource,
+		existing_parameters: Array[TwberParameterResource],
+		settings: Dictionary,
+) -> TwberParameterResource:
+	var mirrored := source.duplicate(true) as TwberParameterResource
+	mirrored.positions.clear()
+	mirrored.name = _make_unique_parameter_name_for_mirror(
+		_get_mirrored_name(source.name),
+		existing_parameters,
+	)
+	mirrored.id = _make_unique_parameter_id_for_mirror(
+		_get_mirrored_name(source.id),
+		existing_parameters,
+	)
+	var mirrored_default := _mirror_parameter_coordinate(
+		source,
+		source.coordinate_from_value(source.get_default_value()),
+		settings,
+	)
+	match source.value_type:
+		TwberParameterResource.ValueType.BOOL:
+			mirrored.default_bool = mirrored_default.x >= 0.5
+		TwberParameterResource.ValueType.INT:
+			mirrored.default_int = int(roundf(mirrored_default.x))
+		TwberParameterResource.ValueType.VECTOR2:
+			mirrored.default_vector2 = mirrored_default
+		_:
+			mirrored.default_float = mirrored_default.x
+	return mirrored
+
+
+func _mirror_parameter_coordinate(
+		parameter: TwberParameterResource,
+		coordinate: Vector2,
+		settings: Dictionary,
+) -> Vector2:
+	var output := coordinate
+	if bool(settings.get("bindings_x", false)):
+		if parameter.value_type == TwberParameterResource.ValueType.VECTOR2:
+			output.x = parameter.get_vector_min().x + parameter.get_vector_max().x - output.x
+		else:
+			output.x = parameter.get_scalar_min() + parameter.get_scalar_max() - output.x
+	if (
+		bool(settings.get("bindings_y", false))
+		and parameter.value_type == TwberParameterResource.ValueType.VECTOR2
+	):
+		output.y = parameter.get_vector_min().y + parameter.get_vector_max().y - output.y
+	return parameter.clamp_coordinate(output)
+
+
+func _mirror_layer_state_geometry(
+		state: TwberLayerStateResource,
+		mirror_x: bool,
+		mirror_y: bool,
+) -> void:
+	if state.has_channel(TwberLayerStateResource.Channel.POSITION):
+		state.position = _mirror_vector(state.position, mirror_x, mirror_y)
+	if state.has_channel(TwberLayerStateResource.Channel.ROTATION) and mirror_x != mirror_y:
+		state.rotation = wrapf(-state.rotation, -PI, PI)
+	if state.has_channel(TwberLayerStateResource.Channel.MESH):
+		_mirror_packed_vectors(state.mesh_vertices, mirror_x, mirror_y)
+
+
+func _mirror_packed_vectors(values: PackedVector2Array, mirror_x: bool, mirror_y: bool) -> void:
+	for index: int in values.size():
+		values[index] = _mirror_vector(values[index], mirror_x, mirror_y)
+
+
+func _mirror_vector(value: Vector2, mirror_x: bool, mirror_y: bool) -> Vector2:
+	return Vector2(-value.x if mirror_x else value.x, -value.y if mirror_y else value.y)
+
+
+func _get_mirrored_name(source_name: String) -> String:
+	var pairs := [
+		["Left", "Right"], ["left", "right"], ["LEFT", "RIGHT"],
+		["_L", "_R"], [".L", ".R"], ["-L", "-R"], [" L", " R"],
+	]
+	for pair: Array in pairs:
+		if source_name.contains(pair[0]):
+			return source_name.replace(pair[0], pair[1])
+		if source_name.contains(pair[1]):
+			return source_name.replace(pair[1], pair[0])
+	if source_name.ends_with("L"):
+		return source_name.left(source_name.length() - 1) + "R"
+	if source_name.ends_with("R"):
+		return source_name.left(source_name.length() - 1) + "L"
+	return "%s Mirror" % source_name
+
+
+func _make_unique_parameter_name_for_mirror(
+		desired_name: String,
+		parameters: Array[TwberParameterResource],
+) -> String:
+	var used := {}
+	for parameter: TwberParameterResource in parameters:
+		used[parameter.name] = true
+	return _make_unique_name(desired_name, used)
+
+
+func _make_unique_parameter_id_for_mirror(
+		desired_id: String,
+		parameters: Array[TwberParameterResource],
+) -> String:
+	var base_id := desired_id.strip_edges().replace(" ", "_").to_lower()
+	if base_id.is_empty():
+		base_id = "parameter_mirror"
+	var used := {}
+	for parameter: TwberParameterResource in parameters:
+		used[parameter.id] = true
+	return _make_unique_name(base_id, used)
+
+
 func _duplicate_layer_tree(source_id: int, parent_id: int, copy_root_name: bool) -> int:
 	var source_layer: Dictionary = _layers_by_id[source_id]
 	var source_node: Node2D = source_layer["node"]
@@ -1763,7 +2090,10 @@ func _sync_model_children(parent_node: Node, child_ids: Array) -> void:
 		var model_node: Node = layer["node"]
 
 		if model_node.get_parent() != parent_node:
-			model_node.reparent(parent_node, true)
+			if model_node.get_parent() == null:
+				parent_node.add_child(model_node)
+			else:
+				model_node.reparent(parent_node, true)
 
 		parent_node.move_child(model_node, index)
 		_sync_model_children(model_node, layer["children"])

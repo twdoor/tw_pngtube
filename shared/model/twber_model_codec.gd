@@ -422,6 +422,8 @@ static func _layer_from_node(
 		layer.type = TwberLayerResource.LayerType.ANIMATED_SPRITE
 		layer.offset = animated_sprite.offset
 		layer.centered = animated_sprite.centered
+		layer.flip_h = animated_sprite.flip_h
+		layer.flip_v = animated_sprite.flip_v
 		layer.current_animation = String(animated_sprite.animation)
 		_read_animated_sprite(animated_sprite, layer, model, state)
 	elif node is Sprite2D:
@@ -429,6 +431,8 @@ static func _layer_from_node(
 		layer.type = TwberLayerResource.LayerType.SPRITE
 		layer.offset = sprite.offset
 		layer.centered = sprite.centered
+		layer.flip_h = sprite.flip_h
+		layer.flip_v = sprite.flip_v
 		layer.texture_id = _get_or_store_texture(sprite.texture, model, state)
 	else:
 		layer.type = TwberLayerResource.LayerType.EMPTY
@@ -490,6 +494,8 @@ static func _node_from_layer(layer: TwberLayerResource, model: TwberModelResourc
 			sprite.texture = _get_texture(model, layer.texture_id)
 			sprite.offset = layer.offset
 			sprite.centered = layer.centered
+			sprite.flip_h = layer.flip_h
+			sprite.flip_v = layer.flip_v
 			node = sprite
 		TwberLayerResource.LayerType.MESH_SPRITE:
 			var mesh_sprite := TwberMeshSprite2D.new()
@@ -507,6 +513,8 @@ static func _node_from_layer(layer: TwberLayerResource, model: TwberModelResourc
 			animated_sprite.sprite_frames = _sprite_frames_from_layer(layer, model)
 			animated_sprite.offset = layer.offset
 			animated_sprite.centered = layer.centered
+			animated_sprite.flip_h = layer.flip_h
+			animated_sprite.flip_v = layer.flip_v
 			var requested_animation := StringName(layer.current_animation)
 			if animated_sprite.sprite_frames.has_animation(requested_animation):
 				animated_sprite.animation = requested_animation
@@ -756,6 +764,8 @@ static func _layer_to_dictionary(layer: TwberLayerResource) -> Dictionary:
 		"texture_id": layer.texture_id,
 		"offset": _vector2_to_array(layer.offset),
 		"centered": layer.centered,
+		"flip_h": layer.flip_h,
+		"flip_v": layer.flip_v,
 		"current_animation": layer.current_animation,
 		"animations": animations,
 	}
@@ -792,6 +802,8 @@ static func _layer_from_dictionary(data: Dictionary) -> TwberLayerResource:
 	layer.texture_id = _variant_to_string(data.get("texture_id", ""))
 	layer.offset = _array_to_vector2(data.get("offset", []), Vector2.ZERO)
 	layer.centered = _variant_to_bool(data.get("centered", true), true)
+	layer.flip_h = _variant_to_bool(data.get("flip_h", false), false)
+	layer.flip_v = _variant_to_bool(data.get("flip_v", false), false)
 	layer.current_animation = _variant_to_string(data.get("current_animation", "default"), "default")
 	if data.has("mesh"):
 		layer.mesh = _mesh_from_dictionary(data["mesh"])
