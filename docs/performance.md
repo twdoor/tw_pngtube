@@ -40,6 +40,9 @@ Archive writes use a temporary file and replace the destination only after every
 
 ## Runtime evaluation
 
+See [model architecture](architecture.md) for document ownership, timeline composition,
+recording, and sprite-clock semantics.
+
 `TwberParameterEvaluator` compiles authored parameters after loading or editing:
 
 - affected layer IDs are resolved once;
@@ -54,7 +57,7 @@ Pose states have a channel mask. Binding a position stores only changed transfor
 
 `TwberMeshSprite2D` owns its canvas draw command and submits indexed triangles directly with `RenderingServer.canvas_item_add_triangle_array`. It no longer creates an internal `Polygon2D`. UVs remain in author-friendly pixel coordinates in model data and are normalized and atlas-offset only in the renderer.
 
-`TwberModelBatchRenderer2D` keeps editable layer nodes as the source of truth but combines consecutive compatible atlas geometry into packed vertex, color, UV, and index buffers. Transform, color, mesh deformation, and animation-frame changes use a dynamic update path that reuses topology and updates only buffer slices mapped to dirty layers and their descendants. A 65,535-vertex ceiling splits oversized batches safely. Multiple runtime models in one viewport share source-layer suppression safely and restore the viewport state when the last batch is removed.
+`TwberModelBatchRenderer2D` consumes projected layer nodes as rendering inputs but combines consecutive compatible atlas geometry into packed vertex, color, UV, and index buffers. Transform, color, mesh deformation, and animation-frame changes use a dynamic update path that reuses topology and updates only buffer slices mapped to dirty layers and their descendants. A 65,535-vertex ceiling splits oversized batches safely. Multiple runtime models in one viewport share source-layer suppression safely and restore the viewport state when the last batch is removed.
 
 Flat batching deliberately falls back to standalone rendering when a model uses child clipping, custom materials, non-default draw ordering, custom visibility/light masks, or texture sampling overrides. This preserves model correctness; those features create explicit batching boundaries for a future masked-render-pass backend.
 
@@ -64,23 +67,22 @@ Packaged textures use a weak content-hash cache. Identical texture content loade
 
 Mesh and rig overlays redraw only after input, selection, camera, animation-frame, or model changes. Editor edit events invalidate dynamic batches explicitly, without scanning the scene every frame. Mesh deformation reuses topology and cached normalized atlas UVs; retriangulation is reserved for topology edits. Texture preview caching is bounded.
 
-The included renderer benchmark currently demonstrates 200 layers with 64 vertices each in one draw call and 202 scene nodes, compared with 200 draw calls and 401 nodes for the former `Polygon2D` child path. On the development GTX 1650 system, a complete dynamic buffer update for that stress case takes roughly 3.2 ms, while updating one dirty layer takes roughly 0.02 ms; exact numbers vary by CPU and renderer.
+Earlier development measurements of the renderer benchmark showed 200 layers with 64 vertices each in one draw call and 202 scene nodes, compared with 200 draw calls and 401 nodes for the former `Polygon2D` child path. On the development GTX 1650 system, a complete dynamic buffer update for that stress case takes roughly 3.2 ms, while updating one dirty layer takes roughly 0.02 ms; exact numbers vary by CPU and renderer.
 
-The runtime benchmark uses 40 mesh layers, eight parameters, six samples per parameter, and ten bound layers per parameter. A full evaluation plus combined-buffer refresh is roughly 4–5 ms on the development system. A frame with one changed parameter and only its dirty buffer slices is roughly 1.5–2 ms. This workload intentionally includes 64-vertex mesh deformation in every binding.
+The runtime benchmark uses 40 mesh layers, eight parameters, six samples per parameter, and ten bound layers per parameter. Earlier development measurements placed a full evaluation plus combined-buffer refresh at roughly 4–5 ms on the development system. A frame with one changed parameter and only its dirty buffer slices is roughly 1.5–2 ms. This workload intentionally includes 64-vertex mesh deformation in every binding.
 
 ## Validation
 
-Run parsing and regression tests with:
+Run the maintained headless and GPU suite as described in the
+[testing guide](../testing/README.md). Optional benchmarks:
 
 ```bash
-godot --headless --path . --editor --quit
-godot --headless --path . --script testing/run_tests.gd
-godot --path . --rendering-method gl_compatibility --script testing/test_renderer.gd
 godot --headless --path . --script testing/benchmark_runtime.gd
 godot --path . --rendering-method gl_compatibility --script testing/benchmark_renderer.gd
 ```
 
-The regression runner covers trim bounds and placement, lossless source-pixel recovery, compiled and selective parameter interpolation, non-accumulating runtime evaluation, sparse pose channels, mesh atlas UVs, batch fallbacks and viewport lifecycle, archive checksums and atlases, GPU variants, cross-model texture sharing, legacy packages, and editable resource round trips. The GPU pixel runner verifies standalone direct triangles, atlas batching, transparency, partial transform updates, and animated-frame UV changes.
+Use the pinned Godot binary and record hardware/backend details when comparing
+results. The measurements above are historical baselines, not release guarantees.
 
 ## Remaining platform work
 

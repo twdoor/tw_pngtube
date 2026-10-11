@@ -8,23 +8,15 @@ export.cfg
 # Imported translations (automatically generated from CSV files)
 *.translation
 
-# Local development/test content. Keep the automated runner, ignore ad-hoc models.
+# Keep maintained regressions and benchmarks; ignore local artwork and experiments.
 testing/*
+!testing/README.md
 !testing/run_tests.gd
-!testing/benchmark_runtime.gd
-!testing/benchmark_renderer.gd
-!testing/test_renderer.gd
-!testing/test_environment.gd
-!testing/test_model_rework.gd
-!testing/test_model_rework.gd.uid
-!testing/test_parameter_tracks.gd
-!testing/test_parameter_tracks.gd.uid
-!testing/test_recording_export.gd
-!testing/test_recording_export.gd.uid
-!testing/test_environment_recording.gd
-!testing/test_environment_recording.gd.uid
-!testing/test_sprite_clock.gd
-!testing/test_sprite_clock.gd.uid
+!testing/run_tests.gd.uid
+!testing/test_*.gd
+!testing/test_*.gd.uid
+!testing/benchmark_*.gd
+!testing/benchmark_*.gd.uid
 
 # Mono-specific ignores
 .mono/

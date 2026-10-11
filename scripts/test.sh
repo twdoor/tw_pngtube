@@ -28,7 +28,7 @@ trap 'find "$twber_test_config" -depth -delete' EXIT
 "$twber_godot" --headless --path "$twber_root" --editor --quit
 "$twber_godot" --headless --path "$twber_root" --script tools/build_packages_cli.gd
 "$twber_godot" --headless --path "$twber_root" --script testing/run_tests.gd
-"$twber_godot" --headless --path "$twber_root" --script testing/test_model_rework.gd
+"$twber_godot" --headless --path "$twber_root" --script testing/test_document_editor.gd
 "$twber_godot" --headless --path "$twber_root" --script testing/test_parameter_tracks.gd
 "$twber_godot" --headless --path "$twber_root" --script testing/test_recording_export.gd
 "$twber_godot" --headless --path "$twber_root" --script testing/test_environment_recording.gd

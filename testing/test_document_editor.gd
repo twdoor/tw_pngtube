@@ -25,12 +25,11 @@ func _run() -> void:
 	await _test_editor_native_parameters()
 	await _test_editor_preview_ownership()
 	await _test_editor_history_and_saves()
-	await _test_editor_mesh_history()
 	await _test_editor_native_hierarchy()
 	await _test_editor_mesh_gestures()
 	await _test_mesh_conversion_gesture()
 	if _failures.is_empty():
-		print("Twber model rework tests passed.")
+		print("Twber document and editor tests passed.")
 		quit(0)
 		return
 	for failure: String in _failures:
@@ -421,30 +420,6 @@ func _make_mesh_model() -> TwberModelResource:
 	return model
 
 
-func _test_editor_mesh_history() -> void:
-	var model := _make_mesh_model()
-	var editor := load("res://editor/editor.tscn").instantiate() as TwberEditor
-	root.add_child(editor)
-	await process_frame
-	editor._apply_opened_model(model, "")
-	editor._menus.current_tab = editor._editor_mesher.get_index()
-	var mesh := editor._model_root.get_child(0) as TwberMeshSprite2D
-	editor._editor_mesher.reload_from_preview(mesh)
-	editor._editor_mesher._add_point_at(mesh.get_global_transform_with_canvas() * Vector2(40, 40))
-	_expect(editor._finish_pending_authoring() == OK, "Mesh vertex insertion commits with dependent timeline topology")
-	var edited := editor._document.snapshot().to_model_resource()
-	_expect(edited.layers[0].mesh.vertices.size() == 4
-		and edited.parameters[0].positions[0].layer_states[0].mesh_vertices.size() == 4
-		and edited.timeline_animations[0].keyframes[0].layer_state.mesh_vertices.size() == 4,
-		"Mesh vertex insertion updates both rig and timeline samples")
-	_expect(editor.undo_document(), "Mesh authoring supports document Undo")
-	edited = editor._document.snapshot().to_model_resource()
-	_expect(edited.layers[0].mesh.vertices.size() == 3
-		and edited.timeline_animations[0].keyframes[0].layer_state.mesh_vertices[1] == Vector2(45, 0),
-		"Mesh Undo restores topology and the authored deformation")
-	editor.free()
-
-
 func _make_hierarchy_model() -> TwberModelResource:
 	var model := _make_rigged_model()
 	var group := TwberLayerResource.new()
@@ -714,6 +689,22 @@ func _test_editor_mesh_gestures() -> void:
 	var mesher := editor._editor_mesher
 	editor._menus.current_tab = mesher.get_index()
 	var mesh := editor._model_root.get_child(0) as TwberMeshSprite2D
+	mesher.reload_from_preview(mesh)
+	# Insertion and gesture edits share this editor fixture and history.
+	mesher._add_point_at(mesh.get_global_transform_with_canvas() * Vector2(40, 40))
+	_expect(editor._finish_pending_authoring() == OK, "Mesh insertion commits dependent topology")
+	var inserted := editor._document.snapshot().to_model_resource()
+	_expect(inserted.layers[0].mesh.vertices.size() == 4
+		and inserted.parameters[0].positions[0].layer_states[0].mesh_vertices.size() == 4
+		and inserted.timeline_animations[0].keyframes[0].layer_state.mesh_vertices.size() == 4,
+		"Mesh insertion updates both rig and timeline samples")
+	_expect(editor.undo_document(), "Mesh insertion supports document Undo")
+	var restored := editor._document.snapshot().to_model_resource()
+	_expect(restored.layers[0].mesh.vertices.size() == 3
+		and restored.parameters[0].positions[0].layer_states[0].mesh_vertices[1] == Vector2(45, 0)
+		and restored.timeline_animations[0].keyframes[0].layer_state.mesh_vertices[1] == Vector2(45, 0),
+		"Undo restores topology and authored deformations")
+	mesh = editor._model_root.get_child(0) as TwberMeshSprite2D
 	mesher.reload_from_preview(mesh)
 	var start := mesh.get_global_transform_with_canvas() * mesh.get_vertex(1)
 	var revision := editor._document.get_revision()

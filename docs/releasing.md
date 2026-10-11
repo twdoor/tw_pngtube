@@ -6,6 +6,9 @@ receives a ZIP containing the executable and its built-in package PCK files.
 
 ## Local release
 
+Use the version pinned in `.godotrc`; see the [testing guide](../testing/README.md)
+for running validation without building release artifacts.
+
 The project version in `project.godot` is the source of truth and must be a
 semantic version. Prepare a release with:
 

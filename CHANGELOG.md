@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added document commands and Undo/Redo across authoring tools, committed save
+  snapshots, and cancellable gesture/pose drafts.
+- Unified rig and timeline evaluation, including parameter tracks and clip priority.
+- Added parameter/performance recording, editable takes, and transparent PNG export.
+- Added shared sprite timing with recorded phase preservation in model format 12.
+
 - Centralized models, packages, settings, and autosaves under Twber application
   data.
 - Added Editor dirty tracking, guarded document transitions, debounced autosave,

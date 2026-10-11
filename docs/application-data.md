@@ -18,7 +18,7 @@ default layout is:
 - `models/` is the default library used by the Editor's Open, Save As, and
   Export Copy dialogs and by the Environment's model picker.
 - `models/takes/` contains separate `.twber` model copies saved when Environment
-  recordings finish. Open a copy in Editor to edit its recorded parameter clip.
+  recordings finish. Open a copy in Editor to edit its recorded performance clip.
 - `autosaves/` contains the Editor's current recovery model and its source
   metadata. It is not treated as a normal document or an automatic overwrite.
 - `packages/` contains the PCK extensions mounted by the Environment. Bundled
