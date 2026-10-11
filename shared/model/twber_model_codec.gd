@@ -11,6 +11,7 @@ const ATLAS_PADDING := 2
 const TEXTURE_SOURCE_PATH_META := &"twber_source_path"
 const LAYER_ID_META := &"twber_layer_id"
 const MODEL_PARAMETERS_META := &"twber_parameters"
+const MODEL_TIMELINE_ANIMATIONS_META := &"twber_timeline_animations"
 
 static func from_model_root(model_root: Node2D) -> TwberModelResource:
 	if model_root == null:
@@ -24,6 +25,11 @@ static func from_model_root(model_root: Node2D) -> TwberModelResource:
 			model_root,
 			MODEL_PARAMETERS_META,
 			func(value: Variant) -> bool: return value is TwberParameterResource,
+	))
+	model.timeline_animations.assign(_get_model_resources_from_root(
+			model_root,
+			MODEL_TIMELINE_ANIMATIONS_META,
+			func(value: Variant) -> bool: return value is TwberTimelineAnimationResource,
 	))
 
 	var state := _create_layer_id_state(model_root)
@@ -45,6 +51,7 @@ static func apply_to_model_root(model: TwberModelResource, model_root: Node2D) -
 	model_root.scale = model.root_scale
 	model_root.rotation = model.root_rotation
 	_set_model_parameters_on_root(model_root, model)
+	_set_model_timeline_animations_on_root(model_root, model)
 
 	var layers_by_id: Dictionary[String, TwberLayerResource] = {}
 	for layer: TwberLayerResource in model.layers:
@@ -68,6 +75,8 @@ static func clear_model_root_metadata(model_root: Node2D) -> void:
 
 	if model_root.has_meta(MODEL_PARAMETERS_META):
 		model_root.remove_meta(MODEL_PARAMETERS_META)
+	if model_root.has_meta(MODEL_TIMELINE_ANIMATIONS_META):
+		model_root.remove_meta(MODEL_TIMELINE_ANIMATIONS_META)
 
 
 static func ensure_layer_ids(model_root: Node2D) -> void:
@@ -101,14 +110,41 @@ static func load_model(path: String) -> TwberModelResource:
 	return null
 
 
-static func export_twber(model: TwberModelResource, path: String) -> Error:
-	if model == null:
-		return ERR_INVALID_PARAMETER
-
+# Call preparation on the main thread: textures may require GPU readback.
+# Texture compression can also invoke the renderer. Prepare all texture
+# payloads here; archive serialization/writing can then run on a worker thread.
+static func prepare_twber_export(source: TwberModelResource) -> Dictionary:
+	if source == null:
+		return {}
+	var model := source.duplicate(true) as TwberModelResource
 	_normalize_loaded_model(model)
 	var model_data := to_dictionary(model, false)
-	var texture_entries: Dictionary = model_data.get("textures", {})
-	var texture_package := _build_texture_package(model, texture_entries)
+	var images := {}
+	for texture_id: String in model_data.get("textures", {}):
+		var image := TwberTextureUtils.get_authoring_image(model.textures.get(texture_id))
+		images[texture_id] = image.duplicate() if image != null else null
+	var texture_package := _build_texture_package(images, model_data.get("textures", {}))
+	var summary := get_model_performance_summary(model)
+	summary["estimated_draw_calls"] = _estimate_model_render_batches(
+		model,
+		int(summary.get("drawable_layers", 0)),
+		int(summary.get("clipped_layers", 0)),
+		model_data.get("textures", {}),
+	)
+	summary["atlas_pages"] = int(texture_package.get("atlas_pages", 0))
+	summary["standalone_textures"] = int(texture_package.get("standalone_textures", 0))
+	return {"data": model_data, "texture_package": texture_package, "summary": summary}
+
+
+static func export_twber(model: TwberModelResource, path: String) -> Error:
+	return export_prepared_twber(prepare_twber_export(model), path)
+
+
+static func export_prepared_twber(prepared: Dictionary, path: String) -> Error:
+	if prepared.is_empty():
+		return ERR_INVALID_PARAMETER
+	var model_data: Dictionary = (prepared["data"] as Dictionary).duplicate(true)
+	var texture_package: Dictionary = prepared["texture_package"]
 	var failed_texture_ids: Array = texture_package.get("failed_texture_ids", [])
 	if not failed_texture_ids.is_empty():
 		push_error("Could not export texture data for: %s" % ", ".join(failed_texture_ids))
@@ -117,15 +153,7 @@ static func export_twber(model: TwberModelResource, path: String) -> Error:
 	var texture_manifest: Dictionary = texture_package.get("manifest", {})
 
 	var model_bytes := var_to_bytes(model_data)
-	var summary := get_model_performance_summary(model)
-	summary["estimated_draw_calls"] = _estimate_model_render_batches(
-			model,
-			int(summary.get("drawable_layers", 0)),
-			int(summary.get("clipped_layers", 0)),
-			texture_entries,
-	)
-	summary["atlas_pages"] = int(texture_package.get("atlas_pages", 0))
-	summary["standalone_textures"] = int(texture_package.get("standalone_textures", 0))
+	var summary: Dictionary = (prepared["summary"] as Dictionary).duplicate(true)
 	var manifest := {
 		"package_format": PACKAGE_FORMAT,
 		"package_version": PACKAGE_VERSION,
@@ -266,6 +294,11 @@ static func to_dictionary(model: TwberModelResource, include_texture_data: bool)
 			continue
 		parameters.append(_parameter_to_dictionary(parameter))
 
+	var timeline_animations: Array[Dictionary] = []
+	for animation: TwberTimelineAnimationResource in model.timeline_animations:
+		if animation != null:
+			timeline_animations.append(_timeline_animation_to_dictionary(animation))
+
 	var texture_entries := {}
 	for texture_key: Variant in model.textures.keys():
 		var texture_id := String(texture_key)
@@ -289,6 +322,7 @@ static func to_dictionary(model: TwberModelResource, include_texture_data: bool)
 		"root_layer_ids": model.root_layer_ids.duplicate(),
 		"layers": layers,
 		"parameters": parameters,
+		"timeline_animations": timeline_animations,
 		"textures": texture_entries,
 	}
 
@@ -366,6 +400,18 @@ static func from_dictionary(
 			parameter_ids[parameter.id] = true
 			model.parameters.append(parameter)
 
+	var timeline_animation_ids := {}
+	for animation_data: Variant in _variant_to_array(data.get("timeline_animations", [])):
+		if animation_data is not Dictionary:
+			continue
+		var animation := _timeline_animation_from_dictionary(animation_data)
+		if animation == null:
+			return null
+		if animation.id.is_empty() or timeline_animation_ids.has(animation.id):
+			continue
+		timeline_animation_ids[animation.id] = true
+		model.timeline_animations.append(animation)
+
 	return _normalize_loaded_model(model)
 
 
@@ -400,8 +446,8 @@ static func _layer_from_node(
 	if node is CanvasItem:
 		var canvas_item: CanvasItem = node
 		layer.visible = canvas_item.visible
-		layer.modulate = canvas_item.self_modulate
-		layer.clip_children = canvas_item.clip_children
+		layer.modulate = TwberAlphaClipController.get_authored_self_modulate(canvas_item)
+		layer.clip_children = TwberAlphaClipController.get_authored_clip_mode(canvas_item)
 		layer.show_behind_parent = canvas_item.show_behind_parent
 
 	if node is TwberMeshSprite2D:
@@ -722,6 +768,16 @@ static func _set_model_parameters_on_root(
 	model_root.set_meta(MODEL_PARAMETERS_META, _duplicate_resource_array(model.parameters))
 
 
+static func _set_model_timeline_animations_on_root(
+		model_root: Node2D,
+		model: TwberModelResource,
+) -> void:
+	model_root.set_meta(
+			MODEL_TIMELINE_ANIMATIONS_META,
+			_duplicate_resource_array(model.timeline_animations),
+	)
+
+
 static func _duplicate_resource_array(
 		values: Array,
 		is_valid_resource: Callable = Callable(),
@@ -844,6 +900,14 @@ static func _parameter_to_dictionary(parameter: TwberParameterResource) -> Dicti
 		if parameter_position != null and not parameter_position.layer_states.is_empty():
 			positions.append(_parameter_position_to_dictionary(parameter_position))
 
+	var animation_bindings: Array[Dictionary] = []
+	for binding: TwberAnimationBindingResource in parameter.animation_bindings:
+		if binding != null and not binding.animation_id.is_empty():
+			animation_bindings.append({
+				"animation_id": binding.animation_id,
+				"coordinate": _vector2_to_array(binding.coordinate),
+			})
+
 	return {
 		"id": parameter.id,
 		"name": parameter.name,
@@ -862,6 +926,7 @@ static func _parameter_to_dictionary(parameter: TwberParameterResource) -> Dicti
 				true,
 		),
 		"positions": positions,
+		"animation_bindings": animation_bindings,
 	}
 
 
@@ -872,6 +937,35 @@ static func _normalize_loaded_model(model: TwberModelResource) -> TwberModelReso
 		if layer != null and not layer.id.is_empty():
 			known_layer_ids[layer.id] = true
 			base_states_by_layer_id[layer.id] = TwberLayerStateResource.from_layer_resource(layer)
+
+	var known_animation_ids := {}
+	var normalized_animations: Array[TwberTimelineAnimationResource] = []
+	for animation: TwberTimelineAnimationResource in model.timeline_animations:
+		if animation == null or animation.id.is_empty() or known_animation_ids.has(animation.id):
+			continue
+		known_animation_ids[animation.id] = true
+		animation.name = animation.name.strip_edges()
+		if animation.name.is_empty():
+			animation.name = "Animation"
+		animation.duration = maxf(animation.duration, 0.05)
+		animation.fps = clampf(animation.fps, 1.0, 120.0)
+		for keyframe_index: int in range(animation.keyframes.size() - 1, -1, -1):
+			var keyframe := animation.keyframes[keyframe_index]
+			if (
+				keyframe == null
+				or keyframe.layer_state == null
+				or not known_layer_ids.has(keyframe.layer_state.layer_id)
+			):
+				animation.keyframes.remove_at(keyframe_index)
+				continue
+			keyframe.time = clampf(keyframe.time, 0.0, animation.duration)
+			var base_state: TwberLayerStateResource = base_states_by_layer_id.get(
+					keyframe.layer_state.layer_id,
+			)
+			keyframe.layer_state.sanitize_mesh_vertices(base_state)
+			keyframe.layer_state.sanitize_animation_state(base_state)
+		normalized_animations.append(animation)
+	model.timeline_animations = normalized_animations
 
 	for parameter: TwberParameterResource in model.parameters:
 		if parameter == null:
@@ -913,7 +1007,31 @@ static func _normalize_loaded_model(model: TwberModelResource) -> TwberModelReso
 				for layer_state: TwberLayerStateResource in parameter_position.layer_states:
 					existing_position.upsert_state(layer_state)
 		parameter.positions = normalized_positions
+		var normalized_bindings: Array[TwberAnimationBindingResource] = []
+		for binding: TwberAnimationBindingResource in parameter.animation_bindings:
+			if binding == null or not known_animation_ids.has(binding.animation_id):
+				continue
+			if (
+				parameter.value_type != TwberParameterResource.ValueType.BOOL
+				and parameter.value_type != TwberParameterResource.ValueType.INT
+			):
+				continue
+			binding.coordinate = parameter.clamp_coordinate(binding.coordinate)
+			var duplicate := false
+			for existing: TwberAnimationBindingResource in normalized_bindings:
+				if (
+					existing.animation_id == binding.animation_id
+					and parameter.coordinates_equal(existing.coordinate, binding.coordinate)
+				):
+					duplicate = true
+					break
+			if not duplicate:
+				normalized_bindings.append(binding)
+		parameter.animation_bindings = normalized_bindings
 
+	if not TwberDocumentValidator.validate_parameter_keys(model).is_empty() or not TwberDocumentValidator.validate_sprite_keys(model).is_empty():
+		push_warning("Model contains invalid parameter timeline keys.")
+		return null
 	model.format_version = TwberModelResource.FORMAT_VERSION
 	return model
 
@@ -961,7 +1079,97 @@ static func _parameter_from_dictionary(data: Dictionary) -> TwberParameterResour
 		var parameter_position := _parameter_position_from_dictionary(position_data)
 		if not parameter_position.layer_states.is_empty():
 			parameter.positions.append(parameter_position)
+	for binding_data: Variant in _variant_to_array(data.get("animation_bindings", [])):
+		if binding_data is not Dictionary:
+			continue
+		var binding := TwberAnimationBindingResource.new()
+		binding.animation_id = _variant_to_string(binding_data.get("animation_id", ""))
+		binding.coordinate = parameter.clamp_coordinate(_array_to_vector2(
+				binding_data.get("coordinate", []),
+				Vector2.ZERO,
+		))
+		if not binding.animation_id.is_empty():
+			parameter.animation_bindings.append(binding)
 	return parameter
+
+
+static func _timeline_animation_to_dictionary(
+		animation: TwberTimelineAnimationResource,
+) -> Dictionary:
+	var keyframes: Array[Dictionary] = []
+	for keyframe: TwberTimelineKeyframeResource in animation.keyframes:
+		if keyframe == null or keyframe.layer_state == null:
+			continue
+		keyframes.append({
+			"time": keyframe.time,
+			"interpolation": keyframe.interpolation,
+			"layer_state": _layer_state_to_dictionary(keyframe.layer_state),
+		})
+	var sprite_keys: Array[Dictionary] = []
+	for key: TwberSpriteKeyframeResource in animation.sprite_keys:
+		sprite_keys.append({"layer_id": key.layer_id, "time": key.time, "animation_name": key.animation_name, "phase": key.phase, "rate": key.rate})
+	var parameter_keys: Array[Dictionary] = []
+	for key: TwberParameterKeyframeResource in animation.parameter_keys:
+		parameter_keys.append({"parameter_id": key.parameter_id, "time": key.time, "coordinate": _vector2_to_array(key.coordinate), "interpolation": key.interpolation})
+	return {
+		"id": animation.id,
+		"name": animation.name,
+		"duration": animation.duration,
+		"loop": animation.loop,
+		"fps": animation.fps,
+		"priority": animation.priority,
+		"sprite_keys": sprite_keys,
+		"parameter_keys": parameter_keys,
+		"keyframes": keyframes,
+	}
+
+
+static func _timeline_animation_from_dictionary(data: Dictionary) -> TwberTimelineAnimationResource:
+	var animation := TwberTimelineAnimationResource.new()
+	animation.id = _variant_to_string(data.get("id", ""))
+	animation.name = _variant_to_string(data.get("name", "Animation"), "Animation")
+	animation.duration = maxf(_variant_to_float(data.get("duration", 1.0), 1.0), 0.01)
+	animation.loop = _variant_to_bool(data.get("loop", true), true)
+	animation.fps = maxf(_variant_to_float(data.get("fps", 30.0), 30.0), 1.0)
+	for keyframe_data: Variant in _variant_to_array(data.get("keyframes", [])):
+		if keyframe_data is not Dictionary:
+			continue
+		var state_data := _variant_to_dictionary(keyframe_data.get("layer_state", {}))
+		var state := _layer_state_from_dictionary(state_data)
+		if state.layer_id.is_empty():
+			continue
+		var keyframe := TwberTimelineKeyframeResource.new()
+		keyframe.time = clampf(
+				_variant_to_float(keyframe_data.get("time", 0.0), 0.0),
+				0.0,
+				animation.duration,
+		)
+		keyframe.interpolation = _variant_to_int(keyframe_data.get("interpolation", 0), 0) as TwberTimelineKeyframeResource.Interpolation
+		if keyframe.interpolation not in [0, 1]:
+			return null
+		keyframe.layer_state = state
+		animation.keyframes.append(keyframe)
+	for key_data: Variant in _variant_to_array(data.get("sprite_keys", [])):
+		if key_data is not Dictionary:
+			return null
+		var key := TwberSpriteKeyframeResource.new()
+		key.layer_id = _variant_to_string(key_data.get("layer_id", ""))
+		key.time = _variant_to_float(key_data.get("time", -1.0), -1.0)
+		key.animation_name = _variant_to_string(key_data.get("animation_name", ""))
+		key.phase = _variant_to_float(key_data.get("phase", -1.0), -1.0)
+		key.rate = _variant_to_float(key_data.get("rate", -1.0), -1.0)
+		animation.sprite_keys.append(key)
+	animation.priority = _variant_to_int(data.get("priority", 0), 0)
+	for key_data: Variant in _variant_to_array(data.get("parameter_keys", [])):
+		if key_data is not Dictionary:
+			return null
+		var key := TwberParameterKeyframeResource.new()
+		key.parameter_id = _variant_to_string(key_data.get("parameter_id", ""))
+		key.time = _variant_to_float(key_data.get("time", -1.0), -1.0)
+		key.coordinate = _array_to_vector2(key_data.get("coordinate", []), Vector2(INF, INF))
+		key.interpolation = _variant_to_int(key_data.get("interpolation", 0), 0) as TwberParameterKeyframeResource.Interpolation
+		animation.parameter_keys.append(key)
+	return animation
 
 
 static func _parameter_position_to_dictionary(
@@ -1104,7 +1312,7 @@ static func _texture_to_png_buffer(texture: Texture2D) -> PackedByteArray:
 
 
 static func _build_texture_package(
-		model: TwberModelResource,
+		images: Dictionary,
 		texture_entries: Dictionary,
 ) -> Dictionary:
 	var atlas_items: Array[Dictionary] = []
@@ -1113,8 +1321,7 @@ static func _build_texture_package(
 	var unique_items_by_content := {}
 	for texture_key: Variant in texture_entries:
 		var texture_id := String(texture_key)
-		var texture: Texture2D = model.textures.get(texture_id) as Texture2D
-		var image := TwberTextureUtils.get_authoring_image(texture)
+		var image := images.get(texture_id) as Image
 		if image == null or image.get_width() <= 0 or image.get_height() <= 0:
 			failed_texture_ids.append(texture_id)
 			continue

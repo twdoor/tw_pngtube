@@ -24,6 +24,21 @@ const DISCRETE_STEP := 1.0
 @export var max_vector2 := Vector2(1.0, 1.0)
 @export var step := CONTINUOUS_STEP
 @export var positions: Array[TwberParameterPositionResource] = []
+@export var animation_bindings: Array[TwberAnimationBindingResource] = []
+
+
+func find_animation_binding(
+		animation_id: String,
+		coordinate: Vector2,
+) -> TwberAnimationBindingResource:
+	for binding: TwberAnimationBindingResource in animation_bindings:
+		if (
+			binding != null
+			and binding.animation_id == animation_id
+			and coordinates_equal(binding.coordinate, coordinate)
+		):
+			return binding
+	return null
 
 
 static func normalize_step_for_type(
@@ -162,3 +177,25 @@ func _snap_and_clamp(value: float, minimum: float, maximum: float) -> float:
 	if is_equal_approx(clamped_value, maximum):
 		return maximum
 	return clampf(_snap_value(clamped_value, minimum), minimum, maximum)
+
+
+# Copy a detached document parameter into an existing editor projection object.
+func copy_contents_from(source: TwberParameterResource) -> void:
+	id = source.id
+	name = source.name
+	value_type = source.value_type
+	default_bool = source.default_bool
+	default_int = source.default_int
+	default_float = source.default_float
+	default_vector2 = source.default_vector2
+	min_value = source.min_value
+	max_value = source.max_value
+	min_vector2 = source.min_vector2
+	max_vector2 = source.max_vector2
+	step = source.step
+	positions.clear()
+	for sample: TwberParameterPositionResource in source.positions:
+		positions.append(sample.duplicate(true))
+	animation_bindings.clear()
+	for binding: TwberAnimationBindingResource in source.animation_bindings:
+		animation_bindings.append(binding.duplicate(true))

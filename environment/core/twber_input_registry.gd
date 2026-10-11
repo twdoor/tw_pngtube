@@ -4,6 +4,7 @@ signal value_changed(source_id: StringName, value: Variant)
 
 var _providers: Dictionary[StringName, TwberInputProvider] = {}
 var _descriptors: Dictionary[StringName, Dictionary] = {}
+var _mappers: Dictionary[StringName, TwberInputMapping] = {}
 var _latest_values: Dictionary[StringName, Variant] = {}
 
 
@@ -29,6 +30,14 @@ func register_provider(provider: TwberInputProvider) -> bool:
 		registered_descriptor["provider_id"] = provider_id
 		registered_descriptor["provider_name"] = provider.get_provider_name()
 		_descriptors[source_id] = registered_descriptor
+		var mapping_path := str(descriptor.get("mapping_script", ""))
+		if not mapping_path.is_empty():
+			var script := load(mapping_path) as Script
+			if script != null and script.can_instantiate():
+				var mapper: Variant = script.new()
+				if mapper is TwberInputMapping:
+					_mappers[source_id] = mapper
+
 
 	provider.value_changed.connect(_on_provider_value_changed.bind(provider_id))
 	return true
@@ -49,6 +58,10 @@ func get_compatible_sources(parameter: TwberParameterResource) -> Array[Dictiona
 		return String(first.get("name", "")) < String(second.get("name", ""))
 	)
 	return compatible
+
+
+func get_mapping(source_id: StringName) -> TwberInputMapping:
+	return _mappers.get(source_id)
 
 
 func get_latest_value(source_id: StringName) -> Variant:

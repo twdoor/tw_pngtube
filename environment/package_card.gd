@@ -1,14 +1,18 @@
 class_name TwberPackageCard extends PanelContainer
 
 signal package_state_changed(package_id: StringName, enabled: bool, settings: Dictionary)
+signal removal_requested(package_id: StringName)
 
 @onready var _name_label: Label = %PackageName
 @onready var _version_label: Label = %PackageVersion
+@onready var _origin_label: Label = %PackageOrigin
 @onready var _description_label: Label = %PackageDescription
 @onready var _outputs_label: Label = %PackageOutputs
 @onready var _enabled_button: CheckButton = %PackageEnabled
 @onready var _settings_button: Button = %PackageSettingsButton
+@onready var _remove_button: Button = %RemovePackageButton
 @onready var _settings_host: VBoxContainer = %PackageSettingsHost
+@onready var _lifecycle_status: Label = %PackageLifecycleStatus
 
 var _package_id := StringName()
 var _package: TwberEnvironmentPackage
@@ -19,18 +23,24 @@ var _updating := false
 func _ready() -> void:
 	_enabled_button.toggled.connect(_on_enabled_toggled)
 	_settings_button.toggled.connect(_on_settings_toggled)
+	_remove_button.pressed.connect(func() -> void:
+		removal_requested.emit(_package_id)
+	)
 
 
 func configure(
 		manifest: Dictionary,
-		package: TwberEnvironmentPackage,
-		enabled: bool,
-		settings: Dictionary,
+	package: TwberEnvironmentPackage,
+	enabled: bool,
+	settings: Dictionary,
+	bundled: bool,
 ) -> void:
 	_package_id = StringName(manifest.get("id", ""))
 	_package = package
 	_name_label.text = String(manifest.get("name", package.get_package_name()))
 	_version_label.text = "v%s" % String(manifest.get("version", "0.0.0"))
+	_origin_label.text = "Bundled" if bundled else "Installed"
+	_remove_button.visible = not bundled
 	_description_label.text = String(manifest.get("description", package.get_package_description()))
 	var outputs := PackedStringArray()
 	if package is TwberInputProvider:
@@ -43,6 +53,21 @@ func configure(
 	_package.apply_package_settings(settings)
 	_package.set_package_enabled(enabled)
 	_create_settings_control(String(manifest.get("settings_scene", "")), settings)
+
+
+func mark_removal_pending() -> void:
+	if _package == null:
+		return
+	_updating = true
+	_enabled_button.button_pressed = false
+	_updating = false
+	_package.set_package_enabled(false)
+	_enabled_button.disabled = true
+	_settings_button.disabled = true
+	_remove_button.disabled = true
+	_settings_host.visible = false
+	_lifecycle_status.text = "Removed from disk · restart Twber to unload"
+	_lifecycle_status.visible = true
 
 
 func _create_settings_control(scene_path: String, settings: Dictionary) -> void:

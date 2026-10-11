@@ -1,18 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c7mbd2bv7x6mk"]
 
-[ext_resource type="Script" path="res://editor/mirror_dialog.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://btvpqmu82j5md" path="res://editor/mirror_dialog.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
 
-[node name="MirrorDialog" type="AcceptDialog"]
+[node name="MirrorDialog" type="AcceptDialog" unique_id=1308401267]
 title = "Mirror Duplicate"
-initial_position = 0
 size = Vector2i(380, 300)
-transient = true
-exclusive = true
 ok_button_text = "Mirror"
 script = ExtResource("1_script")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1000624240]
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 372.0
@@ -22,58 +19,58 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1585958167]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Description" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Description" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1641009840]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "Duplicate the selected hierarchies around each parent pivot."
 autowrap_mode = 2
 
-[node name="GeometryLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="GeometryLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1428791932]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "Mirror geometry"
 
-[node name="GeometryOptions" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="GeometryOptions" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1714469097]
 layout_mode = 2
 
-[node name="GeometryX" type="CheckBox" parent="MarginContainer/VBoxContainer/GeometryOptions"]
+[node name="GeometryX" type="CheckBox" parent="MarginContainer/VBoxContainer/GeometryOptions" unique_id=1018779288]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 button_pressed = true
 text = "X"
 
-[node name="GeometryY" type="CheckBox" parent="MarginContainer/VBoxContainer/GeometryOptions"]
+[node name="GeometryY" type="CheckBox" parent="MarginContainer/VBoxContainer/GeometryOptions" unique_id=1052450504]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "Y"
 
-[node name="BindingsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="BindingsLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1821299930]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "Mirror binding coordinates"
 
-[node name="BindingOptions" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="BindingOptions" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=757777386]
 layout_mode = 2
 
-[node name="BindingsX" type="CheckBox" parent="MarginContainer/VBoxContainer/BindingOptions"]
+[node name="BindingsX" type="CheckBox" parent="MarginContainer/VBoxContainer/BindingOptions" unique_id=1655268392]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "X"
 
-[node name="BindingsY" type="CheckBox" parent="MarginContainer/VBoxContainer/BindingOptions"]
+[node name="BindingsY" type="CheckBox" parent="MarginContainer/VBoxContainer/BindingOptions" unique_id=1009721792]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 text = "Y"
 
-[node name="NewParameter" type="CheckBox" parent="MarginContainer/VBoxContainer"]
+[node name="NewParameter" type="CheckBox" parent="MarginContainer/VBoxContainer" unique_id=1583536794]
 unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Create independent mirrored parameters instead of adding states to the originals"

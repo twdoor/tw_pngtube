@@ -442,7 +442,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Capture the selected layer's full state at the current parameter position"
+tooltip_text = "Bind the pose draft at this parameter position. Escape discards the draft."
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "Bind"
 
@@ -454,3 +454,60 @@ size_flags_horizontal = 3
 tooltip_text = "Remove the selected layer's state from the current parameter position"
 theme_override_fonts/font = ExtResource("2_2ael8")
 text = "Remove"
+
+[node name="AnimationBindingPanel" type="PanelContainer" parent="ParameterWindow/MarginContainer/VBoxContainer" unique_id=1086106102]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel" unique_id=1682185100]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Content" type="VBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin" unique_id=135953635]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin/Content" unique_id=98632720]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("2_2ael8")
+theme_override_font_sizes/font_size = 10
+text = "ANIMATION TRIGGER"
+
+[node name="ModelAnimationsOptionButton" type="OptionButton" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin/Content" unique_id=1257943223]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Buttons" type="HBoxContainer" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin/Content" unique_id=811458504]
+layout_mode = 2
+
+[node name="BindAnimationButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin/Content/Buttons" unique_id=1041931096]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Run this animation when the selected bool or int has its current value"
+text = "Bind animation"
+
+[node name="RemoveAnimationBindingButton" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/AnimationBindingPanel/Margin/Content/Buttons" unique_id=254364448]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Remove this animation trigger at the current value"
+text = "Remove"
+
+[node name="TakeButtons" type="HFlowContainer" parent="ParameterWindow/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RecordTake" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/TakeButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Record parameters"
+tooltip_text = "Record parameter control changes into a new animation take. Finish keeps it; Escape discards it."
+
+[node name="CancelTake" type="Button" parent="ParameterWindow/MarginContainer/VBoxContainer/TakeButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel take"
+disabled = true

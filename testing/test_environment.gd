@@ -24,6 +24,17 @@ func _run() -> void:
 	var open_button := environment.get_node("%OpenModelButton") as Button
 	var open_dialog := environment.get_node("%OpenModelDialog") as FileDialog
 	_expect(
+		environment.get_node_or_null("%WorkspaceSaveTimer") is Timer,
+		"Environment workspace persistence uses a scene-backed debounce timer",
+	)
+	var expected_model_directory := TwberAppSettings.get_directory_path(
+		TwberAppSettings.MODELS_DIRECTORY_NAME
+	)
+	_expect(
+		open_dialog.current_dir == expected_model_directory,
+		"Environment opens its scene-backed dialog in the Twber model library",
+	)
+	_expect(
 		not environment.get_viewport().gui_embed_subwindows,
 		"Environment dialogs use separate windows",
 	)
@@ -58,6 +69,63 @@ func _run() -> void:
 		"Closing the detached controls window embeds the dock again",
 	)
 	var package_manager := environment.get_node("%PackageManager") as TwberPackageManager
+	_expect(
+		environment.get_node_or_null("%InstallPackageButton") is Button
+		and environment.get_node_or_null("%OpenPackageDirectoryButton") is Button
+		and environment.get_node_or_null("%InstallPackageDialog") is FileDialog
+		and environment.get_node_or_null("%RemovePackageDialog") is ConfirmationDialog,
+		"Package installation and removal controls are scene-backed",
+	)
+	var expected_package_directory := TwberAppSettings.get_directory_path(
+		TwberAppSettings.PACKAGES_DIRECTORY_NAME
+	)
+	_expect(
+		package_manager.get_package_directory_path() == expected_package_directory,
+		"Environment keeps packages beside settings in Twber application data",
+	)
+	for package_record: Dictionary in package_manager.get_packages().values():
+		_expect(
+			str(package_record.get("pack_path", "")).get_base_dir()
+				== expected_package_directory,
+			"Environment mounts packages only from Twber application data",
+		)
+		_expect(
+			bool(package_record.get("bundled", false)),
+			"Core package records identify their bundled lifecycle",
+		)
+	for card_node: Node in package_list.get_children():
+		var package_card := card_node as TwberPackageCard
+		_expect(
+			package_card != null
+			and (package_card.get_node("%PackageOrigin") as Label).text == "Bundled"
+			and not (package_card.get_node("%RemovePackageButton") as Button).visible,
+			"Bundled package cards expose their origin and cannot be removed",
+		)
+	_expect(
+		not bool(package_manager.install_package("user://missing-package.pck").get(
+			"success",
+			false,
+		)),
+		"Package installation rejects missing files",
+	)
+	_expect(
+		not bool(package_manager.remove_package(&"mouse").get("success", false)),
+		"Package lifecycle protects bundled packages from removal",
+	)
+	var removable_package_path := expected_package_directory.path_join(
+		"test_user_package.pck"
+	)
+	var removable_package := FileAccess.open(removable_package_path, FileAccess.WRITE)
+	if removable_package != null:
+		removable_package.store_string("test package placeholder")
+		removable_package.close()
+	var removal_result := package_manager.remove_package(&"test_user_package")
+	_expect(
+		bool(removal_result.get("success", false))
+		and not bool(removal_result.get("restart_required", true))
+		and not FileAccess.file_exists(removable_package_path),
+		"Package lifecycle removes an unmounted user package without a restart",
+	)
 
 	var model := _create_test_model()
 	var model_path := "user://twber_environment_test.tres"
@@ -295,9 +363,49 @@ func _run() -> void:
 		and environment.get_selected_model().name == "TwberEnvironmentAssetTest",
 		"Dropping an image file into the app adds it as an attachment asset",
 	)
+	var saved_asset_position := Vector2(321.0, 234.0)
+	var saved_asset_scale := Vector2.ONE * 1.35
+	environment.get_selected_model().position = saved_asset_position
+	environment.get_selected_model().scale = saved_asset_scale
+	environment.call("_save_workspace")
+	var saved_workspace: Variant = TwberAppSettings.get_value(
+		"environment.workspace",
+		"entries",
+		[],
+	)
+	_expect(
+		saved_workspace is Array and (saved_workspace as Array).size() == 2,
+		"Environment stores stage references and transforms in application settings",
+	)
 
 	await process_frame
 	environment.free()
+	await process_frame
+
+	var restored_environment := environment_scene.instantiate() as TwberEnvironment
+	get_root().add_child(restored_environment)
+	await process_frame
+	var restore_frames := 0
+	while (
+		(bool(restored_environment.get("_restoring_workspace"))
+		or restored_environment.is_busy())
+		and restore_frames < 240
+	):
+		await process_frame
+		restore_frames += 1
+	_expect(
+		restored_environment.get_model_count() == 2,
+		"Environment restores every available workspace item",
+	)
+	var restored_asset := restored_environment.get_selected_model()
+	_expect(
+		restored_environment.get_current_model_path() == asset_path
+		and restored_asset != null
+		and restored_asset.position.is_equal_approx(saved_asset_position)
+		and restored_asset.scale.is_equal_approx(saved_asset_scale),
+		"Environment restores the selected item and its stage transform",
+	)
+	restored_environment.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(model_path))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(asset_path))
 	MODEL_INPUT_PROFILE.clear_bindings(model_path)

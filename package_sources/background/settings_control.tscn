@@ -1,49 +1,48 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bpwrkfvfk0mci"]
 
-[ext_resource type="Script" path="res://package_sources/background/settings_control.gd" id="1_settings"]
+[ext_resource type="Script" uid="uid://dtoixsbp6edmk" path="res://package_sources/background/settings_control.gd" id="1_settings"]
 
-[node name="BackgroundSettingsControl" type="VBoxContainer"]
+[node name="BackgroundSettingsControl" type="VBoxContainer" unique_id=547277903]
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 script = ExtResource("1_settings")
 
-[node name="ModeRow" type="HBoxContainer" parent="."]
+[node name="ModeRow" type="HBoxContainer" parent="." unique_id=675963980]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ModeRow"]
+[node name="Label" type="Label" parent="ModeRow" unique_id=924101795]
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Type"
 
-[node name="ModeOption" type="OptionButton" parent="ModeRow"]
+[node name="ModeOption" type="OptionButton" parent="ModeRow" unique_id=536853709]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ColorRow" type="HBoxContainer" parent="."]
+[node name="ColorRow" type="HBoxContainer" parent="." unique_id=333048796]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ColorRow"]
+[node name="Label" type="Label" parent="ColorRow" unique_id=1867341064]
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Color"
 
-[node name="ColorPicker" type="ColorPickerButton" parent="ColorRow"]
+[node name="ColorPicker" type="ColorPickerButton" parent="ColorRow" unique_id=678018833]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 size_flags_horizontal = 3
-edit_alpha = true
 
-[node name="ImageRow" type="HBoxContainer" parent="."]
+[node name="ImageRow" type="HBoxContainer" parent="." unique_id=1860957379]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="ImagePathLabel" type="Label" parent="ImageRow"]
+[node name="ImagePathLabel" type="Label" parent="ImageRow" unique_id=1819480257]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -51,18 +50,15 @@ theme_override_font_sizes/font_size = 10
 text = "No image selected"
 text_overrun_behavior = 3
 
-[node name="ChooseImageButton" type="Button" parent="ImageRow"]
+[node name="ChooseImageButton" type="Button" parent="ImageRow" unique_id=1277356868]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Choose…"
 
-[node name="ImageDialog" type="FileDialog" parent="."]
+[node name="ImageDialog" type="FileDialog" parent="." unique_id=1843765038]
 unique_name_in_owner = true
 title = "Choose background image"
 initial_position = 1
 size = Vector2i(760, 520)
-transient = true
-exclusive = true
-use_native_dialog = false
 access = 2
 filters = PackedStringArray("*.png ; PNG images", "*.webp ; WebP images", "*.jpg,*.jpeg ; JPEG images")

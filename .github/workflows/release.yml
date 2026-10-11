@@ -1,0 +1,70 @@
+name: Validate and release
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*.*.*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.1
+  GODOT_STATUS: stable
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system tools
+        run: sudo apt-get update && sudo apt-get install -y libgl1 xvfb zip
+
+      - name: Install Godot and export templates
+        run: |
+          curl -L --fail -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64"
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          curl -L --fail -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          unzip -q templates.tpz -d "$RUNNER_TEMP/templates"
+          cp -a "$RUNNER_TEMP/templates/templates/." "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}/"
+          mkdir -p "$HOME/.local/bin"
+          curl -L --fail -o "$HOME/.local/bin/appimagetool" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x "$HOME/.local/bin/appimagetool"
+
+      - name: Validate
+        env:
+          GODOT: ${{ runner.temp }}/godot/Godot_v4.7.1-stable_linux.x86_64
+        run: ./scripts/test.sh
+
+      - name: Build release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GODOT: ${{ runner.temp }}/godot/Godot_v4.7.1-stable_linux.x86_64
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          TWBER_SKIP_TESTS: "1"
+        run: ./scripts/build_release.sh "${GITHUB_REF_NAME#v}"
+
+      - name: Upload workflow artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: Twber-${{ github.ref_name }}
+          path: dist/**
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/$version/linux/Twber.AppImage" \
+            "dist/$version/Twber-windows-x86_64.zip" \
+            "dist/$version/SHA256SUMS" \
+            "dist/$version/release.json" \
+            --generate-notes \
+            --title "Twber $version"

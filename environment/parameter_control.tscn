@@ -1,28 +1,28 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://c8qx32082wnal"]
 
-[ext_resource type="Script" path="res://environment/parameter_control.gd" id="1_parameter"]
-[ext_resource type="FontFile" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
-[ext_resource type="Script" path="res://environment/vector_plane.gd" id="3_vector_plane"]
+[ext_resource type="Script" uid="uid://dclmdr33oel82" path="res://environment/parameter_control.gd" id="1_parameter"]
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[ext_resource type="Script" uid="uid://djaxtbh64vsuq" path="res://environment/vector_plane.gd" id="3_vector_plane"]
 
-[node name="ParameterControl" type="PanelContainer"]
+[node name="ParameterControl" type="PanelContainer" unique_id=228503502]
 custom_minimum_size = Vector2(0, 154)
 script = ExtResource("1_parameter")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=1210169720]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
-[node name="Content" type="VBoxContainer" parent="Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin" unique_id=849390904]
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="Title" type="HBoxContainer" parent="Margin/Content"]
+[node name="Title" type="HBoxContainer" parent="Margin/Content" unique_id=1049624806]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="Margin/Content/Title"]
+[node name="NameLabel" type="Label" parent="Margin/Content/Title" unique_id=1212637790]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -30,7 +30,7 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 13
 text = "Parameter"
 
-[node name="TypeLabel" type="Label" parent="Margin/Content/Title"]
+[node name="TypeLabel" type="Label" parent="Margin/Content/Title" unique_id=394942664]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
@@ -38,58 +38,58 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 10
 text = "FLOAT"
 
-[node name="ResetButton" type="Button" parent="Margin/Content/Title"]
+[node name="ResetButton" type="Button" parent="Margin/Content/Title" unique_id=132937366]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 10
 text = "Reset"
 
-[node name="Source" type="HBoxContainer" parent="Margin/Content"]
+[node name="Source" type="HBoxContainer" parent="Margin/Content" unique_id=2015529685]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Margin/Content/Source"]
+[node name="Label" type="Label" parent="Margin/Content/Source" unique_id=1709449128]
 custom_minimum_size = Vector2(52, 0)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 11
 text = "Input"
 
-[node name="SourceOption" type="OptionButton" parent="Margin/Content/Source"]
+[node name="SourceOption" type="OptionButton" parent="Margin/Content/Source" unique_id=713629385]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 11
 
-[node name="BindingHost" type="VBoxContainer" parent="Margin/Content"]
+[node name="BindingHost" type="VBoxContainer" parent="Margin/Content" unique_id=1423517370]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="BoolEditor" type="CheckButton" parent="Margin/Content"]
+[node name="BoolEditor" type="CheckButton" parent="Margin/Content" unique_id=71589654]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Enabled"
 
-[node name="ScalarEditor" type="HBoxContainer" parent="Margin/Content"]
+[node name="ScalarEditor" type="HBoxContainer" parent="Margin/Content" unique_id=312276375]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ScalarSlider" type="HSlider" parent="Margin/Content/ScalarEditor"]
+[node name="ScalarSlider" type="HSlider" parent="Margin/Content/ScalarEditor" unique_id=1540163354]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.05
 
-[node name="ScalarValue" type="SpinBox" parent="Margin/Content/ScalarEditor"]
+[node name="ScalarValue" type="SpinBox" parent="Margin/Content/ScalarEditor" unique_id=442533643]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 max_value = 1.0
 step = 0.05
 
-[node name="VectorPlane" type="Control" parent="Margin/Content"]
+[node name="VectorPlane" type="Control" parent="Margin/Content" unique_id=183453996]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 132)
 layout_mode = 2

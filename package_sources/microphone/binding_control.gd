@@ -42,17 +42,9 @@ func get_configuration() -> Dictionary:
 
 
 func apply_source_value(value: Variant) -> Variant:
-	if value is not float or parameter == null:
-		return value
-	var level_db := float(value)
-	if parameter.value_type == TwberParameterResource.ValueType.BOOL:
-		return level_db >= float(get_configuration().get("threshold_db", -40.0))
-	var settings := get_configuration()
-	var amount := clampf(inverse_lerp(float(settings["minimum_db"]), float(settings["maximum_db"]), level_db), 0.0, 1.0)
-	var mapped := lerpf(parameter.get_scalar_min(), parameter.get_scalar_max(), amount)
-	if parameter.value_type == TwberParameterResource.ValueType.INT:
-		return int(roundf(mapped))
-	return mapped
+	return preload("res://package_sources/microphone/binding_mapper.gd").new().map_value(
+		parameter, get_configuration(), value, {},
+	)
 
 
 func set_preview(raw_value: Variant, mapped_value: Variant) -> void:

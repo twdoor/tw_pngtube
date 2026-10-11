@@ -4,11 +4,37 @@ Twber environment packages are Godot PCK resource packs. A distributed package i
 
 ## Discovery
 
-At startup the environment scans:
+At startup the environment uses one package directory inside Twber's application
+data:
 
-- `res://packages` for packages bundled with the application.
-- A `packages/` directory beside the exported executable for sidecar packages.
-- `user://packages` for packages installed by the user.
+```text
+<Twber data>/
+├── settings.cfg
+├── models/
+└── packages/
+    ├── attachment.pck
+    ├── background.pck
+    ├── microphone.pck
+    └── mouse.pck
+```
+
+On Linux this defaults to `~/.config/twber/packages/`. On Windows it is the
+`packages/` folder under Twber's AppData directory. `TWBER_CONFIG_DIR` overrides
+the complete `<Twber data>` path.
+
+Packages shipped beside the executable or inside the AppImage are installation
+sources. Twber synchronizes them into the application-data package directory
+before loading anything. Additional trusted PCK files can be installed by
+using **Install PCK** in the Environment's Packs tab or by placing them in that
+same directory. **Open Folder** exposes the exact managed location. A bundled
+package owns its package ID, is labelled in the UI, cannot be removed separately,
+and is restored to the shipped version when Twber starts.
+
+New package IDs can be mounted immediately. Updating or removing a package that
+is already mounted requires an application restart because Godot resource packs
+cannot be unloaded safely. Twber performs package copies through a temporary
+file, reports validation failures in the Packs tab, disables a removed package
+for the remainder of the session, and clearly marks restart-required changes.
 
 The PCK filename is its package ID. Mounting `microphone.pck`, for example, must expose this manifest:
 
@@ -16,7 +42,7 @@ The PCK filename is its package ID. Mounting `microphone.pck`, for example, must
 res://twber_packages/microphone/package.json
 ```
 
-The manifest API is versioned:
+The manifest API is versioned, and package versions use semantic versioning:
 
 ```json
 {
@@ -61,14 +87,32 @@ These folders are visible in Godot's FileSystem dock. Their scenes and scripts u
 
 To start another package, copy either existing folder, rename it to a valid lowercase package ID, and replace every old `res://package_sources/<old-id>` path with the new folder path. The `id` in `package.json` must match the folder name.
 
-The four core base scripts are:
+The core base scripts are:
 
 - `TwberEnvironmentPackage`: the common entry point for every package.
 - `TwberInputProvider`: the package entry point and value producer.
 - `TwberPackageSettingsControl`: optional package-wide settings UI.
-- `TwberInputBindingControl`: optional per-parameter mapping and preview UI.
+- `TwberInputBindingControl`: optional per-parameter configuration and preview UI.
+- `TwberInputMapping`: optional data-only per-parameter mapping.
 
 All UI should remain scene-backed, just like the included mouse and microphone examples.
+
+Input descriptors can include `mapping_script` alongside `binding_scene`:
+
+```gdscript
+"mapping_script": "res://package_sources/my_package/binding_mapper.gd"
+```
+
+The script extends `TwberInputMapping` and implements
+`map_value(parameter, configuration, value, context)`. It must not depend on
+widgets or acquire input itself. Environment passes the saved binding configuration
+and a context containing `display_rects` and `current_display`. The bundled mouse
+and microphone controls delegate to these same pure mappers. Continuous mapped
+values pass through `TwberInputSmoothing` and runtime normalization before recording.
+
+This optional API v1 descriptor is backward compatible: packages without a mapper
+continue using `TwberInputBindingControl.apply_source_value()`. The package builder
+includes mapper scripts and rewrites their paths into the mounted package namespace.
 
 An authoring manifest points to its editable source scene:
 
@@ -91,7 +135,7 @@ Build every package folder found under `package_sources/` directly from Godot:
 2. Press the script editor's **Run** button.
 3. Watch the Output panel for each package result.
 
-The builder writes:
+The development builder writes the bundled installation sources:
 
 ```text
 packages/mouse.pck

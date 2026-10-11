@@ -129,58 +129,16 @@ static func apply_compiled_parameters(
 				target_layer_ids,
 		)
 
-	var applied_layer_ids: Array[String] = []
+	# Compatibility adapter for callers without a supplied neutral definition.
+	# Capture once, then use the same pure kernel as document/runtime evaluation.
 	var base_states := {}
-	var contributions_by_layer := {}
-
-	var entries: Array = compiled_data.get("entries", [])
-	for entry: Dictionary in entries:
-		var parameter: TwberParameterResource = entry.get("parameter") as TwberParameterResource
-		if parameter == null:
+	for id: String in compiled_data.get("affected_layer_ids", []):
+		if not layer_nodes.has(id) or (not target_layer_ids.is_empty() and not target_layer_ids.has(id)):
 			continue
-		if not excluded_parameter_id.is_empty() and parameter.id == excluded_parameter_id:
-			continue
-
-		var value: Variant = parameter_values.get(parameter.id, parameter.get_default_value())
-		var coordinate := parameter.coordinate_from_value(value)
-		var layers: Dictionary = entry.get("layers", {})
-		for layer_key: Variant in layers:
-			var layer_id := String(layer_key)
-			if not layer_nodes.has(layer_id):
-				continue
-
-			if not base_states.has(layer_id):
-				var base_state := TwberLayerStateResource.new()
-				base_state.capture_from_node(layer_nodes[layer_id] as Node2D)
-				base_states[layer_id] = base_state
-				contributions_by_layer[layer_id] = []
-
-			var sampled_state := _sample_compiled_layer(
-					parameter,
-					coordinate,
-					layers[layer_key],
-					base_states[layer_id],
-			)
-			if sampled_state == null:
-				continue
-
-			var layer_contributions: Array = contributions_by_layer[layer_id]
-			layer_contributions.append(sampled_state)
-			if layer_contributions.size() == 1:
-				applied_layer_ids.append(layer_id)
-
-	for layer_id: String in applied_layer_ids:
-		var contributions: Array[TwberLayerStateResource] = []
-		for contribution: TwberLayerStateResource in contributions_by_layer[layer_id]:
-			contributions.append(contribution)
-		var composed_state := TwberLayerStateResource.compose(
-				base_states[layer_id],
-				contributions,
-		)
-		if composed_state != null:
-			composed_state.apply_to_node(layer_nodes[layer_id] as Node2D)
-
-	return applied_layer_ids
+		var state := TwberLayerStateResource.new()
+		state.capture_from_node(layer_nodes[id])
+		base_states[id] = state
+	return _apply_compiled_parameters_with_neutral_states(compiled_data, parameter_values, layer_nodes, excluded_parameter_id, base_states, target_layer_ids)
 
 
 static func _apply_compiled_parameters_with_neutral_states(
@@ -191,12 +149,26 @@ static func _apply_compiled_parameters_with_neutral_states(
 		neutral_states_by_layer_id: Dictionary,
 		target_layer_ids: Dictionary,
 ) -> Array[String]:
+	var results := sample_compiled_parameters(compiled_data, parameter_values, neutral_states_by_layer_id, excluded_parameter_id, target_layer_ids)
+	var applied: Array[String] = []
+	for layer_id: String in results:
+		if layer_nodes.has(layer_id):
+			(results[layer_id] as TwberLayerStateResource).apply_to_node(layer_nodes[layer_id])
+			applied.append(layer_id)
+	return applied
+
+
+# Pure sampling kernel. Returned states are instance scratch buffers, valid until
+# the next call using this compiled data. Scene adapters only project results.
+static func sample_compiled_parameters(
+		compiled_data: Dictionary, parameter_values: Dictionary,
+		neutral_states_by_layer_id: Dictionary, excluded_parameter_id := "",
+		target_layer_ids: Dictionary = {},
+) -> Dictionary:
 	var scratch_states: Dictionary = compiled_data.get("evaluation_scratch", {})
 	if not compiled_data.has("evaluation_scratch"):
 		compiled_data["evaluation_scratch"] = scratch_states
 	var results := {}
-	var contributed := {}
-	var applied_layer_ids: Array[String] = []
 
 	# Initialize one reusable result per affected layer. A result starts at the
 	# immutable neutral pose, then each parameter contributes its delta in place.
@@ -205,7 +177,7 @@ static func _apply_compiled_parameters_with_neutral_states(
 		if not target_layer_ids.is_empty() and not target_layer_ids.has(layer_id):
 			continue
 		var base_state := neutral_states_by_layer_id.get(layer_id) as TwberLayerStateResource
-		if base_state == null or not layer_nodes.has(layer_id):
+		if base_state == null:
 			continue
 		var result := scratch_states.get(layer_id) as TwberLayerStateResource
 		if result == null:
@@ -244,9 +216,6 @@ static func _apply_compiled_parameters_with_neutral_states(
 			):
 				continue
 			_accumulate_state_delta(results[layer_id], base_state, sampled_state)
-			if not contributed.has(layer_id):
-				contributed[layer_id] = true
-				applied_layer_ids.append(layer_id)
 
 	# Also apply untouched neutral results. This makes a bool parameter with no
 	# active sample, or an excluded parameter, reset predictably without a
@@ -259,9 +228,8 @@ static func _apply_compiled_parameters_with_neutral_states(
 				clampf(result.self_modulate.b, 0.0, 1.0),
 				clampf(result.self_modulate.a, 0.0, 1.0),
 		)
-		result.apply_to_node(layer_nodes[layer_id] as Node2D)
 
-	return applied_layer_ids
+	return results
 
 
 static func _reset_state_from_base(

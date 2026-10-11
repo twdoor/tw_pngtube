@@ -24,7 +24,7 @@ func _process(_delta: float) -> void:
 	var result: Variant = _thread.wait_to_finish()
 	_started = false
 	completed.emit(result)
-	free()
+	queue_free()
 
 
 func _exit_tree() -> void:

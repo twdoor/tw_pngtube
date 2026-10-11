@@ -229,7 +229,7 @@ icon = ExtResource("14_pivot")
 icon_alignment = 1
 expand_icon = true
 
-[node name="MirrorButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons"]
+[node name="MirrorButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/TransformButtons" unique_id=1333444489]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2

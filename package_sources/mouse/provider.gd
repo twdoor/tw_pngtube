@@ -82,6 +82,7 @@ func get_value_descriptors() -> Array[Dictionary]:
 		"name": "Mouse position",
 		"type": TYPE_VECTOR2,
 		"binding_scene": "res://package_sources/mouse/binding_control.tscn",
+		"mapping_script": "res://package_sources/mouse/binding_mapper.gd",
 	}]
 
 

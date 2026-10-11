@@ -42,26 +42,9 @@ func get_configuration() -> Dictionary:
 
 
 func apply_source_value(value: Variant) -> Variant:
-	if value is not Vector2:
-		return value
-	var display_index := int(get_configuration().get("display_index", -1))
-	if display_index < 0 or display_index >= DisplayServer.get_screen_count():
-		display_index = _find_display_for_position(value)
-	var display_rect := _get_display_rect(display_index)
-	if display_rect.size.x <= 0 or display_rect.size.y <= 0:
-		return Vector2.ZERO
-	var local_position: Vector2 = value - Vector2(display_rect.position)
-	return Vector2(
-			(local_position.x / float(display_rect.size.x)) * 2.0 - 1.0,
-			1.0 - (local_position.y / float(display_rect.size.y)) * 2.0,
-	).clamp(Vector2(-1.0, -1.0), Vector2.ONE)
-
-
-func _find_display_for_position(screen_point: Vector2) -> int:
-	for display_index: int in DisplayServer.get_screen_count():
-		if _get_display_rect(display_index).has_point(screen_point):
-			return display_index
-	return clampi(DisplayServer.window_get_current_screen(), 0, maxi(DisplayServer.get_screen_count() - 1, 0))
+	return preload("res://package_sources/mouse/binding_mapper.gd").new().map_value(
+		parameter, get_configuration(), value, TwberInputContext.capture_displays(),
+	)
 
 
 func _get_display_rect(display_index: int) -> Rect2:

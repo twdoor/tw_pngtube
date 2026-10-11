@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://co8l7wvodp4h4"]
 
-[ext_resource type="Script" path="res://package_sources/mouse/provider.gd" id="1_provider"]
+[ext_resource type="Script" uid="uid://c7hsw18ytjnkr" path="res://package_sources/mouse/provider.gd" id="1_provider"]
 
-[node name="MouseInputProvider" type="Node"]
+[node name="MouseInputProvider" type="Node" unique_id=1802142274]
 script = ExtResource("1_provider")

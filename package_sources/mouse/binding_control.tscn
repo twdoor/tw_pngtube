@@ -1,19 +1,19 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://hurcs17r5w34"]
 
-[ext_resource type="Script" path="res://package_sources/mouse/binding_control.gd" id="1_binding"]
+[ext_resource type="Script" uid="uid://0dlsadd3dfxu" path="res://package_sources/mouse/binding_control.gd" id="1_binding"]
 
-[node name="MouseBindingControl" type="VBoxContainer"]
+[node name="MouseBindingControl" type="VBoxContainer" unique_id=480274384]
 script = ExtResource("1_binding")
 
-[node name="DisplayRow" type="HBoxContainer" parent="."]
+[node name="DisplayRow" type="HBoxContainer" parent="." unique_id=1911133293]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="DisplayRow"]
+[node name="Label" type="Label" parent="DisplayRow" unique_id=1694648765]
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
 text = "Display"
 
-[node name="DisplayOption" type="OptionButton" parent="DisplayRow"]
+[node name="DisplayOption" type="OptionButton" parent="DisplayRow" unique_id=1090247600]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

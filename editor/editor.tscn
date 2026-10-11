@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://c5md0tempy73i" path="res://editor/editor.gd" id="4_tpbm2"]
 [ext_resource type="PackedScene" uid="uid://j875asnw84w1" path="res://editor/editor_mesher.tscn" id="5_6j37k"]
 [ext_resource type="PackedScene" uid="uid://ivr5rtc5wg7y" path="res://editor/editor_rigger.tscn" id="6_6hpnh"]
+[ext_resource type="PackedScene" uid="uid://deyc00u2o4bby" path="res://editor/editor_animator.tscn" id="7_animator"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
 
@@ -73,7 +74,7 @@ text = "File
 "
 expand_icon = true
 switch_on_hover = true
-item_count = 7
+item_count = 8
 popup/item_0/text = "New"
 popup/item_0/id = 4
 popup/item_1/text = "Open"
@@ -88,6 +89,22 @@ popup/item_5/text = "Settings"
 popup/item_5/id = 5
 popup/item_6/text = "Model Performance"
 popup/item_6/id = 6
+popup/item_7/text = "Back to Twber Home"
+popup/item_7/id = 8
+
+[node name="EditMenuButton" type="MenuButton" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=558426016]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_ycap1")
+theme_override_font_sizes/font_size = 12
+text = "Edit"
+item_count = 2
+popup/item_0/text = "Undo"
+popup/item_0/id = 0
+popup/item_0/disabled = true
+popup/item_1/text = "Redo"
+popup/item_1/id = 1
+popup/item_1/disabled = true
 
 [node name="Spacer2" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer/Toolbar/MarginContainer/HBoxContainer" unique_id=605529992]
 layout_mode = 2
@@ -131,6 +148,7 @@ switch_on_drag_hover = false
 tab_0/title = "[Place]"
 tab_1/title = "[Mesh]"
 tab_2/title = "[Rig]"
+tab_3/title = "[Animate]"
 
 [node name="EditorPlacer" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=795151654 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("2_fjngd")]
 layout_mode = 2
@@ -146,3 +164,98 @@ _preview_layer = NodePath("../../../../../ModelPreview")
 visible = false
 layout_mode = 2
 _preview_layer = NodePath("../../../../../ModelPreview")
+
+[node name="EditorAnimator" parent="PanelContainer/MarginContainer/VBoxContainer/Menus" unique_id=541907347 node_paths=PackedStringArray("_preview_layer") instance=ExtResource("7_animator")]
+visible = false
+layout_mode = 2
+_preview_layer = NodePath("../../../../../ModelPreview")
+
+[node name="OpenModelDialog" type="FileDialog" parent="." unique_id=349559271]
+unique_name_in_owner = true
+title = "Open model"
+initial_position = 2
+size = Vector2i(920, 560)
+access = 2
+filters = PackedStringArray("*.twber ; Twber models", "*.tres, *.res ; Legacy editable model resources")
+
+[node name="SaveModelDialog" type="FileDialog" parent="." unique_id=423251335]
+unique_name_in_owner = true
+title = "Save model as"
+initial_position = 2
+size = Vector2i(920, 560)
+access = 2
+filters = PackedStringArray("*.twber ; Twber models", "*.tres, *.res ; Legacy editable model resources")
+
+[node name="ExportModelDialog" type="FileDialog" parent="." unique_id=817915623]
+unique_name_in_owner = true
+title = "Export Twber copy"
+initial_position = 2
+size = Vector2i(920, 560)
+access = 2
+filters = PackedStringArray("*.twber ; Twber models")
+
+[node name="AutosaveTimer" type="Timer" parent="." unique_id=1736840722]
+unique_name_in_owner = true
+wait_time = 15.0
+one_shot = true
+
+[node name="UnsavedChangesDialog" type="Window" parent="." unique_id=1125323855]
+unique_name_in_owner = true
+oversampling_override = 1.0
+title = "Unsaved Changes"
+initial_position = 1
+size = Vector2i(500, 210)
+transient = true
+exclusive = true
+min_size = Vector2i(440, 190)
+
+[node name="Margin" type="MarginContainer" parent="UnsavedChangesDialog" unique_id=521636234]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="UnsavedChangesDialog/Margin" unique_id=618874148]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="UnsavedChangesLabel" type="Label" parent="UnsavedChangesDialog/Margin/Content" unique_id=1448628892]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text = "This model has unsaved changes."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="UnsavedChangesDialog/Margin/Content" unique_id=640605869]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="CancelChangesButton" type="Button" parent="UnsavedChangesDialog/Margin/Content/Buttons" unique_id=2109151591]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel"
+
+[node name="DiscardChangesButton" type="Button" parent="UnsavedChangesDialog/Margin/Content/Buttons" unique_id=1689790360]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Discard"
+
+[node name="SaveChangesButton" type="Button" parent="UnsavedChangesDialog/Margin/Content/Buttons" unique_id=1874277921]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="RecoveryDialog" type="ConfirmationDialog" parent="." unique_id=40816325]
+unique_name_in_owner = true
+title = "Recover Autosaved Model"
+size = Vector2i(520, 220)
+ok_button_text = "Recover"
+cancel_button_text = "Later"

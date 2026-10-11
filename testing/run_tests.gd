@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_batch_renderer_fallback()
 	_test_batch_renderer_viewport_mask_lifecycle()
 	_test_runtime_model_evaluation()
+	_test_timeline_animation_round_trip_and_runtime()
 	_test_archive_and_legacy_round_trip()
 	await _test_editor_model_open_and_reset()
 
@@ -297,6 +298,76 @@ func _test_archive_and_legacy_round_trip() -> void:
 	TwberTextureUtils.clear_package_image_cache()
 
 
+func _test_timeline_animation_round_trip_and_runtime() -> void:
+	var model := TwberModelResource.new()
+	var layer := TwberLayerResource.new()
+	layer.id = "animated_layer"
+	layer.name = "Head"
+	model.layers.append(layer)
+	model.root_layer_ids.append(layer.id)
+
+	var animation := TwberTimelineAnimationResource.new()
+	animation.id = "head_bob"
+	animation.name = "head_bob"
+	animation.duration = 1.0
+	animation.loop = true
+	for key_data: Dictionary in [
+		{"time": 0.0, "position": Vector2(0.0, -10.0)},
+		{"time": 1.0, "position": Vector2(0.0, 10.0)},
+	]:
+		var keyframe := TwberTimelineKeyframeResource.new()
+		keyframe.time = key_data["time"]
+		keyframe.layer_state = TwberLayerStateResource.from_layer_resource(layer)
+		keyframe.layer_state.channels = TwberLayerStateResource.Channel.POSITION
+		keyframe.layer_state.position = key_data["position"]
+		animation.keyframes.append(keyframe)
+	model.timeline_animations.append(animation)
+
+	var parameter := TwberParameterResource.new()
+	parameter.id = "bob_enabled"
+	parameter.name = "Bob enabled"
+	parameter.value_type = TwberParameterResource.ValueType.BOOL
+	var binding := TwberAnimationBindingResource.new()
+	binding.animation_id = animation.id
+	binding.coordinate = Vector2(1.0, 0.0)
+	parameter.animation_bindings.append(binding)
+	model.parameters.append(parameter)
+
+	var encoded := TwberModelCodec.to_dictionary(model, false)
+	var decoded := TwberModelCodec.from_dictionary(encoded)
+	_expect(
+		decoded != null and decoded.timeline_animations.size() == 1,
+		"Timeline animation survives the package dictionary round trip",
+	)
+	if decoded == null:
+		return
+	_expect(
+		decoded.parameters[0].animation_bindings.size() == 1,
+		"Parameter animation trigger survives the package dictionary round trip",
+	)
+
+	var runtime := TwberRuntimeModel.new()
+	runtime.enable_runtime_atlases = false
+	get_root().add_child(runtime)
+	runtime.set_model(decoded)
+	var runtime_layer := runtime.get_child(0) as Node2D
+	_expect(runtime_layer.position.is_equal_approx(Vector2.ZERO), "Inactive timeline keeps the neutral pose")
+	runtime.set_parameter_value("bob_enabled", true)
+	runtime._process(0.0)
+	runtime._process(0.25)
+	_expect(
+		runtime_layer.position.is_equal_approx(Vector2(0.0, -5.0)),
+		"Bound timeline interpolates the layer at the active bool value",
+	)
+	runtime.set_parameter_value("bob_enabled", false)
+	runtime._process(0.0)
+	_expect(
+		runtime_layer.position.is_equal_approx(Vector2.ZERO),
+		"Disabling a timeline trigger restores the parameter pose",
+	)
+	runtime.free()
+
+
 func _test_runtime_model_evaluation() -> void:
 	var model := TwberModelResource.new()
 	var layer_resource := TwberLayerResource.new()
@@ -527,10 +598,25 @@ func _test_editor_model_open_and_reset() -> void:
 	var editor := editor_scene.instantiate()
 	get_root().add_child(editor)
 	await process_frame
+	var expected_model_directory := TwberAppSettings.get_directory_path(
+		TwberAppSettings.MODELS_DIRECTORY_NAME
+	)
+	for dialog_name: String in ["%OpenModelDialog", "%SaveModelDialog", "%ExportModelDialog"]:
+		var model_dialog := editor.get_node(dialog_name) as FileDialog
+		_expect(
+			model_dialog != null and model_dialog.current_dir == expected_model_directory,
+			"Editor model file dialogs are scene-backed and use the Twber model library",
+		)
 	editor.call("_open_model", model_path)
 	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
 	var renderer := TwberModelBatchRenderer2D.find_on(model_root)
 	var file_menu := (editor.get_node("%FileMenuButton") as MenuButton).get_popup()
+	_expect(
+		editor.get_node_or_null("%AutosaveTimer") is Timer
+		and editor.get_node_or_null("%UnsavedChangesDialog") is Window
+		and editor.get_node_or_null("%RecoveryDialog") is ConfirmationDialog,
+		"Editor document safety uses scene-backed Timer and dialog nodes",
+	)
 	var editor_settings := editor.get("_editor_settings") as TwberEditorSettings
 	var custom_background_color := Color(0.21, 0.32, 0.43, 0.75)
 	editor_settings.background_color = custom_background_color
@@ -553,6 +639,51 @@ func _test_editor_model_open_and_reset() -> void:
 		(editor.get_node("%CurrentModelLabel") as Label).text == model_path.get_file(),
 		"Editor displays the current model file name",
 	)
+	_expect(not editor.is_dirty(), "Opening a model starts with a clean document")
+	var safety_placer := editor.get_node(
+		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer",
+	) as EditorPlacer
+	safety_placer.model_render_changed.emit(false, false)
+	_expect(not editor.is_dirty(), "A render refresh does not author model data")
+	safety_placer.select_document_layer(String(model_root.get_child(0).get_meta(TwberModelCodec.LAYER_ID_META, "")))
+	safety_placer._on_opacity_slider_value_changed(0.9)
+	_expect(
+		editor.is_dirty()
+		and (editor.get_node("%CurrentModelLabel") as Label).text.ends_with(" *"),
+		"Model edits mark the document and its filename as unsaved",
+	)
+	editor.call("_on_file_menu_id_pressed", TwberEditor.MENU_NEW)
+	var unsaved_dialog := editor.get_node("%UnsavedChangesDialog") as Window
+	_expect(
+		unsaved_dialog.visible and model_root.get_child_count() == 2,
+		"New is blocked behind the unsaved-changes dialog",
+	)
+	(editor.get_node("%CancelChangesButton") as Button).pressed.emit()
+	_expect(
+		not unsaved_dialog.visible and editor.is_dirty(),
+		"Cancel keeps the edited document intact",
+	)
+	var autosave_error: Error = await editor.call("_write_autosave")
+	var recovery_model_path := TwberAppSettings.get_directory_path(
+		TwberAppSettings.AUTOSAVES_DIRECTORY_NAME,
+	).path_join("recovery.twber")
+	var recovery_metadata_path := TwberAppSettings.get_directory_path(
+		TwberAppSettings.AUTOSAVES_DIRECTORY_NAME,
+	).path_join("recovery.cfg")
+	_expect(
+		autosave_error == OK
+		and FileAccess.file_exists(recovery_model_path)
+		and FileAccess.file_exists(recovery_metadata_path)
+		and TwberModelCodec.load_model(recovery_model_path) != null,
+		"Dirty documents write a loadable recovery model and metadata",
+	)
+	editor.call("_check_for_recovery")
+	var recovery_dialog := editor.get_node("%RecoveryDialog") as ConfirmationDialog
+	_expect(
+		recovery_dialog.visible and "Recover" in recovery_dialog.dialog_text,
+		"Editor offers scene-backed recovery when an autosave exists",
+	)
+	recovery_dialog.hide()
 	_expect(model_root.get_child_count() == 2, "Editor opens both model layers")
 	_expect(
 			renderer is TwberModelBatchRenderer2D and renderer.is_batching_active(),
@@ -619,7 +750,7 @@ func _test_editor_model_open_and_reset() -> void:
 		bound_texture_origin.is_equal_approx(old_texture_origin),
 		"Binding a parameter after changing a pivot keeps the texture fixed",
 	)
-	pivot_sprite.position += Vector2(9.0, 3.0)
+	rigger.edit_pose({"position": pivot_sprite.position + Vector2(9.0, 3.0)})
 	rigger.call("_on_bind_position_button_pressed")
 	var posed_texture_origin: Vector2 = (
 		pivot_sprite.get_global_transform_with_canvas()
@@ -809,6 +940,12 @@ func _test_editor_model_open_and_reset() -> void:
 		"Editor Save As writes a Twber model",
 	)
 	_expect(
+		not editor.is_dirty()
+		and not FileAccess.file_exists(recovery_model_path)
+		and not FileAccess.file_exists(recovery_metadata_path),
+		"Successful saves clear dirty state and recovery files",
+	)
+	_expect(
 		editor.get_current_model_path() == saved_twber_path,
 		"Saving as Twber adopts the Twber path as the current model",
 	)
@@ -972,7 +1109,75 @@ func _test_editor_model_open_and_reset() -> void:
 		and not bool(preview_values.get(bool_parameter.id, true)),
 		"Selecting False updates the preview and unpresses True",
 	)
+	var animator := editor.get_node(
+		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorAnimator",
+	) as EditorAnimator
+	editor_menus.current_tab = animator.get_index()
+	await process_frame
+	var animation_layer := preview_mask as Node2D
+	animator.reload_from_preview(animation_layer)
+	var animator_overlay := animator.get_node("%Overlay") as Control
+	_expect(
+		animator_overlay.size.y > 100.0,
+		"Animator preview overlay fills the center workspace",
+	)
+	(animator.get_node("%MoveButton") as Button).button_pressed = true
+	var animator_drag_start := animation_layer.position
+	var animator_press := InputEventMouseButton.new()
+	animator_press.button_index = MOUSE_BUTTON_LEFT
+	animator_press.pressed = true
+	animator_press.position = Vector2(200.0, 160.0)
+	animator.call("_on_overlay_gui_input", animator_press)
+	var animator_motion := InputEventMouseMotion.new()
+	animator_motion.position = Vector2(220.0, 170.0)
+	animator_motion.relative = Vector2(20.0, 10.0)
+	animator_motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	animator.call("_on_overlay_gui_input", animator_motion)
+	var animator_release := InputEventMouseButton.new()
+	animator_release.button_index = MOUSE_BUTTON_LEFT
+	animator_release.position = animator_motion.position
+	animator.call("_on_overlay_gui_input", animator_release)
+	_expect(
+		not animation_layer.position.is_equal_approx(animator_drag_start),
+		"Animator Move tool responds to a routed preview drag",
+	)
+	animator.call("_reset_selected_layer")
+	animator.call("_create_animation")
+	var authored_animations: Array = model_root.get_meta(
+			TwberModelCodec.MODEL_TIMELINE_ANIMATIONS_META,
+			[],
+	)
+	var authored_animation := authored_animations[0] as TwberTimelineAnimationResource
+	animator._rename_animation("head_bob")
+	animator.edit_pose({"position": animation_layer.position + Vector2(0.0, -4.0)})
+	animator.call("_add_point")
+	animator.set("_playhead", 1.0)
+	animator.call("_apply_animation_at_playhead")
+	animator.edit_pose({"position": animation_layer.position + Vector2(0.0, 8.0)})
+	animator.call("_add_point")
+	_expect(
+		authored_animation.keyframes.size() == 2,
+		"Animator creates two transform points for the selected layer",
+	)
+
+	editor_menus.current_tab = rigger.get_index()
+	rigger.reload_from_preview(animation_layer)
+	rigger.set("_selected_parameter_id", bool_parameter.id)
+	var binding_preview_values := rigger.get("_parameter_preview_values") as Dictionary
+	binding_preview_values[bool_parameter.id] = true
+	rigger.call("_refresh_parameter_panel")
+	rigger.call("_on_bind_animation_button_pressed")
+	_expect(
+		bool_parameter.animation_bindings.size() == 1
+		and bool_parameter.animation_bindings[0].animation_id == authored_animation.id,
+		"Rig binds a saved animation to the current bool value",
+	)
 	var captured_model := editor.call("_create_model_resource_from_base_state") as TwberModelResource
+	_expect(
+		captured_model.timeline_animations.size() == 1
+		and captured_model.timeline_animations[0].name == "head_bob",
+		"Editor save capture includes authored timeline animations",
+	)
 	var captured_mask: TwberLayerResource
 	for captured_layer: TwberLayerResource in captured_model.layers:
 		if captured_layer.id == "editor_mask":

@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c87tfh7jp3cyl"]
 
-[ext_resource type="Script" path="res://shared/model/twber_runtime_model.gd" id="1_runtime"]
+[ext_resource type="Script" uid="uid://dqehepip4iv8u" path="res://shared/model/twber_runtime_model.gd" id="1_runtime"]
 
-[node name="EnvironmentModel" type="Node2D"]
+[node name="EnvironmentModel" type="Node2D" unique_id=45165664]
 script = ExtResource("1_runtime")

@@ -109,7 +109,7 @@ expand_margin_bottom = 6.0
 [resource]
 default_font = ExtResource("1_nq7u3")
 AcceptDialog/styles/panel = SubResource("StyleBoxFlat_nq7u3")
-Button/colors/font_pressed_color = Color(0, 0, 0, 1)
+Button/colors/font_pressed_color = Color(0.23753911, 0.23753914, 0.23753911, 1)
 Button/colors/icon_pressed_color = Color(0, 0, 0, 1)
 Button/styles/pressed = SubResource("StyleBoxFlat_wlwun")
 CheckButton/styles/pressed = SubResource("StyleBoxEmpty_d8ywk")

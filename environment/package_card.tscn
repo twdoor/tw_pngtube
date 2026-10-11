@@ -41,6 +41,14 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 9
 text = "v0.0.0"
 
+[node name="PackageOrigin" type="Label" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.52, 0.55, 0.62, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Bundled"
+
 [node name="PackageEnabled" type="CheckButton" parent="Margin/Content/Top" unique_id=634283306]
 unique_name_in_owner = true
 layout_mode = 2
@@ -51,6 +59,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 10
 toggle_mode = true
 text = "Settings"
+
+[node name="RemovePackageButton" type="Button" parent="Margin/Content/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Remove this package"
+theme_override_font_sizes/font_size = 10
+text = "Remove"
 
 [node name="PackageDescription" type="Label" parent="Margin/Content" unique_id=223006301]
 unique_name_in_owner = true
@@ -76,3 +91,13 @@ autowrap_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+
+[node name="PackageLifecycleStatus" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.66, 0.25, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 9
+text = "Restart required"
+autowrap_mode = 2

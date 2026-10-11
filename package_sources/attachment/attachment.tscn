@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://y0rmd0f42s0q"]
 
-[ext_resource type="Script" path="res://package_sources/attachment/attachment.gd" id="1_attachment"]
+[ext_resource type="Script" uid="uid://um225we2x0ni" path="res://package_sources/attachment/attachment.gd" id="1_attachment"]
 
-[node name="ModelAttachments" type="Node"]
+[node name="ModelAttachments" type="Node" unique_id=1969130179]
 script = ExtResource("1_attachment")

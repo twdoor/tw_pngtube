@@ -70,6 +70,7 @@ func get_value_descriptors() -> Array[Dictionary]:
 		"name": "Microphone level",
 		"type": TYPE_FLOAT,
 		"binding_scene": "res://package_sources/microphone/binding_control.tscn",
+		"mapping_script": "res://package_sources/microphone/binding_mapper.gd",
 	}]
 
 

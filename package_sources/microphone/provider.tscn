@@ -1,9 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://m7bb6kvgh6io"]
 
-[ext_resource type="Script" path="res://package_sources/microphone/provider.gd" id="1_provider"]
+[ext_resource type="Script" uid="uid://cqn45xb3m3skn" path="res://package_sources/microphone/provider.gd" id="1_provider"]
 
-[node name="MicrophoneInputProvider" type="Node"]
+[node name="MicrophoneInputProvider" type="Node" unique_id=1137544325]
 script = ExtResource("1_provider")
 
-[node name="MicrophonePlayer" type="AudioStreamPlayer" parent="."]
-bus = &"Twber Microphone"
+[node name="MicrophonePlayer" type="AudioStreamPlayer" parent="." unique_id=1189522136]

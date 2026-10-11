@@ -10,8 +10,9 @@ config_version=5
 
 [application]
 
-config/name="twber"
-run/main_scene="res://environment/environment.tscn"
+config/name="Twber"
+config/version="0.1.0-dev.1"
+run/main_scene="res://launcher/launcher.tscn"
 config/features=PackedStringArray("4.7")
 boot_splash/bg_color=Color(0.050980393, 0.16862746, 0.27058825, 1)
 boot_splash/stretch_mode=0
@@ -22,6 +23,11 @@ config/icon="uid://t3ak4pd7stqj"
 [audio]
 
 driver/enable_input=true
+
+[autoload]
+
+AppSettings="*uid://b6gjtaim66cfk"
+VersionManager="*uid://bxo8xnq2ok73i"
 
 [debug]
 
@@ -35,10 +41,11 @@ window/size/viewport_height=720
 window/size/transparent=true
 window/subwindows/embed_subwindows=false
 window/per_pixel_transparency/allowed=true
+display_server/driver.linuxbsd="wayland"
 
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/app_settings/plugin.cfg", "res://addons/appimage_export/plugin.cfg", "res://addons/version_manager/plugin.cfg")
 
 [gui]
 
@@ -48,3 +55,9 @@ theme/custom="uid://bsd32vbcsncwc"
 
 textures/canvas_textures/default_texture_filter=0
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+
+[version_manager]
+
+builds_path="res://dist"
+changelog_path="res://CHANGELOG.md"
+export_basename="Twber"

@@ -1,0 +1,138 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://launcher/launcher.gd" id="1_launcher"]
+[ext_resource type="Texture2D" path="res://shared/assets/twber_icon.svg" id="2_icon"]
+
+[node name="Launcher" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_launcher")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.031, 0.055, 0.086, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(620, 470)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 42
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 42
+theme_override_constants/margin_bottom = 32
+
+[node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Icon" type="TextureRect" parent="Center/Panel/Margin/Content"]
+custom_minimum_size = Vector2(92, 92)
+layout_mode = 2
+texture = ExtResource("2_icon")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Twber Tools"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.72, 0.79, 1)
+text = "Create expressive 2D models, then bring them to life."
+horizontal_alignment = 1
+
+[node name="ModeButtons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EditorButton" type="Button" parent="Center/Panel/Margin/Content/ModeButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Create / Edit\nModels"
+
+[node name="EnvironmentButton" type="Button" parent="Center/Panel/Margin/Content/ModeButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Puppeteer\nEnvironment"
+
+[node name="Separator" type="HSeparator" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="AutomaticUpdatesCheck" type="CheckBox" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Check for updates when Twber starts"
+
+[node name="UtilityButtons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+alignment = 1
+
+[node name="CheckUpdatesButton" type="Button" parent="Center/Panel/Margin/Content/UtilityButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Check for Updates"
+
+[node name="OpenDataButton" type="Button" parent="Center/Panel/Margin/Content/UtilityButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open Twber Data Folder"
+
+[node name="StatusLabel" type="Label" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
+text = "Ready"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="VersionLabel" type="Label" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.47, 0.54, 1)
+text = "Version"
+horizontal_alignment = 1
+
+[node name="UpdateDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Twber Update"
+size = Vector2i(520, 210)
+cancel_button_text = "Later"
+
+[node name="UpdateProgress" type="ProgressBar" parent="UpdateDialog"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(440, 22)
+show_percentage = true
+
+[node name="MessageDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+size = Vector2i(500, 180)

@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c886jj7ywhyhp"]
 
-[ext_resource type="Script" path="res://package_sources/background/background.gd" id="1_background"]
+[ext_resource type="Script" uid="uid://deld5da46yifo" path="res://package_sources/background/background.gd" id="1_background"]
 
-[node name="StageBackground" type="Node"]
+[node name="StageBackground" type="Node" unique_id=1752684597]
 script = ExtResource("1_background")

@@ -2,6 +2,9 @@ class_name TwberResources extends Object
 
 const scripts: Dictionary[StringName, String] = {
 	&"animation_resource": "uid://pl5d4hfo6cdn",
+	&"timeline_animation_resource": "res://shared/model/twber_timeline_animation_resource.gd",
+	&"timeline_keyframe_resource": "res://shared/model/twber_timeline_keyframe_resource.gd",
+	&"animation_binding_resource": "res://shared/model/twber_animation_binding_resource.gd",
 	&"layer_resource": "uid://dh6ihsomo4l1a",
 	&"layer_state_resource": "uid://dny2vmf54so2i",
 	&"mesh_resource": "uid://cqws1vqhvsixw",

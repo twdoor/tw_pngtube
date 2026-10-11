@@ -5,6 +5,8 @@
 [ext_resource type="Script" uid="uid://d4hke14eqja6w" path="res://environment/core/twber_package_manager.gd" id="4_manager"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="5_font"]
 
+[ext_resource type="Script" path="res://environment/twber_performance_recorder.gd" id="6_recorder"]
+
 [node name="Environment" type="Node" unique_id=481477685]
 script = ExtResource("1_environment")
 
@@ -44,6 +46,11 @@ script = ExtResource("3_registry")
 [node name="PackageManager" type="Node" parent="." unique_id=211723730]
 unique_name_in_owner = true
 script = ExtResource("4_manager")
+
+[node name="WorkspaceSaveTimer" type="Timer" parent="." unique_id=129370333]
+unique_name_in_owner = true
+wait_time = 0.75
+one_shot = true
 
 [node name="Interface" type="CanvasLayer" parent="." unique_id=1400131343]
 layer = 10
@@ -96,6 +103,7 @@ text = "Click/drag selected model · Wheel to scale"
 
 [node name="EmbeddedDock" type="PanelContainer" parent="Interface/RootMargin" unique_id=635110753]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 8
 
@@ -178,6 +186,17 @@ disabled = true
 text = "Reset"
 flat = true
 
+[node name="HomeButton" type="Button" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Toolbar/MarginContainer/Items/Actions" unique_id=1313123254]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+tooltip_text = "Return to Twber Home"
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 12
+text = "Home"
+flat = true
+
 [node name="ModelRow" type="HBoxContainer" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Toolbar/MarginContainer/Items" unique_id=68070996]
 layout_mode = 2
 theme_override_constants/separation = 6
@@ -205,6 +224,11 @@ theme_override_fonts/font = ExtResource("5_font")
 theme_override_font_sizes/font_size = 11
 text = "Ready"
 text_overrun_behavior = 3
+
+[node name="PerformanceRecorder" type="VBoxContainer" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("6_recorder")
 
 [node name="Tabs" type="TabContainer" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock" unique_id=2053464090]
 layout_mode = 2
@@ -300,6 +324,29 @@ theme_override_font_sizes/font_size = 10
 text = "Packages publish typed values that can be connected to model parameters."
 autowrap_mode = 2
 
+[node name="PackageActions" type="HBoxContainer" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Tabs/Packs/Packs/Packages" unique_id=2115447078]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InstallPackageButton" type="Button" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Tabs/Packs/Packs/Packages/PackageActions" unique_id=1199171490]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Install PCK"
+
+[node name="OpenPackageDirectoryButton" type="Button" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Tabs/Packs/Packs/Packages/PackageActions" unique_id=446869257]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open Folder"
+
+[node name="PackageStatusLabel" type="Label" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Tabs/Packs/Packs/Packages" unique_id=1412042531]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 9
+text = "Only install packages from sources you trust."
+autowrap_mode = 2
+
 [node name="PackageScroll" type="ScrollContainer" parent="Interface/RootMargin/EmbeddedDock/DockMargin/ControlDock/Tabs/Packs/Packs/Packages" unique_id=2061584677]
 layout_mode = 2
 size_flags_vertical = 3
@@ -318,8 +365,8 @@ title = "Twber Environment Controls"
 position = Vector2i(80, 36)
 size = Vector2i(400, 720)
 visible = false
-min_size = Vector2i(360, 480)
 transient = true
+min_size = Vector2i(360, 480)
 
 [node name="DetachedDockMargin" type="MarginContainer" parent="Interface/DetachedControlsWindow" unique_id=924154062]
 unique_name_in_owner = true
@@ -346,9 +393,25 @@ size = Vector2i(920, 560)
 ok_button_text = "Add"
 file_mode = 1
 access = 2
+filters = PackedStringArray("*.twber ; Twber models", "*.tres, *.res ; Legacy editable model resources")
 
 [node name="ErrorDialog" type="AcceptDialog" parent="Interface" unique_id=582028564]
 unique_name_in_owner = true
 oversampling_override = 1.0
 initial_position = 2
 size = Vector2i(480, 180)
+
+[node name="InstallPackageDialog" type="FileDialog" parent="Interface" unique_id=1260760611]
+unique_name_in_owner = true
+title = "Install Twber package"
+initial_position = 2
+size = Vector2i(920, 560)
+access = 2
+filters = PackedStringArray("*.pck ; Twber package")
+
+[node name="RemovePackageDialog" type="ConfirmationDialog" parent="Interface" unique_id=1031580214]
+unique_name_in_owner = true
+title = "Remove package"
+initial_position = 1
+size = Vector2i(480, 190)
+ok_button_text = "Remove"

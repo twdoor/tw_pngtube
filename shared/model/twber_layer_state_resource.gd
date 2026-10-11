@@ -456,3 +456,14 @@ static func _vertex_arrays_equal(
 		if not first[index].is_equal_approx(second[index]):
 			return false
 	return true
+
+
+static func same_pose(first: TwberLayerStateResource, second: TwberLayerStateResource) -> bool:
+	if first == null or second == null:
+		return first == second
+	return (first.layer_id == second.layer_id and first.channels == second.channels
+		and first.position.is_equal_approx(second.position) and is_equal_approx(first.rotation, second.rotation)
+		and first.scale.is_equal_approx(second.scale) and first.visible == second.visible
+		and first.self_modulate.is_equal_approx(second.self_modulate)
+		and TwberLayerStateResource._vertex_arrays_equal(first.mesh_vertices, second.mesh_vertices)
+		and first.animation_name == second.animation_name and is_equal_approx(first.animation_frame_rate, second.animation_frame_rate))

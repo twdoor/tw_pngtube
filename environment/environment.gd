@@ -5,18 +5,21 @@ const PACKAGE_CARD_SCENE := preload("res://environment/package_card.tscn")
 const MODEL_INSTANCE_SCENE := preload("res://environment/environment_model.tscn")
 const MODEL_INPUT_PROFILE := preload("res://environment/core/twber_model_input_profile.gd")
 const ENVIRONMENT_SETTINGS := preload("res://environment/core/twber_environment_settings.gd")
-const INPUT_DRAG := -10.0
-const MODEL_FILTERS := [
-	"*.twber ; Twber model packages",
-	"*.tres, *.res ; Editable model resources",
-]
+const MODEL_SOURCE_KIND := "model"
+const IMAGE_SOURCE_KIND := "image"
+const MAX_WORKSPACE_ITEMS := 64
 
+@onready var _performance_recorder: TwberPerformanceRecorder = %PerformanceRecorder
 @onready var _model_stage: Node2D = %ModelStage
 @onready var _background_color: ColorRect = %BackgroundColor
 @onready var _background_image: TextureRect = %BackgroundImage
 @onready var _input_registry: TwberInputRegistry = %InputRegistry
 @onready var _package_manager: TwberPackageManager = %PackageManager
+@onready var _workspace_save_timer: Timer = %WorkspaceSaveTimer
 @onready var _package_list: VBoxContainer = %PackageList
+@onready var _install_package_button: Button = %InstallPackageButton
+@onready var _open_package_directory_button: Button = %OpenPackageDirectoryButton
+@onready var _package_status_label: Label = %PackageStatusLabel
 @onready var _preview_interaction: Control = %PreviewInteraction
 @onready var _preview_help: Label = %Help
 @onready var _embedded_dock: PanelContainer = %EmbeddedDock
@@ -27,6 +30,7 @@ const MODEL_FILTERS := [
 @onready var _open_model_button: Button = %OpenModelButton
 @onready var _remove_model_button: Button = %RemoveModelButton
 @onready var _reset_view_button: Button = %ResetViewButton
+@onready var _home_button: Button = %HomeButton
 @onready var _model_selector: OptionButton = %ModelSelector
 @onready var _status_label: Label = %StatusLabel
 @onready var _operation_status_label: Label = %OperationStatusLabel
@@ -35,20 +39,35 @@ const MODEL_FILTERS := [
 @onready var _model_control_storage: VBoxContainer = %ModelControlStorage
 @onready var _open_model_dialog: FileDialog = %OpenModelDialog
 @onready var _error_dialog: AcceptDialog = %ErrorDialog
+@onready var _install_package_dialog: FileDialog = %InstallPackageDialog
+@onready var _remove_package_dialog: ConfirmationDialog = %RemovePackageDialog
 
 var _parameter_controls: Dictionary[String, TwberEnvironmentParameterControl] = {}
 var _model_entries: Array[Dictionary] = []
+var _package_cards: Dictionary[StringName, TwberPackageCard] = {}
 var _selected_model: TwberRuntimeModel
 var _dragging_model := false
 var _environment_settings
 var _busy := false
+var _restoring_workspace := false
+var _pending_package_removal := StringName()
 var _stage_api := TwberStageApi.new()
 
 
 func _ready() -> void:
 	get_viewport().gui_embed_subwindows = false
+	_performance_recorder.state_changed.connect(func() -> void:
+		_home_button.disabled = _busy or _performance_recorder.blocks_navigation()
+	)
 	_environment_settings = ENVIRONMENT_SETTINGS.new()
 	_environment_settings.load()
+	_home_button.pressed.connect(func() -> void:
+		if _busy or _performance_recorder.blocks_navigation():
+			return
+		_save_workspace()
+		get_tree().change_scene_to_file("res://launcher/launcher.tscn")
+	)
+	_workspace_save_timer.timeout.connect(_save_workspace)
 	_stage_api.configure(
 		_get_stage_items,
 		_get_model_global_bounds,
@@ -60,8 +79,16 @@ func _ready() -> void:
 		_set_stage_background_image,
 		_clear_stage_background,
 	)
-	_open_model_dialog.filters = PackedStringArray(MODEL_FILTERS)
+	_stage_api.item_drag_ended.connect(_on_stage_item_drag_ended)
+	_prepare_model_directory()
 	_open_model_button.pressed.connect(_popup_open_model_dialog)
+	_install_package_button.pressed.connect(_popup_install_package_dialog)
+	_open_package_directory_button.pressed.connect(_open_package_directory)
+	_install_package_dialog.file_selected.connect(_install_package)
+	_remove_package_dialog.confirmed.connect(_remove_pending_package)
+	_remove_package_dialog.canceled.connect(func() -> void:
+		_pending_package_removal = StringName()
+	)
 	_remove_model_button.pressed.connect(remove_selected_model)
 	_reset_view_button.pressed.connect(reset_selected_model_transform)
 	_detach_controls_button.pressed.connect(_toggle_controls_detached)
@@ -75,10 +102,143 @@ func _ready() -> void:
 	_package_manager.discovery_finished.connect(_on_package_discovery_finished)
 	_environment_settings.mark_all_packages_uninstalled()
 	_package_manager.discover_packages()
+	_restore_workspace_async.call_deferred()
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(_workspace_save_timer) and not _restoring_workspace:
+		_save_workspace()
 
 
 func _popup_open_model_dialog() -> void:
+	_prepare_model_directory()
 	_open_model_dialog.show()
+
+
+func _popup_install_package_dialog() -> void:
+	var error := TwberAppSettings.ensure_directory(
+		TwberAppSettings.PACKAGES_DIRECTORY_NAME
+	)
+	if error != OK:
+		_show_error("Package Folder Unavailable", error_string(error))
+		return
+	_install_package_dialog.current_dir = _package_manager.get_package_directory_path()
+	_install_package_dialog.show()
+
+
+func _install_package(path: String) -> void:
+	var result := _package_manager.install_package(path)
+	if not bool(result.get("success", false)):
+		var message := str(result.get("error", "The package could not be installed."))
+		_package_status_label.text = message
+		_show_error("Package Installation Failed", message)
+		return
+	var message := str(result.get("message", "Package installed."))
+	if bool(result.get("restart_required", false)):
+		message += " Restart Twber to finish applying this change."
+	_package_status_label.text = message
+
+
+func _open_package_directory() -> void:
+	var error := _package_manager.open_package_directory()
+	if error != OK:
+		_show_error("Package Folder Unavailable", error_string(error))
+
+
+func _request_package_removal(package_id: StringName) -> void:
+	_pending_package_removal = package_id
+	_remove_package_dialog.dialog_text = (
+		"Remove %s.pck? The package will be disabled now and unloaded after Twber restarts."
+		% package_id
+	)
+	_remove_package_dialog.popup_centered()
+
+
+func _remove_pending_package() -> void:
+	var package_id := _pending_package_removal
+	_pending_package_removal = StringName()
+	if package_id.is_empty():
+		return
+	var result := _package_manager.remove_package(package_id)
+	if not bool(result.get("success", false)):
+		var error_message := str(result.get("error", "The package could not be removed."))
+		_package_status_label.text = error_message
+		_show_error("Package Removal Failed", error_message)
+		return
+	var card := _package_cards.get(package_id) as TwberPackageCard
+	if card != null:
+		card.mark_removal_pending()
+	var package_record: Dictionary = _package_manager.get_packages().get(package_id, {})
+	var package := package_record.get("package") as TwberEnvironmentPackage
+	if package != null:
+		_environment_settings.set_package_state(
+			package_id,
+			false,
+			package.get_package_settings(),
+		)
+		_save_environment_settings()
+	var message := str(result.get("message", "Package removed."))
+	if bool(result.get("restart_required", false)):
+		message += " Restart Twber to finish unloading it."
+	_package_status_label.text = message
+
+
+func _prepare_model_directory() -> void:
+	var error := TwberAppSettings.ensure_directory(
+		TwberAppSettings.MODELS_DIRECTORY_NAME
+	)
+	if error != OK:
+		push_warning("Could not create Twber model library: %s" % error_string(error))
+		return
+	_open_model_dialog.current_dir = TwberAppSettings.get_directory_path(
+		TwberAppSettings.MODELS_DIRECTORY_NAME
+	)
+
+
+func _restore_workspace_async() -> void:
+	_restoring_workspace = true
+	var workspace: Dictionary = _environment_settings.get_workspace()
+	var saved_entries: Variant = workspace.get("entries", [])
+	var selected_index := int(workspace.get("selected", -1))
+	var selected_model: TwberRuntimeModel
+	if saved_entries is Array:
+		var restore_count := mini((saved_entries as Array).size(), MAX_WORKSPACE_ITEMS)
+		for index: int in restore_count:
+			var saved_entry: Variant = (saved_entries as Array)[index]
+			if saved_entry is not Dictionary:
+				continue
+			var entry := saved_entry as Dictionary
+			var path := str(entry.get("path", ""))
+			if path.is_empty() or not FileAccess.file_exists(path):
+				continue
+			var source_kind := str(entry.get("kind", MODEL_SOURCE_KIND))
+			var error := await _load_workspace_source(path, source_kind)
+			if error != OK or _selected_model == null:
+				continue
+			var saved_position: Variant = entry.get("position")
+			if saved_position is Vector2 and (saved_position as Vector2).is_finite():
+				_selected_model.position = saved_position as Vector2
+			var saved_scale: Variant = entry.get("scale")
+			if (
+				saved_scale is Vector2
+				and (saved_scale as Vector2).is_finite()
+				and not (saved_scale as Vector2).is_zero_approx()
+			):
+				_selected_model.scale = saved_scale as Vector2
+			if index == selected_index:
+				selected_model = _selected_model
+	if selected_model != null:
+		_select_model(selected_model)
+	_restoring_workspace = false
+	_save_workspace()
+	if not _model_entries.is_empty():
+		_set_operation_status("Workspace restored")
+
+
+func _load_workspace_source(path: String, source_kind: String) -> Error:
+	if source_kind == IMAGE_SOURCE_KIND:
+		return await add_image_asset_async(path)
+	return await load_model_async(path)
 
 
 func _toggle_controls_detached() -> void:
@@ -161,7 +321,11 @@ func _add_selected_model_files(paths: PackedStringArray) -> void:
 			break
 
 
-func _add_model_instance(model: TwberModelResource, path: String) -> TwberRuntimeModel:
+func _add_model_instance(
+	model: TwberModelResource,
+	path: String,
+	source_kind := MODEL_SOURCE_KIND,
+) -> TwberRuntimeModel:
 	var runtime_model := MODEL_INSTANCE_SCENE.instantiate() as TwberRuntimeModel
 	runtime_model.name = _make_unique_model_node_name(path)
 	_model_stage.add_child(runtime_model)
@@ -172,6 +336,7 @@ func _add_model_instance(model: TwberModelResource, path: String) -> TwberRuntim
 	var entry := {
 		"model": runtime_model,
 		"path": path,
+		"kind": source_kind,
 		"bindings": MODEL_INPUT_PROFILE.load_bindings(path),
 		"controls": {},
 		"source_targets": {},
@@ -181,6 +346,7 @@ func _add_model_instance(model: TwberModelResource, path: String) -> TwberRuntim
 	_refresh_model_selector()
 	_select_model(runtime_model)
 	_stage_api.item_added.emit(runtime_model)
+	_schedule_workspace_save()
 	return runtime_model
 
 
@@ -205,6 +371,7 @@ func remove_selected_model() -> void:
 		_select_model(_model_entries[next_index]["model"] as TwberRuntimeModel)
 	else:
 		_show_selected_model_controls()
+	_schedule_workspace_save()
 
 
 func reset_selected_model_transform() -> void:
@@ -212,6 +379,7 @@ func reset_selected_model_transform() -> void:
 		return
 	_selected_model.position = _preview_interaction.get_global_rect().get_center()
 	_selected_model.scale = Vector2.ONE
+	_schedule_workspace_save()
 
 
 func get_current_model_path() -> String:
@@ -260,7 +428,7 @@ func add_image_asset_async(path: String) -> Error:
 	layer.texture_id = texture_id
 	model.layers.append(layer)
 	model.root_layer_ids.append(layer.id)
-	_add_model_instance(model, path)
+	_add_model_instance(model, path, IMAGE_SOURCE_KIND)
 	_set_busy(false, "Loaded %s" % path.get_file())
 	return OK
 
@@ -328,6 +496,7 @@ func _select_model(runtime_model: TwberRuntimeModel) -> void:
 	if selected_index >= 0:
 		_model_selector.select(selected_index)
 	_show_selected_model_controls()
+	_schedule_workspace_save()
 
 
 func _bring_model_forward(runtime_model: TwberRuntimeModel) -> void:
@@ -349,6 +518,7 @@ func _store_visible_parameter_controls() -> void:
 
 
 func _show_selected_model_controls() -> void:
+	_performance_recorder.selected_model = _selected_model
 	_store_visible_parameter_controls()
 	var entry := _get_selected_entry()
 	if entry.is_empty():
@@ -418,12 +588,15 @@ func _on_package_loaded(
 	var card := PACKAGE_CARD_SCENE.instantiate() as TwberPackageCard
 	_package_list.add_child(card)
 	card.configure(
-			manifest,
-			package,
-			bool(state.get("enabled", package.get_default_enabled())),
-			state.get("settings", {}) as Dictionary,
+		manifest,
+		package,
+		bool(state.get("enabled", package.get_default_enabled())),
+		state.get("settings", {}) as Dictionary,
+		bool(_package_manager.get_packages().get(package_id, {}).get("bundled", false)),
 	)
 	card.package_state_changed.connect(_on_package_state_changed)
+	card.removal_requested.connect(_request_package_removal)
+	_package_cards[package_id] = card
 	_environment_settings.set_package_state(
 			package_id,
 			package.is_package_enabled(),
@@ -434,10 +607,12 @@ func _on_package_loaded(
 
 func _on_package_failed(path: String, reason: String) -> void:
 	push_warning("Could not load package %s: %s" % [path, reason])
+	_package_status_label.text = "Could not load %s: %s" % [path.get_file(), reason]
 
 
 func _on_package_discovery_finished() -> void:
 	_save_environment_settings()
+	_package_status_label.text = "%d packages loaded" % _package_manager.get_packages().size()
 
 
 func _on_package_state_changed(
@@ -567,7 +742,15 @@ func _apply_source_value(
 	var control := controls.get(parameter_id) as TwberEnvironmentParameterControl
 	if control == null or runtime_model == null:
 		return
-	var mapped_value: Variant = control.apply_source_value(raw_value)
+	var binding: Dictionary = (entry["bindings"] as Dictionary).get(parameter_id, {})
+	var mapper := _input_registry.get_mapping(StringName(binding.get("source_id", "")))
+	var mapped_value: Variant
+	if mapper != null:
+		var parameter := TwberEditParameter.find(runtime_model.model, parameter_id)
+		mapped_value = mapper.map_value(parameter, binding.get("configuration", {}), raw_value, TwberInputContext.capture_displays())
+	else:
+		# Older third-party packages can still supply their mapping via a widget.
+		mapped_value = control.apply_source_value(raw_value)
 	var source_targets := entry.get("source_targets") as Dictionary
 	if smooth and (mapped_value is float or mapped_value is int or mapped_value is Vector2):
 		var state: Dictionary = source_targets.get(parameter_id, {})
@@ -586,7 +769,6 @@ func _apply_source_value(
 
 
 func _process(delta: float) -> void:
-	var weight := 1.0 - exp(INPUT_DRAG * delta)
 	for entry: Dictionary in _model_entries:
 		var runtime_model := entry.get("model") as TwberRuntimeModel
 		var source_targets := entry.get("source_targets") as Dictionary
@@ -598,8 +780,8 @@ func _process(delta: float) -> void:
 			var state: Dictionary = source_targets.get(parameter_id, {})
 			var current: Variant = state.get("current")
 			var target: Variant = state.get("target")
-			var next_value: Variant = _lerp_input_value(current, target, weight)
-			if _input_values_are_close(next_value, target):
+			var next_value: Variant = TwberInputSmoothing.advance(current, target, delta)
+			if TwberInputSmoothing.settled(next_value, target):
 				next_value = target
 				source_targets.erase(parameter_id)
 			else:
@@ -612,22 +794,6 @@ func _process(delta: float) -> void:
 					var applied_value: Variant = runtime_model.get_parameter_value(parameter_id)
 					control.set_value(applied_value)
 					control.set_source_preview(state.get("raw"), applied_value)
-
-
-static func _lerp_input_value(current: Variant, target: Variant, weight: float) -> Variant:
-	if current is Vector2 and target is Vector2:
-		return lerp(current as Vector2, target as Vector2, weight)
-	if (current is float or current is int) and (target is float or target is int):
-		return lerpf(float(current), float(target), weight)
-	return target
-
-
-static func _input_values_are_close(value: Variant, target: Variant) -> bool:
-	if value is Vector2 and target is Vector2:
-		return (value as Vector2).distance_squared_to(target as Vector2) <= 0.000001
-	if (value is float or value is int) and (target is float or target is int):
-		return absf(float(value) - float(target)) <= 0.0005
-	return value == target
 
 
 func _save_model_profile(entry: Dictionary) -> void:
@@ -650,8 +816,47 @@ func _save_environment_settings() -> void:
 		_set_operation_status("Settings saved")
 
 
+func _schedule_workspace_save() -> void:
+	if _restoring_workspace or not is_instance_valid(_workspace_save_timer):
+		return
+	_workspace_save_timer.start()
+
+
+func _save_workspace() -> void:
+	if _restoring_workspace or _environment_settings == null:
+		return
+	var entries: Array[Dictionary] = []
+	var selected_index := -1
+	for child: Node in _model_stage.get_children():
+		if child is not TwberRuntimeModel:
+			continue
+		var runtime_model := child as TwberRuntimeModel
+		var model_entry := _get_model_entry(runtime_model)
+		var path := str(model_entry.get("path", ""))
+		if path.is_empty():
+			continue
+		if runtime_model == _selected_model:
+			selected_index = entries.size()
+		entries.append({
+			"path": path,
+			"kind": str(model_entry.get("kind", MODEL_SOURCE_KIND)),
+			"position": runtime_model.position,
+			"scale": runtime_model.scale,
+		})
+	_environment_settings.set_workspace(entries, selected_index)
+	var error: Error = _environment_settings.save()
+	if error != OK:
+		push_error("Could not save environment workspace: %s" % error_string(error))
+
+
+func _on_stage_item_drag_ended(_item: Node2D) -> void:
+	_schedule_workspace_save()
+
+
 func _set_busy(busy: bool, status: String) -> void:
 	_busy = busy
+	_performance_recorder.unavailable = busy
+	_home_button.disabled = busy or _performance_recorder.blocks_navigation()
 	_open_model_button.disabled = busy
 	_model_selector.disabled = busy or _model_entries.is_empty()
 	_remove_model_button.disabled = busy or _selected_model == null
@@ -679,10 +884,12 @@ func _on_preview_gui_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed and _selected_model != null:
 			var next_scale := minf(_selected_model.scale.x * 1.1, 8.0)
 			_selected_model.scale = Vector2.ONE * next_scale
+			_schedule_workspace_save()
 			_preview_interaction.accept_event()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed and _selected_model != null:
 			var next_scale := maxf(_selected_model.scale.x / 1.1, 0.05)
 			_selected_model.scale = Vector2.ONE * next_scale
+			_schedule_workspace_save()
 			_preview_interaction.accept_event()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
