@@ -1,0 +1,201 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_a7f0c"]
+[ext_resource type="Texture2D" uid="uid://cc5o2k383gll" path="res://shared/assets/icons/card.svg" id="3_78d8l"]
+[ext_resource type="Texture2D" uid="uid://sq8uhsagffje" path="res://shared/assets/icons/cards.svg" id="4_jnso7"]
+[ext_resource type="Texture2D" uid="uid://cafmrmmi0pxm0" path="res://shared/assets/icons/square.svg" id="5_tfx84"]
+[ext_resource type="Texture2D" uid="uid://bqi66ctfu5030" path="res://shared/assets/icons/copy.svg" id="8_tfx84"]
+[ext_resource type="Texture2D" uid="uid://vrys3fecv8md" path="res://shared/assets/icons/cursor-default-02.svg" id="10_pointer"]
+[ext_resource type="Texture2D" uid="uid://b8rkam22a3uut" path="res://shared/assets/icons/cursor-move.svg" id="11_move"]
+[ext_resource type="Texture2D" uid="uid://bpjb5ofpa8ers" path="res://shared/assets/icons/change.svg" id="12_rotate"]
+[ext_resource type="Texture2D" uid="uid://83jdb8ri4wy5" path="res://shared/assets/icons/expand-02.svg" id="13_scale"]
+[ext_resource type="Texture2D" uid="uid://c2xf3ons8p7ni" path="res://shared/assets/icons/circle-ring.svg" id="14_pivot"]
+
+[ext_resource type="Script" path="res://editor/workspace/twber_tool_strip.gd" id="strip"]
+
+[sub_resource type="InputEventKey" id="InputEventKey_78d8l"]
+device = -1
+keycode = 78
+unicode = 110
+
+[sub_resource type="Shortcut" id="Shortcut_aws7q"]
+events = [SubResource("InputEventKey_78d8l")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_jnso7"]
+device = -1
+shift_pressed = true
+keycode = 78
+unicode = 78
+
+[sub_resource type="Shortcut" id="Shortcut_yyul4"]
+events = [SubResource("InputEventKey_jnso7")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_tfx84"]
+device = -1
+ctrl_pressed = true
+keycode = 78
+unicode = 110
+
+[sub_resource type="Shortcut" id="Shortcut_dblv8"]
+events = [SubResource("InputEventKey_tfx84")]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_transform"]
+
+[sub_resource type="InputEventKey" id="InputEventKey_mgdss"]
+device = -1
+keycode = 81
+unicode = 113
+
+[sub_resource type="Shortcut" id="Shortcut_gd3al"]
+events = [SubResource("InputEventKey_mgdss")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_e3a5h"]
+device = -1
+keycode = 87
+unicode = 119
+
+[sub_resource type="Shortcut" id="Shortcut_m6na2"]
+events = [SubResource("InputEventKey_e3a5h")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_5jk4d"]
+device = -1
+keycode = 69
+unicode = 101
+
+[sub_resource type="Shortcut" id="Shortcut_2jkck"]
+events = [SubResource("InputEventKey_5jk4d")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_v5h2c"]
+device = -1
+keycode = 82
+unicode = 114
+
+[sub_resource type="Shortcut" id="Shortcut_fdg80"]
+events = [SubResource("InputEventKey_v5h2c")]
+
+[sub_resource type="InputEventKey" id="InputEventKey_sxkf2"]
+device = -1
+keycode = 84
+unicode = 116
+
+[sub_resource type="Shortcut" id="Shortcut_8ycb7"]
+events = [SubResource("InputEventKey_sxkf2")]
+
+[node name="Tools" type="Container"]
+script = ExtResource("strip")
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/workspace_mode = 0
+
+[node name="LayerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "New Layer"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_aws7q")
+icon = ExtResource("3_78d8l")
+icon_alignment = 1
+expand_icon = true
+
+[node name="AnimationLayerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "New Animated Layer"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_yyul4")
+icon = ExtResource("4_jnso7")
+icon_alignment = 1
+expand_icon = true
+
+[node name="EmptyButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "New Empty Layer"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+shortcut = SubResource("Shortcut_dblv8")
+icon = ExtResource("5_tfx84")
+icon_alignment = 1
+expand_icon = true
+
+[node name="PointerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Pointer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+shortcut = SubResource("Shortcut_gd3al")
+icon = ExtResource("10_pointer")
+icon_alignment = 1
+expand_icon = true
+
+[node name="MoveButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Move layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+shortcut = SubResource("Shortcut_m6na2")
+icon = ExtResource("11_move")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RotateButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Rotate layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+shortcut = SubResource("Shortcut_2jkck")
+icon = ExtResource("12_rotate")
+icon_alignment = 1
+expand_icon = true
+
+[node name="ScaleButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Scale layer"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+shortcut = SubResource("Shortcut_fdg80")
+icon = ExtResource("13_scale")
+icon_alignment = 1
+expand_icon = true
+
+[node name="PivotButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Change pivot"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_transform")
+shortcut = SubResource("Shortcut_8ycb7")
+icon = ExtResource("14_pivot")
+icon_alignment = 1
+expand_icon = true
+
+[node name="MirrorButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Mirror duplicate selected layers"
+icon = ExtResource("8_tfx84")
+icon_alignment = 1
+expand_icon = true
+

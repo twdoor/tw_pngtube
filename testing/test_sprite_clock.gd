@@ -229,7 +229,7 @@ func _test_editor(model: TwberModelResource, id: String, expected: Dictionary) -
 	await process_frame
 	editor._apply_opened_model(model, "")
 	var animator := editor._editor_animator
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	animator._selected_animation_id = id
 	for time: float in [1.0, 0.0, 0.5, 0.25, 0.75]:
 		animator._playhead = time

@@ -1,7 +1,7 @@
 # Editor workspace redesign plan
 
 Planning baseline: 2026-10-11, commit `065b9dc`. This document proposes work;
-it does not describe an implemented docking system.
+it does not describe an implemented docking system. See [implementation progress](ui-redesign-progress.md) for the working workspace and remaining steps.
 
 ## Intent
 

@@ -1,0 +1,185 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="1_a7f0c"]
+[ext_resource type="Texture2D" uid="uid://lnw3g5w4ewhe" path="res://shared/assets/icons/visible.svg" id="3_ln3a8"]
+[ext_resource type="Texture2D" uid="uid://cnwknklfei45d" path="res://shared/assets/icons/invisible.svg" id="4_ysb3u"]
+[ext_resource type="Texture2D" uid="uid://d1lvdtk0va1eh" path="res://shared/assets/icons/plus.svg" id="5_xn84x"]
+[ext_resource type="Texture2D" uid="uid://co555kkokpg7f" path="res://shared/assets/icons/cross.svg" id="6_78d8l"]
+[ext_resource type="Texture2D" uid="uid://b7ijnbrim3jfw" path="res://shared/assets/icons/pencil.svg" id="7_jnso7"]
+[ext_resource type="Texture2D" uid="uid://bqi66ctfu5030" path="res://shared/assets/icons/copy.svg" id="8_tfx84"]
+[ext_resource type="Texture2D" uid="uid://b1umouv1xgltw" path="res://shared/assets/icons/trash.svg" id="9_whbxg"]
+[ext_resource type="Script" path="res://editor/panels/inspector_content.gd" id="hint"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_hdak6"]
+size = Vector2(100, 100)
+
+[node name="InspectorContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("hint")
+metadata/workspace_mode = 0
+
+[node name="EmptySelection" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
+text = "Select a layer to inspect."
+autowrap_mode = 3
+
+[node name="Inspector" type="VBoxContainer" parent="."]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="LayerActions" type="VBoxContainer" parent="Inspector"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Inspector/LayerActions"]
+layout_mode = 2
+
+[node name="ChangeTextureButton" type="TextureButton" parent="Inspector/LayerActions/HBoxContainer"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(90, 90)
+custom_maximum_size = Vector2(90, 90)
+layout_mode = 2
+tooltip_text = "Change Texture"
+texture_normal = SubResource("PlaceholderTexture2D_hdak6")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Inspector/LayerActions/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VisibleCheckBox" type="CheckBox" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Visibility toggle"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+theme_override_icons/checked = ExtResource("3_ln3a8")
+theme_override_icons/unchecked = ExtResource("4_ysb3u")
+flat = true
+
+[node name="OpacitySlider" type="HSlider" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+tooltip_text = "Set Opacity"
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="ShowBehindParentCheckBox" type="CheckBox" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Draw this layer behind its parent"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+text = "Behind parent"
+
+[node name="ClipOptionButton" type="OptionButton" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Clip Children"
+item_count = 3
+popup/item_0/text = "Disabled"
+popup/item_0/id = 0
+popup/item_1/text = "Clip only"
+popup/item_1/id = 1
+popup/item_2/text = "Clip + Draw"
+popup/item_2/id = 2
+
+[node name="AnimationFrameRate" type="SpinBox" parent="Inspector/LayerActions/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+value = 5.0
+alignment = 2
+update_on_text_changed = true
+suffix = "FPS"
+
+[node name="AnimationsBox" type="HBoxContainer" parent="Inspector/LayerActions"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AnimationsOptionButton" type="OptionButton" parent="Inspector/LayerActions/AnimationsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NewAnimationButton" type="Button" parent="Inspector/LayerActions/AnimationsBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "New Animation"
+icon = ExtResource("5_xn84x")
+icon_alignment = 1
+expand_icon = true
+
+[node name="DeleteAnimationButton" type="Button" parent="Inspector/LayerActions/AnimationsBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Delete Animation"
+theme_override_colors/icon_normal_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
+icon = ExtResource("6_78d8l")
+icon_alignment = 1
+expand_icon = true
+
+[node name="RenameAnimationButton" type="Button" parent="Inspector/LayerActions/AnimationsBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Rename Animation"
+icon = ExtResource("7_jnso7")
+icon_alignment = 1
+expand_icon = true
+
+[node name="GeneralActions" type="HBoxContainer" parent="Inspector"]
+layout_mode = 2
+
+[node name="DuplicateButton" type="Button" parent="Inspector/GeneralActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Duplicate Layer"
+theme_override_fonts/font = ExtResource("1_a7f0c")
+icon = ExtResource("8_tfx84")
+icon_alignment = 1
+expand_icon = true
+
+[node name="DeleteButton" type="Button" parent="Inspector/GeneralActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Delete Layer"
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_normal_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_focus_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/icon_hover_pressed_color = Color(1, 0, 0, 1)
+theme_override_fonts/font = ExtResource("1_a7f0c")
+icon = ExtResource("9_whbxg")
+icon_alignment = 1
+

@@ -29,17 +29,16 @@ enum MeshMode {
 	JOIN_EDGE,
 }
 
-@onready var _add_point_button: Button = %AddPointButton
-@onready var _remove_point_button: Button = %RemovePointButton
-@onready var _rectangle_select_button: Button = %RectangleSelectButton
-@onready var _lasso_select_button: Button = %LassoSelectButton
-@onready var _cut_button: Button = %CutButton
-@onready var _join_button: Button = %JoinButton
-@onready var _fast_mesh_button: Button = %FastMeshButton
-@onready var _horizontal_vertices: SpinBox = %HorizontalVertices
-@onready var _vertical_vertices: SpinBox = %VerticalVertices
-@onready var _fast_mesh_dialog: ConfirmationDialog = %FastMeshDialog
-@onready var _edit_panel: Control = $Panel
+@onready var _add_point_button: Button = get_panel_control("AddPointButton")
+@onready var _remove_point_button: Button = get_panel_control("RemovePointButton")
+@onready var _rectangle_select_button: Button = get_panel_control("RectangleSelectButton")
+@onready var _lasso_select_button: Button = get_panel_control("LassoSelectButton")
+@onready var _cut_button: Button = get_panel_control("CutButton")
+@onready var _join_button: Button = get_panel_control("JoinButton")
+@onready var _fast_mesh_button: Button = get_panel_control("FastMeshButton")
+@onready var _horizontal_vertices: SpinBox = $FastMeshDialog.get_node("%HorizontalVertices")
+@onready var _vertical_vertices: SpinBox = $FastMeshDialog.get_node("%VerticalVertices")
+@onready var _fast_mesh_dialog: ConfirmationDialog = $FastMeshDialog
 
 var _selected_vertex_indices: Array[int] = []
 var _join_first_vertex_index := -1
@@ -66,16 +65,8 @@ func _ready() -> void:
 
 
 func _setup_overlay() -> void:
-	_edit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_edit_panel.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
-	_overlay = Control.new()
-	_overlay.name = "MeshOverlay"
-	_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
-	_overlay.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
-	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.gui_input.connect(_on_overlay_gui_input)
 	_overlay.draw.connect(_on_overlay_draw)
-	_edit_panel.add_child(_overlay)
 
 
 func _on_overlay_draw() -> void:
@@ -92,7 +83,7 @@ func _on_overlay_draw() -> void:
 
 
 func _on_overlay_gui_input(event: InputEvent) -> void:
-	if not visible or _model_root == null:
+	if not tool_active or _model_root == null:
 		return
 
 	if event is InputEventMouseButton:

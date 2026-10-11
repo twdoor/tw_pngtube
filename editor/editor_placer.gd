@@ -1,4 +1,4 @@
-class_name EditorPlacer extends HSplitContainer
+class_name EditorPlacer extends TwberEditorTool
 
 signal model_render_changed(rebuild_atlases: bool, reconfigure_batching: bool)
 signal transform_committed(node: Node2D)
@@ -14,7 +14,6 @@ const DRAG_DATA_TYPE := &"editor_placer_tree_item"
 const ROOT_LAYER_ID := 0
 const INVALID_LAYER_ID := -1
 const IMAGE_FILTER := "*.png, *.jpg, *.jpeg, *.webp ; Image files"
-const MODEL_ROOT_NAME := "Textures"
 const TEXTURE_PREVIEW_ALPHA_THRESHOLD := 0.001
 const TEXTURE_RUNTIME_COMPRESS_MODE := Image.COMPRESS_S3TC
 const TEXTURE_RUNTIME_COMPRESS_SOURCE := Image.COMPRESS_SOURCE_GENERIC
@@ -39,35 +38,31 @@ enum TransformMode {
 	PIVOT,
 }
 
-@onready var _layer_button: Button = %LayerButton
-@onready var _animation_layer_button: Button = %AnimationLayerButton
-@onready var _empty_button: Button = %EmptyButton
-@onready var _pointer_button: Button = %PointerButton
-@onready var _move_button: Button = %MoveButton
-@onready var _rotate_button: Button = %RotateButton
-@onready var _scale_button: Button = %ScaleButton
-@onready var _pivot_button: Button = %PivotButton
-@onready var _mirror_button: Button = %MirrorButton
-@onready var _tree: Tree = %Tree
-@onready var _inspector: PanelContainer = %Inspector
-@onready var _layer_actions: Control = %LayerActions
-@onready var _change_texture_button: TextureButton = %ChangeTextureButton
-@onready var _visible_check_box: CheckBox = %VisibleCheckBox
-@onready var _show_behind_parent_check_box: CheckBox = %ShowBehindParentCheckBox
-@onready var _opacity_slider: HSlider = %OpacitySlider
-@onready var _clip_option_button: OptionButton = %ClipOptionButton
-@onready var _animation_frame_rate: SpinBox = %AnimationFrameRate
-@onready var _animations_box: Control = %AnimationsBox
-@onready var _animations_option_button: OptionButton = %AnimationsOptionButton
-@onready var _new_animation_button: Button = %NewAnimationButton
-@onready var _delete_animation_button: Button = %DeleteAnimationButton
-@onready var _rename_animation_button: Button = %RenameAnimationButton
-@onready var _duplicate_button: Button = %DuplicateButton
-@onready var _delete_button: Button = %DeleteButton
-@onready var _edit_panel: Control = $Panel
-@export var _preview_layer: CanvasLayer
-@export var _new_model_root_position := Vector2.ZERO
-@export var _new_model_root_scale := Vector2(0.1, 0.1)
+@onready var _layer_button: Button = get_panel_control("LayerButton")
+@onready var _animation_layer_button: Button = get_panel_control("AnimationLayerButton")
+@onready var _empty_button: Button = get_panel_control("EmptyButton")
+@onready var _pointer_button: Button = get_panel_control("PointerButton")
+@onready var _move_button: Button = get_panel_control("MoveButton")
+@onready var _rotate_button: Button = get_panel_control("RotateButton")
+@onready var _scale_button: Button = get_panel_control("ScaleButton")
+@onready var _pivot_button: Button = get_panel_control("PivotButton")
+@onready var _mirror_button: Button = get_panel_control("MirrorButton")
+@onready var _tree: Tree = get_panel_control("Tree")
+@onready var _inspector: VBoxContainer = get_panel_control("Inspector")
+@onready var _layer_actions: Control = get_panel_control("LayerActions")
+@onready var _change_texture_button: TextureButton = get_panel_control("ChangeTextureButton")
+@onready var _visible_check_box: CheckBox = get_panel_control("VisibleCheckBox")
+@onready var _show_behind_parent_check_box: CheckBox = get_panel_control("ShowBehindParentCheckBox")
+@onready var _opacity_slider: HSlider = get_panel_control("OpacitySlider")
+@onready var _clip_option_button: OptionButton = get_panel_control("ClipOptionButton")
+@onready var _animation_frame_rate: SpinBox = get_panel_control("AnimationFrameRate")
+@onready var _animations_box: Control = get_panel_control("AnimationsBox")
+@onready var _animations_option_button: OptionButton = get_panel_control("AnimationsOptionButton")
+@onready var _new_animation_button: Button = get_panel_control("NewAnimationButton")
+@onready var _delete_animation_button: Button = get_panel_control("DeleteAnimationButton")
+@onready var _rename_animation_button: Button = get_panel_control("RenameAnimationButton")
+@onready var _duplicate_button: Button = get_panel_control("DuplicateButton")
+@onready var _delete_button: Button = get_panel_control("DeleteButton")
 
 var _root_item: TreeItem
 var _selected_layer_id := INVALID_LAYER_ID
@@ -76,7 +71,6 @@ var _texture_preview_cache: Dictionary = {}
 var _texture_preview_cache_order: Array[Variant] = []
 var _editor_settings: TwberEditorSettings
 var _updating_inspector := false
-var _model_root: Node2D
 var _next_item_id := 1
 var _layers_by_id: Dictionary = {}
 var _root_layer_ids: Array[int] = []
@@ -87,7 +81,6 @@ var _item_counts: Dictionary = {
 	PlacerItemType.ANIMATION_LAYER: 0,
 	PlacerItemType.EMPTY: 0,
 }
-var _overlay: Control
 var _dragging_transform := false
 var _transform_mode: int = TransformMode.POINTER
 var _transform_start_mouse := Vector2.ZERO
@@ -239,16 +232,8 @@ func refresh_overlay() -> void:
 
 
 func _setup_transform_overlay() -> void:
-	_edit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_edit_panel.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
-	_overlay = Control.new()
-	_overlay.name = "PlacerOverlay"
-	_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
-	_overlay.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_ENABLED
-	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.gui_input.connect(_on_overlay_gui_input)
 	_overlay.draw.connect(_on_overlay_draw)
-	_edit_panel.add_child(_overlay)
 
 
 func _on_overlay_draw() -> void:
@@ -270,7 +255,7 @@ func _on_overlay_draw() -> void:
 
 
 func _on_overlay_gui_input(event: InputEvent) -> void:
-	if not visible or _model_root == null:
+	if not tool_active or _model_root == null:
 		return
 	if event is InputEventMouseButton:
 		_handle_transform_mouse_button(
@@ -698,12 +683,14 @@ func _on_rename_animation_button_pressed() -> void:
 func _set_selected_layer(layer_id: int) -> void:
 	if not _layers_by_id.has(layer_id):
 		_selected_layer_id = INVALID_LAYER_ID
+		document_layer_selected.emit("")
 		_hide_inspector()
 		refresh_overlay()
 		return
 
 	_selected_layer_id = layer_id
 	_refresh_inspector()
+	document_layer_selected.emit(get_selected_document_layer_id())
 
 
 func _hide_inspector() -> void:
@@ -1284,28 +1271,8 @@ func _add_layer_items(parent_item: TreeItem, layer_ids: Array, collapsed_state: 
 
 
 func _setup_preview() -> void:
-	if _preview_layer == null:
-		push_warning("EditorPlacer needs a preview CanvasLayer.")
-		return
-
-	_model_root = _get_or_create_model_root()
+	assert(_model_root != null, "Tool controller needs a model root.")
 	_load_model_tree_from_preview()
-
-
-func _get_or_create_model_root() -> Node2D:
-	var existing_node := _preview_layer.get_node_or_null(MODEL_ROOT_NAME)
-	if existing_node is Node2D:
-		return existing_node
-
-	if existing_node != null:
-		push_warning("Preview CanvasLayer has a non-Node2D child named %s." % MODEL_ROOT_NAME)
-
-	var model_root := Node2D.new()
-	model_root.name = MODEL_ROOT_NAME
-	model_root.position = _new_model_root_position
-	model_root.scale = _new_model_root_scale
-	_preview_layer.add_child(model_root)
-	return model_root
 
 
 func _load_model_tree_from_preview() -> void:

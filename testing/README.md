@@ -16,6 +16,7 @@ workflows to check their behavior with real textures and rendering.
 | --- | --- |
 | `run_tests.gd` | Texture handling, parameter/runtime evaluation, sparse channels, atlas/batch lifecycle, archive compatibility, editor open/save/recovery |
 | `test_document_editor.gd` | Document ownership, validation, atomic history, hierarchy, mesh gestures, rig/clip commands, assets, and pose drafts |
+| `test_workspace.gd` | Authored scenes, panel ownership, compact tool layouts, docking input, split/tab layouts, presets and restart restoration, selection/draft/recording isolation, native window focus, canvas clipping and zoom |
 | `test_parameter_tracks.gd` | Parameter tracks, priorities, reference composition, serialization, shared editor/runtime playback |
 | `test_recording_export.gd` | Rig parameter recording, editable takes, fixed-time PNG export and cancellation |
 | `test_environment_recording.gd` | Mapped live input, triggered performance recording, instance isolation, save retry, prepared archive isolation, exported pixels |

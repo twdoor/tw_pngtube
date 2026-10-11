@@ -252,11 +252,11 @@ func _test_editor_preview_ownership() -> void:
 	root.add_child(editor)
 	await process_frame
 	editor.call("_apply_opened_model", _make_rigged_model(), "")
-	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
+	var model_root: Node2D = editor._model_root
 	var layer := model_root.get_child(0) as Node2D
 	var placer := editor.get("_editor_placer") as EditorPlacer
 	var animator := editor.get("_editor_animator") as EditorAnimator
-	var menus := placer.get_parent() as TabContainer
+	var menus := editor._mode_bar
 	menus.current_tab = placer.get_index()
 	await process_frame
 	var layers: Dictionary = placer.get("_layers_by_id")
@@ -304,12 +304,12 @@ func _test_editor_history_and_saves() -> void:
 	root.add_child(editor)
 	await process_frame
 	editor._apply_opened_model(_make_rigged_model(), "")
-	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
+	var model_root: Node2D = editor._model_root
 	var placer := editor._editor_placer
 	var animator := editor._editor_animator
 	var rigger := editor._editor_rigger
 	var document := editor._document
-	editor._menus.current_tab = placer.get_index()
+	editor._mode_bar.current_tab = placer.get_index()
 	placer.select_document_layer("layer_001")
 	var layer := model_root.get_child(0) as Node2D
 	var revision := document.get_revision()
@@ -349,7 +349,7 @@ func _test_editor_history_and_saves() -> void:
 		"Undo preserves camera position")
 	_expect(editor.redo_document(), "Inspector changes support Redo")
 	# Editing animation metadata while its pose is displayed must retain neutral rest data.
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	animator._select_animation_index(0)
 	animator._toggle_playback()
 	animator._rename_animation("Motion")
@@ -362,7 +362,7 @@ func _test_editor_history_and_saves() -> void:
 		and loaded.timeline_animations[0].name == "Motion"
 		and loaded.timeline_animations[0].keyframes[0].layer_state.position == Vector2(55, 20),
 		"Archive stores rest pose and animation edits independently")
-	editor._menus.current_tab = rigger.get_index()
+	editor._mode_bar.current_tab = rigger.get_index()
 	rigger._on_parameter_value_changed(rigger._get_model_parameters()[0], 1.0)
 	layer = model_root.get_child(0) as Node2D
 	displayed = layer.position
@@ -373,7 +373,7 @@ func _test_editor_history_and_saves() -> void:
 		"Rig authoring keeps preview transforms out of rest data")
 	_expect(editor.undo_document() and document.snapshot().to_model_resource().parameters.size() == 1,
 		"Undo removes a newly authored parameter")
-	editor._menus.current_tab = placer.get_index()
+	editor._mode_bar.current_tab = placer.get_index()
 	placer.select_document_layer("layer_001")
 	placer._on_delete_button_pressed()
 	_expect(editor._finish_pending_authoring() == OK, "Deleting a rigged and animated layer commits successfully")
@@ -545,7 +545,7 @@ func _test_editor_native_hierarchy() -> void:
 	await process_frame
 	editor._apply_opened_model(_make_hierarchy_model(), "")
 	var placer := editor._editor_placer
-	editor._menus.current_tab = placer.get_index()
+	editor._mode_bar.current_tab = placer.get_index()
 	var original := TwberParameterMapper.get_layer_nodes_by_id(editor._model_root)
 	var revision := editor._document.get_revision()
 	placer.select_document_layer("layer_001")
@@ -687,7 +687,7 @@ func _test_editor_mesh_gestures() -> void:
 	await process_frame
 	editor._apply_opened_model(_make_mesh_model(), "")
 	var mesher := editor._editor_mesher
-	editor._menus.current_tab = mesher.get_index()
+	editor._mode_bar.current_tab = mesher.get_index()
 	var mesh := editor._model_root.get_child(0) as TwberMeshSprite2D
 	mesher.reload_from_preview(mesh)
 	# Insertion and gesture edits share this editor fixture and history.
@@ -750,15 +750,15 @@ func _test_editor_mesh_gestures() -> void:
 	start = mesh.get_global_transform_with_canvas() * mesh.get_vertex(1)
 	mesher._begin_vertex_drag(mesh, 1, start)
 	_mesh_motion(mesher, start + Vector2(9, 0))
-	editor._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	editor._cancel_external_focus_edits()
 	_expect(mesh.get_vertex(1) == Vector2(59, 0) and editor._mesh_edit_session == null,
 		"Losing window focus cancels an unfinished mesh gesture")
 	mesher._begin_vertex_drag(mesh, 1, start)
 	_mesh_motion(mesher, start + Vector2(3, 0))
-	editor._menus.current_tab = editor._editor_placer.get_index()
+	editor._mode_bar.current_tab = editor._editor_placer.get_index()
 	_expect(editor._mesh_edit_session == null and editor._document.snapshot().to_model_resource().layers[0].mesh.vertices[1] == Vector2(62, 0),
 		"Changing workspace finishes the active mesh gesture")
-	editor._menus.current_tab = mesher.get_index()
+	editor._mode_bar.current_tab = mesher.get_index()
 	mesher.reload_from_preview(mesh)
 	revision = editor._document.get_revision()
 	mesher._start_gesture("Remove mesh vertices")
@@ -790,7 +790,7 @@ func _test_mesh_conversion_gesture() -> void:
 	await process_frame
 	editor._apply_opened_model(model, "")
 	var mesher := editor._editor_mesher
-	editor._menus.current_tab = mesher.get_index()
+	editor._mode_bar.current_tab = mesher.get_index()
 	var sprite := editor._model_root.get_child(0) as Sprite2D
 	var child := sprite.get_child(0) as Node2D
 	var child_world := child.global_transform
@@ -963,7 +963,7 @@ func _test_editor_native_parameters() -> void:
 	editor._apply_opened_model(_make_rigged_model(), "")
 	var rig := editor._editor_rigger
 	var document := editor._document
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	var node := editor._model_root.get_child(0) as Node2D
 	rig._select_node(node)
 	rig._on_parameter_value_changed(rig._get_model_parameters()[0], 1.0)
@@ -1134,7 +1134,7 @@ func _test_editor_native_timeline() -> void:
 	editor._apply_opened_model(_make_triggered_timeline_model(), "")
 	var animator := editor._editor_animator
 	var document := editor._document
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	var node := editor._model_root.get_child(0) as Node2D
 	animator._select_node(node)
 	animator._playhead = 0.5
@@ -1202,7 +1202,7 @@ func _test_editor_native_timeline() -> void:
 	var new_id := animator._selected_animation_id
 	animator._name_edit.text = "Idle"
 	animator._name_edit.text_changed.emit("Idle")
-	editor._menus.current_tab = editor._editor_placer.get_index()
+	editor._mode_bar.current_tab = editor._editor_placer.get_index()
 	_expect(TwberEditTimeline.find(document.snapshot().to_model_resource(), new_id).name == "Idle"
 		and document.get_undo_label() == "Change animation settings", "Leaving Animate finishes its pending name edit")
 	editor.free()
@@ -1386,7 +1386,7 @@ func _test_editor_native_layer_edits() -> void:
 	var rig := editor._editor_rigger
 	var animator := editor._editor_animator
 	var document := editor._document
-	editor._menus.current_tab = placer.get_index()
+	editor._mode_bar.current_tab = placer.get_index()
 	placer.select_document_layer("layer_001")
 	var node := editor._model_root.get_child(0) as AnimatedSprite2D
 	var revision := document.get_revision()
@@ -1409,7 +1409,7 @@ func _test_editor_native_layer_edits() -> void:
 	placer._change_selected_pivot(node.get_global_transform_with_canvas() * Vector2(4, 2))
 	_expect(document.get_undo_label() == "Change layer pivot" and (node.position + node.offset).is_equal_approx(origin),
 		"Place pivot preserves artwork with one native transaction")
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	rig._select_node(node)
 	rig._on_parameter_value_changed(rig._get_model_parameters()[0], 1.0)
 	origin = node.position + node.offset
@@ -1417,7 +1417,7 @@ func _test_editor_native_layer_edits() -> void:
 	rig._change_node_pivot(node, node.get_global_transform_with_canvas() * Vector2(3, 1))
 	_expect((node.position + node.offset).is_equal_approx(origin) and rig._parameter_preview_values == input
 		and document.get_undo_label() == "Change layer pivot", "Rig pivot retains preview inputs and authored pose placement")
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	animator._select_node(node)
 	animator._playhead = 0.0
 	animator._apply_animation_at_playhead()
@@ -1429,7 +1429,7 @@ func _test_editor_native_layer_edits() -> void:
 	_expect(editor.undo_document() and editor.redo_document(), "Pivot edits support editor Undo/Redo")
 	_expect(document.snapshot().to_model_resource().layers[0].position == after_pivot.layers[0].position,
 		"Pivot Redo restores the same rest origin")
-	editor._menus.current_tab = placer.get_index()
+	editor._mode_bar.current_tab = placer.get_index()
 	placer.select_document_layer("layer_001")
 	var selection := placer._selected_layer_id
 	revision = document.get_revision()
@@ -1507,7 +1507,7 @@ func _test_editor_pose_drafts() -> void:
 	var rig := editor._editor_rigger
 	var animator := editor._editor_animator
 	var document := editor._document
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	var node := editor._model_root.get_child(0) as TwberMeshSprite2D
 	rig._select_node(node)
 	rig._on_parameter_value_changed(rig._get_selected_parameter(), 1.0)
@@ -1545,7 +1545,7 @@ func _test_editor_pose_drafts() -> void:
 	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
 	rig._handle_mouse_motion(motion, node.get_global_transform_with_canvas() * (vertices[1] + Vector2(6, 0)))
 	_expect(node.get_vertex(1) == vertices[1] + Vector2(6, 0), "Rig mesh gestures project detached draft vertices")
-	editor._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	editor._cancel_external_focus_edits()
 	_expect(node.mesh_data.vertices == vertices and not rig.pose_draft.has_draft(), "Focus loss cancels mesh deformation without history")
 	rig.edit_pose({"visible": false})
 	rig._on_parameter_value_changed(rig._get_selected_parameter(), 0.0)
@@ -1557,7 +1557,7 @@ func _test_editor_pose_drafts() -> void:
 	var saved := TwberModelCodec.load_model(path)
 	_expect(saved.layers[0].position == Vector2(10, 20) and saved.parameters[0].positions[0].layer_states[0].position == Vector2(30, 20),
 		"Save excludes draft rest and binding changes")
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	_expect(not rig.pose_draft.has_draft(), "Leaving Rig discards its draft before the next tool samples neutral data")
 	animator._select_node(node)
 	animator._move_button.button_pressed = true
@@ -1584,7 +1584,7 @@ func _test_editor_pose_drafts() -> void:
 	document.execute(TwberEditTimeline.new(TwberEditTimeline.Operation.UPDATE, "move_clip", {"duration": 2.0}))
 	_expect(not animator.pose_draft.has_draft(), "An external document revision invalidates unrecorded poses")
 	editor._apply_opened_model(_make_sprite_animation_model(), "")
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	var sprite := editor._model_root.get_child(0) as AnimatedSprite2D
 	rig._select_node(sprite)
 	rig._on_animation_frame_rate_value_changed(18.0)

@@ -1,16 +1,12 @@
-class_name EditorModelTree extends HSplitContainer
+class_name EditorModelTree extends TwberEditorTool
 
 const TREE_COLUMN := 0
-const MODEL_ROOT_NAME := "Textures"
 const HANDLE_RADIUS := 5.0
 const HANDLE_HIT_RADIUS := 12.0
 
-@onready var _tree: Tree = %Tree
-@export var _preview_layer: CanvasLayer
+@onready var _tree: Tree = get_panel_control("Tree")
 
-var _model_root: Node2D
 var _selected_node: Node2D
-var _overlay: Control
 var _tree_items_by_node_id: Dictionary[int, TreeItem] = {}
 var _tree_state_keys_by_node_id: Dictionary[int, String] = {}
 var _selecting_tree_item := false
@@ -73,15 +69,7 @@ func reload_from_preview(selected_node: Node2D = null) -> void:
 
 
 func _setup_preview() -> void:
-	if _preview_layer == null:
-		push_warning("%s needs a preview CanvasLayer." % name)
-		return
-
-	var existing_node := _preview_layer.get_node_or_null(MODEL_ROOT_NAME)
-	if existing_node is Node2D:
-		_model_root = existing_node
-	else:
-		push_warning("%s needs a Node2D named %s in the preview layer." % [name, MODEL_ROOT_NAME])
+	assert(_model_root != null, "Tool controller needs a model root.")
 
 
 func _rebuild_tree(collapsed_state: Dictionary = {}) -> void:
@@ -149,6 +137,7 @@ func _set_selected_node(node: Node2D) -> void:
 		_observed_animated_sprite.frame_changed.connect(_queue_overlay_redraw)
 		_observed_animated_sprite.animation_changed.connect(_queue_overlay_redraw)
 	_on_model_node_selected()
+	document_layer_selected.emit(String(node.get_meta(TwberModelCodec.LAYER_ID_META, "")) if is_instance_valid(node) else "")
 
 
 func _stop_observing_selected_animation() -> void:

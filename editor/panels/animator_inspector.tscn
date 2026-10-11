@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[ext_resource type="Script" path="res://editor/panels/inspector_content.gd" id="hint"]
+
+[node name="InspectorContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("hint")
+metadata/workspace_mode = 3
+
+[node name="EmptySelection" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
+text = "Select a layer to inspect."
+autowrap_mode = 3
+
+[node name="Inspector" type="VBoxContainer" parent="."]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="SelectedLayerLabel" type="Label" parent="Inspector"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+text = "No layer selected"
+
+[node name="TransformLabel" type="Label" parent="Inspector"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "Position  —
+Rotation  —
+Scale     —"
+

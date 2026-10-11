@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[node name="FastMeshDialog" type="ConfirmationDialog"]
+unique_name_in_owner = true
+title = "Fast Mesh"
+ok_button_text = "Generate"
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="GridControls" type="GridContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="HorizontalLabel" type="Label" parent="MarginContainer/GridControls"]
+layout_mode = 2
+text = "Horizontal vertices"
+
+[node name="HorizontalVertices" type="SpinBox" parent="MarginContainer/GridControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+min_value = 2.0
+max_value = 128.0
+value = 4.0
+rounded = true
+
+[node name="VerticalLabel" type="Label" parent="MarginContainer/GridControls"]
+layout_mode = 2
+text = "Vertical vertices"
+
+[node name="VerticalVertices" type="SpinBox" parent="MarginContainer/GridControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+min_value = 2.0
+max_value = 128.0
+value = 4.0
+rounded = true

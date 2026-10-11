@@ -1,6 +1,5 @@
-[gd_scene format=3 uid="uid://j875asnw84w1"]
+[gd_scene format=3]
 
-[ext_resource type="Script" uid="uid://dw11qq47qdg" path="res://editor/editor_mesher.gd" id="1_vmmjo"]
 [ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_sjag6"]
 [ext_resource type="Texture2D" uid="uid://b7ijnbrim3jfw" path="res://shared/assets/icons/pencil.svg" id="3_qqpn1"]
 [ext_resource type="Texture2D" uid="uid://bne3s7mob813o" path="res://shared/assets/icons/eraser.svg" id="4_dxlek"]
@@ -10,6 +9,8 @@
 [ext_resource type="Texture2D" uid="uid://8wx77ynvjsn1" path="res://shared/assets/icons/select.svg" id="8_select"]
 [ext_resource type="Texture2D" uid="uid://dq1570j6hphj7" path="res://shared/assets/icons/grid-04.svg" id="9_j3ejx"]
 [ext_resource type="Texture2D" uid="uid://dfmy4fnmf5mo7" path="res://shared/assets/icons/search.svg" id="9_lasso"]
+
+[ext_resource type="Script" path="res://editor/workspace/twber_tool_strip.gd" id="strip"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_j3ejx"]
 
@@ -77,43 +78,16 @@ unicode = 103
 [sub_resource type="Shortcut" id="Shortcut_jqd1t"]
 events = [SubResource("InputEventKey_43b6n")]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hdak6"]
-
-[node name="EditorMesher" type="HSplitContainer" unique_id=795151654]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 0
-split_offsets = PackedInt32Array(256)
-split_offset = 256
-script = ExtResource("1_vmmjo")
-metadata/_tab_index = 1
-metadata/_tab_name = "[Mesh]"
-
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=949789036]
-layout_mode = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=2065358272]
+[node name="Tools" type="Container"]
+script = ExtResource("strip")
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+size_flags_vertical = 3
+metadata/workspace_mode = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1890395530]
-custom_minimum_size = Vector2(240, 0)
-layout_mode = 2
-
-[node name="NodeButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=2082140880]
-layout_mode = 2
-
-[node name="AddPointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=893983026]
-unique_name_in_owner = true
+[node name="AddPointButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Add vertex"
@@ -125,10 +99,9 @@ icon = ExtResource("3_qqpn1")
 icon_alignment = 1
 expand_icon = true
 
-[node name="RemovePointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1083209664]
-unique_name_in_owner = true
+[node name="RemovePointButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Remove vertex"
@@ -140,10 +113,9 @@ icon = ExtResource("4_dxlek")
 icon_alignment = 1
 expand_icon = true
 
-[node name="EditPointButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2005329627]
-unique_name_in_owner = true
+[node name="EditPointButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Edit vertex"
@@ -155,10 +127,9 @@ icon = ExtResource("5_51hi1")
 icon_alignment = 1
 expand_icon = true
 
-[node name="RectangleSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1608530164]
-unique_name_in_owner = true
+[node name="RectangleSelectButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Rectangle select vertices (Shift adds)"
@@ -170,10 +141,9 @@ icon = ExtResource("8_select")
 icon_alignment = 1
 expand_icon = true
 
-[node name="LassoSelectButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1631449542]
-unique_name_in_owner = true
+[node name="LassoSelectButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Lasso select vertices (Shift adds)"
@@ -185,10 +155,9 @@ icon = ExtResource("9_lasso")
 icon_alignment = 1
 expand_icon = true
 
-[node name="CutButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=1981457062]
-unique_name_in_owner = true
+[node name="CutButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Cut edge"
@@ -200,10 +169,9 @@ icon = ExtResource("6_j3ejx")
 icon_alignment = 1
 expand_icon = true
 
-[node name="JoinButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=113688921]
-unique_name_in_owner = true
+[node name="JoinButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Join vertices"
@@ -215,10 +183,9 @@ icon = ExtResource("7_kkspo")
 icon_alignment = 1
 expand_icon = true
 
-[node name="FastMeshButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/NodeButtons" unique_id=2100020199]
-unique_name_in_owner = true
+[node name="FastMeshButton" type="Button" parent="."]
 custom_minimum_size = Vector2(32, 32)
-custom_maximum_size = Vector2(-1, 32)
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Generate a grid mesh within the opaque texture bounds"
@@ -228,65 +195,3 @@ icon = ExtResource("9_j3ejx")
 icon_alignment = 1
 expand_icon = true
 
-[node name="Tree" type="Tree" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=863067424]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/draw_guides = 0
-theme_override_constants/relationship_line_width = 0
-theme_override_constants/parent_hl_line_width = 0
-theme_override_constants/children_hl_line_width = 0
-theme_override_fonts/font = ExtResource("2_sjag6")
-theme_override_fonts/title_button_font = ExtResource("2_sjag6")
-auto_tooltip = false
-scroll_horizontal_enabled = false
-tile_scroll_hint = true
-
-[node name="Panel" type="Panel" parent="." unique_id=2142597381]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_behavior_recursive = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_hdak6")
-
-[node name="FastMeshDialog" type="ConfirmationDialog" parent="." unique_id=178667289]
-unique_name_in_owner = true
-title = "Fast Mesh"
-ok_button_text = "Generate"
-
-[node name="MarginContainer" type="MarginContainer" parent="FastMeshDialog" unique_id=456704795]
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 8
-
-[node name="GridControls" type="GridContainer" parent="FastMeshDialog/MarginContainer" unique_id=763943005]
-layout_mode = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 8
-columns = 2
-
-[node name="HorizontalLabel" type="Label" parent="FastMeshDialog/MarginContainer/GridControls" unique_id=205859048]
-layout_mode = 2
-text = "Horizontal vertices"
-
-[node name="HorizontalVertices" type="SpinBox" parent="FastMeshDialog/MarginContainer/GridControls" unique_id=1143456911]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 0)
-layout_mode = 2
-min_value = 2.0
-max_value = 128.0
-value = 4.0
-rounded = true
-
-[node name="VerticalLabel" type="Label" parent="FastMeshDialog/MarginContainer/GridControls" unique_id=1728315122]
-layout_mode = 2
-text = "Vertical vertices"
-
-[node name="VerticalVertices" type="SpinBox" parent="FastMeshDialog/MarginContainer/GridControls" unique_id=929848172]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 0)
-layout_mode = 2
-min_value = 2.0
-max_value = 128.0
-value = 4.0
-rounded = true

@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://editor/workspace/twber_dock_panel.gd" id="panel"]
+
+[node name="DockPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(100, 70)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("panel")
+
+[node name="Content" type="BoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 2
+vertical = true
+
+[node name="DockGrip" type="Control" parent="Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+mouse_default_cursor_shape = 6
+
+[node name="Body" type="VBoxContainer" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="PanelMenu" type="PopupMenu" parent="."]
+unique_name_in_owner = true
+item_count = 9
+item_0/text = "Dock left"
+item_0/id = 0
+item_1/text = "Dock right"
+item_1/id = 1
+item_2/text = "Dock above"
+item_2/id = 2
+item_3/text = "Dock below"
+item_3/id = 3
+item_4/text = "Float"
+item_4/id = 4
+item_5/text = "Hide"
+item_5/id = 5
+item_6/text = "Move tab left"
+item_6/id = 6
+item_7/text = "Move tab right"
+item_7/id = 7
+item_8/text = "Return to dock"
+item_8/id = 8

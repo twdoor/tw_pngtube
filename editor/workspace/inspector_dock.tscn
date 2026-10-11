@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://editor/workspace/dock_panel.tscn" id="dock"]
+[ext_resource type="PackedScene" path="res://editor/panels/placer_inspector.tscn" id="mode0"]
+[ext_resource type="PackedScene" path="res://editor/panels/rigger_inspector.tscn" id="mode2"]
+[ext_resource type="PackedScene" path="res://editor/panels/animator_inspector.tscn" id="mode3"]
+
+[node name="Inspector" instance=ExtResource("dock")]
+custom_minimum_size = Vector2(140, 70)
+panel_id = "inspector"
+panel_title = "Inspector"
+
+[node name="Place" parent="Content/Body" index="0" instance=ExtResource("mode0")]
+visible = true
+
+[node name="Rig" parent="Content/Body" index="1" instance=ExtResource("mode2")]
+visible = false
+
+[node name="Animate" parent="Content/Body" index="2" instance=ExtResource("mode3")]
+visible = false

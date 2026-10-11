@@ -1,0 +1,68 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_2ael8"]
+[ext_resource type="Texture2D" uid="uid://lnw3g5w4ewhe" path="res://shared/assets/icons/visible.svg" id="12_7owhd"]
+[ext_resource type="Texture2D" uid="uid://cnwknklfei45d" path="res://shared/assets/icons/invisible.svg" id="13_aison"]
+
+[ext_resource type="Script" path="res://editor/panels/inspector_content.gd" id="hint"]
+
+[node name="InspectorContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("hint")
+metadata/workspace_mode = 2
+
+[node name="EmptySelection" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
+text = "Select a layer to inspect."
+autowrap_mode = 3
+
+[node name="Inspector" type="VBoxContainer" parent="."]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Inspector"]
+layout_mode = 2
+
+[node name="VisibleCheckBox" type="CheckBox" parent="Inspector/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Visibility toggle"
+theme_override_fonts/font = ExtResource("2_2ael8")
+theme_override_icons/checked = ExtResource("12_7owhd")
+theme_override_icons/unchecked = ExtResource("13_aison")
+flat = true
+
+[node name="OpacitySlider" type="HSlider" parent="Inspector/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+tooltip_text = "Opacity"
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="AnimationFrameRate" type="SpinBox" parent="Inspector"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 0.1
+step = 0.1
+value = 5.0
+alignment = 2
+update_on_text_changed = true
+suffix = "FPS"
+
+[node name="AnimationsBox" type="HBoxContainer" parent="Inspector"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AnimationsOptionButton" type="OptionButton" parent="Inspector/AnimationsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+

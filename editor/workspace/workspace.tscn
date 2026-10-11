@@ -1,0 +1,203 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://editor/workspace/twber_workspace.gd" id="workspace"]
+[ext_resource type="Script" path="res://editor/workspace/twber_dock_drop_overlay.gd" id="drop"]
+[ext_resource type="Theme" path="res://editor/workspace/editor_theme.tres" id="theme"]
+[ext_resource type="PackedScene" path="res://editor/workspace/tools_dock.tscn" id="tools"]
+[ext_resource type="PackedScene" path="res://editor/workspace/layers_dock.tscn" id="layers"]
+[ext_resource type="PackedScene" path="res://editor/workspace/inspector_dock.tscn" id="inspector"]
+[ext_resource type="PackedScene" path="res://editor/workspace/parameters_dock.tscn" id="parameters"]
+[ext_resource type="PackedScene" path="res://editor/workspace/clips_dock.tscn" id="clips"]
+[ext_resource type="PackedScene" path="res://editor/workspace/timeline_dock.tscn" id="timeline"]
+
+[node name="Workspace" type="Control"]
+custom_minimum_size = Vector2(600, 360)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme = ExtResource("theme")
+script = ExtResource("workspace")
+
+[node name="Holding" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Layout" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Default" type="HSplitContainer" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1
+theme_override_constants/separation = 6
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Tools" parent="Layout/Default" instance=ExtResource("tools")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 0.04
+
+[node name="Main" type="HSplitContainer" parent="Layout/Default"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.96
+theme_override_constants/separation = 6
+
+[node name="Layers" parent="Layout/Default/Main" instance=ExtResource("layers")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 0.2
+
+[node name="Editing" type="HSplitContainer" parent="Layout/Default/Main"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.8
+theme_override_constants/separation = 6
+
+[node name="Center" type="VSplitContainer" parent="Layout/Default/Main/Editing"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.7
+theme_override_constants/separation = 6
+
+[node name="Canvas" type="Control" parent="Layout/Default/Main/Editing/Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.72
+clip_contents = true
+mouse_filter = 1
+
+[node name="Background" type="ColorRect" parent="Layout/Default/Main/Editing/Center/Canvas"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.050980393, 0.16862746, 0.27058825, 1)
+
+[node name="Textures" type="Node2D" parent="Layout/Default/Main/Editing/Center/Canvas"]
+position = Vector2(720, 360)
+scale = Vector2(0.1, 0.1)
+
+[node name="PlaceOverlay" type="Control" parent="Layout/Default/Main/Editing/Center/Canvas"]
+visible = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+mouse_behavior_recursive = 2
+
+[node name="MeshOverlay" type="Control" parent="Layout/Default/Main/Editing/Center/Canvas"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+mouse_behavior_recursive = 2
+
+[node name="RigOverlay" type="Control" parent="Layout/Default/Main/Editing/Center/Canvas"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+mouse_behavior_recursive = 2
+
+[node name="AnimateOverlay" type="Control" parent="Layout/Default/Main/Editing/Center/Canvas"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+mouse_behavior_recursive = 2
+
+[node name="Timeline" parent="Layout/Default/Main/Editing/Center" instance=ExtResource("timeline")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 0.28
+visible = false
+
+[node name="Right" type="VSplitContainer" parent="Layout/Default/Main/Editing"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.3
+theme_override_constants/separation = 6
+
+[node name="Inspector" parent="Layout/Default/Main/Editing/Right" instance=ExtResource("inspector")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 0.45
+
+[node name="Properties" type="TabContainer" parent="Layout/Default/Main/Editing/Right"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.55
+current_tab = 0
+
+[node name="Parameters" parent="Layout/Default/Main/Editing/Right/Properties" instance=ExtResource("parameters")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 1
+
+[node name="Clips" parent="Layout/Default/Main/Editing/Right/Properties" instance=ExtResource("clips")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_stretch_ratio = 1
+visible = false
+
+[node name="DropOverlay" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("drop")
+
+[node name="SaveTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 0.4
+one_shot = true

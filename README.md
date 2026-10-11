@@ -10,6 +10,24 @@ tracking, and animation production; see the [roadmap](docs/roadmap.md).
 
 ## Editor
 
+Panels can be rearranged around a persistent canvas. Drag their thin grips to split
+docks on either side, above, or below; drop into the center to form tabs. Panel
+actions are available by right-clicking a grip or tab: **Float**, **Hide**, tab
+ordering, and **Return to dock**. Closing a floating window redocks its panel. **View** restores hidden panels; **Workspace**
+provides saved layouts, locking, and reset. The arrangement restores on launch.
+Standalone panels have no title bar or menu button. Tools reflows into a single horizontal row, a vertical strip, or multiple
+rows as it is resized; Reset workspace starts with a slim vertical tool strip.
+Fixed panels enforce their content minimums instead of showing scrollbars.
+Scrolling is reserved for growing layer, animation, and parameter lists.
+
+To edit the UI in Godot, open `editor/editor.tscn`. The default dock arrangement
+is in `editor/workspace/workspace.tscn`, panel content is in `editor/panels/`,
+and shared styling is in `editor/workspace/editor_theme.tres`.
+
+Selection follows the layer between modes. Docking and hiding panels preserve
+pose drafts, recording, playback, and document history. See the
+[workspace implementation notes](docs/ui-redesign-progress.md) for remaining work.
+
 - **Place**: arrange layers, groups, textures, animated sprites, pivots, visibility,
   opacity, and clipping. Duplicate, mirror, and reparent layers with their bindings.
 - **Mesh**: create deformation meshes, move/remove vertices, cut/join edges, and
@@ -30,8 +48,9 @@ strokes commit as one edit; Escape cancels an unfinished gesture. Save finishes
 pending Place/Mesh edits. History retains 64 edits.
 
 Rig and Animate pose edits are temporary drafts until **Bind** or **Add Point**.
-Escape or Undo discards the draft first. Changing the editing context or losing
-window focus also discards it. Drafts do not mark the document dirty and are omitted
+Escape or Undo discards the draft first. Changing the editing context or leaving
+the application also discards it; moving focus to an Editor panel window preserves it.
+Drafts do not mark the document dirty and are omitted
 from Save, Export Copy, and autosave. Committed data is independent of preview poses
 and camera movement.
 
@@ -49,7 +68,7 @@ by priority, then stable clip ID. Duration changes cannot cut off existing keys.
 
 In Rig, **Record parameters** captures control changes. **Finish take** creates a
 clip as one Undo step and opens Animate. Values hold until the next observed change.
-Cancel, Escape, changing workspaces, losing focus, or editing the document discards
+Cancel, Escape, changing authoring modes, leaving the application, or editing the document discards
 an unfinished take; saves omit it.
 
 In Environment, **Record performance** captures the selected model after input mapping,

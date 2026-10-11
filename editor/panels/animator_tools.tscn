@@ -1,0 +1,122 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" uid="uid://vrys3fecv8md" path="res://shared/assets/icons/cursor-default-02.svg" id="3_pointer"]
+[ext_resource type="Texture2D" uid="uid://b8rkam22a3uut" path="res://shared/assets/icons/cursor-move.svg" id="4_move"]
+[ext_resource type="Texture2D" uid="uid://bpjb5ofpa8ers" path="res://shared/assets/icons/change.svg" id="5_rotate"]
+[ext_resource type="Texture2D" uid="uid://83jdb8ri4wy5" path="res://shared/assets/icons/expand-02.svg" id="6_scale"]
+[ext_resource type="Texture2D" uid="uid://c2xf3ons8p7ni" path="res://shared/assets/icons/circle-ring.svg" id="7_pivot"]
+[ext_resource type="Texture2D" uid="uid://dlxa8u73ggu6b" path="res://shared/assets/icons/pen.svg" id="8_deform"]
+[ext_resource type="Texture2D" uid="uid://0fv1pdxw7gwf" path="res://shared/assets/icons/refresh.svg" id="9_reset"]
+[ext_resource type="Texture2D" uid="uid://8wx77ynvjsn1" path="res://shared/assets/icons/select.svg" id="11_box"]
+[ext_resource type="Texture2D" uid="uid://dfmy4fnmf5mo7" path="res://shared/assets/icons/search.svg" id="12_lasso"]
+[ext_resource type="Texture2D" uid="uid://bne3s7mob813o" path="res://shared/assets/icons/eraser.svg" id="13_reset_vertex"]
+
+[ext_resource type="Script" path="res://editor/workspace/twber_tool_strip.gd" id="strip"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_tools"]
+
+[node name="Tools" type="Container"]
+script = ExtResource("strip")
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/workspace_mode = 3
+
+[node name="PointerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Pointer (Q)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("3_pointer")
+expand_icon = true
+
+[node name="MoveButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Move layer (W)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("4_move")
+expand_icon = true
+
+[node name="RotateButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Rotate layer (E)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("5_rotate")
+expand_icon = true
+
+[node name="ScaleButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Scale layer (R)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("6_scale")
+expand_icon = true
+
+[node name="PivotButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Change pivot (T)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("7_pivot")
+expand_icon = true
+
+[node name="DeformButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Deform mesh vertex (P)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("8_deform")
+expand_icon = true
+
+[node name="RectangleSelectButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Rectangle-select mesh vertices (M)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("11_box")
+expand_icon = true
+
+[node name="LassoSelectButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Lasso-select mesh vertices (L)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("12_lasso")
+expand_icon = true
+
+[node name="ResetVertexButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Reset mesh vertex (Backspace)"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+icon = ExtResource("13_reset_vertex")
+expand_icon = true
+
+[node name="ResetLayerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(32, 32)
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Reset selected layer at this point"
+icon = ExtResource("9_reset")
+expand_icon = true
+

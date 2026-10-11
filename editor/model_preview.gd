@@ -1,27 +1,15 @@
-class_name ModelPreview extends CanvasLayer
+class_name ModelPreview extends Node
 
 signal view_changed
 
-const DEFAULT_MODEL_ROOT_NAME := "Textures"
 const ZOOM_STEP := 1.2
 
-@export var model_root_path: NodePath = ^"Textures"
+@export var _model_root: Node2D
+@export var canvas_control: Control
 @export var min_zoom := 0.01
 @export var max_zoom := 32.0
 
-var _model_root: Node2D
 var _panning := false
-
-
-func _ready() -> void:
-	var model_root := get_node_or_null(model_root_path)
-	if model_root is not Node2D:
-		model_root = get_node_or_null(DEFAULT_MODEL_ROOT_NAME)
-
-	_model_root = model_root as Node2D
-
-	if _model_root == null:
-		push_warning("ModelPreview needs a Node2D model root.")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -29,6 +17,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseButton:
+		if canvas_control != null and not canvas_control.get_global_rect().has_point(event.position):
+			if event.button_index == MOUSE_BUTTON_MIDDLE and not event.pressed:
+				_panning = false
+			return
 		_handle_mouse_button(event)
 	elif event is InputEventMouseMotion and _panning:
 		_pan_model(event.relative)

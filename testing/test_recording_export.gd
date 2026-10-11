@@ -118,9 +118,9 @@ func _test_editor_recording() -> void:
 	editor._apply_opened_model(_model(), "")
 	var rig := editor._editor_rigger
 	var sprite := editor._model_root.get_child(0) as AnimatedSprite2D
-	editor._menus.current_tab = editor._editor_animator.get_index()
+	editor._mode_bar.current_tab = editor._editor_animator.get_index()
 	expect(not sprite.is_playing(), "Explicit Animate preview does not advance sprite frames on the wall clock")
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	expect(sprite.is_playing(), "Leaving Animate restores the sprite's prior playing state")
 	var revision := editor._document.get_revision()
 	editor._toggle_parameter_recording()
@@ -133,17 +133,17 @@ func _test_editor_recording() -> void:
 	expect(editor._finish_parameter_recording() == OK and editor._document.get_revision() == revision + 1,
 		"Finish creates one authored take and opens Animate")
 	var animator := editor._editor_animator
-	expect(editor._menus.current_tab == animator.get_index() and animator._get_selected_animation() != null, "The recorded clip is immediately available for playback/export")
+	expect(editor._mode_bar.current_tab == animator.get_index() and animator._get_selected_animation() != null, "The recorded clip is immediately available for playback/export")
 	animator._playhead = animator._get_selected_animation().duration
 	animator._apply_animation_at_playhead()
 	expect(editor._model_root.get_child(0).position == Vector2(8, 0), "Recorded parameter playback matches the last live input")
 	expect(editor.undo_document() and editor._document.snapshot().to_model_resource().timeline_animations.is_empty(), "Editor Undo removes the take")
-	editor._menus.current_tab = rig.get_index()
+	editor._mode_bar.current_tab = rig.get_index()
 	editor._toggle_parameter_recording()
 	expect(editor.undo_document() and editor._parameter_take == null and editor._document.get_revision() == revision + 2,
 		"Undo discards an active recording before committed history")
 	editor._toggle_parameter_recording()
-	editor._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	editor._cancel_external_focus_edits()
 	expect(editor._parameter_take == null, "Focus loss cancels recording")
 	editor._toggle_parameter_recording()
 	editor._document.execute(TwberEditParameter.new(TwberEditParameter.Operation.UPDATE, "move", {"name": "New name"}))

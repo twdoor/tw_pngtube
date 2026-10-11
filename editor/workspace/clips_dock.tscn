@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://editor/workspace/dock_panel.tscn" id="dock"]
+[ext_resource type="PackedScene" path="res://editor/panels/clips.tscn" id="mode3"]
+
+[node name="Clips" instance=ExtResource("dock")]
+custom_minimum_size = Vector2(150, 90)
+panel_id = "clips"
+panel_title = "Clips"
+
+[node name="Animate" parent="Content/Body" index="0" instance=ExtResource("mode3")]
+visible = true

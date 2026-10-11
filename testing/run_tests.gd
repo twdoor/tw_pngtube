@@ -608,7 +608,7 @@ func _test_editor_model_open_and_reset() -> void:
 			"Editor model file dialogs are scene-backed and use the Twber model library",
 		)
 	editor.call("_open_model", model_path)
-	var model_root := editor.get_node("ModelPreview/Textures") as Node2D
+	var model_root: Node2D = editor._model_root
 	var renderer := TwberModelBatchRenderer2D.find_on(model_root)
 	var file_menu := (editor.get_node("%FileMenuButton") as MenuButton).get_popup()
 	_expect(
@@ -622,7 +622,7 @@ func _test_editor_model_open_and_reset() -> void:
 	editor_settings.background_color = custom_background_color
 	editor.call("_apply_editor_settings")
 	_expect(
-		(editor.get_node("ModelPreview/Background") as ColorRect).color.is_equal_approx(
+		(editor._preview_background as ColorRect).color.is_equal_approx(
 			custom_background_color,
 		),
 		"Editor settings apply the configured preview background color",
@@ -641,7 +641,7 @@ func _test_editor_model_open_and_reset() -> void:
 	)
 	_expect(not editor.is_dirty(), "Opening a model starts with a clean document")
 	var safety_placer := editor.get_node(
-		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer",
+		"Controllers/EditorPlacer",
 	) as EditorPlacer
 	safety_placer.model_render_changed.emit(false, false)
 	_expect(not editor.is_dirty(), "A render refresh does not author model data")
@@ -693,9 +693,9 @@ func _test_editor_model_open_and_reset() -> void:
 		_expect(renderer.get_batch_count() == 1, "Editor preview uses one atlas render batch")
 	var pivot_sprite := model_root.get_child(0) as Sprite2D
 	var rigger := editor.get_node(
-		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger",
+		"Controllers/EditorRigger",
 	) as EditorRigger
-	var editor_menus := rigger.get_parent() as TabContainer
+	var editor_menus := editor.get_node("%ModeBar") as TabBar
 	editor_menus.current_tab = rigger.get_index()
 	rigger.reload_from_preview(pivot_sprite)
 	var old_texture_origin: Vector2 = (
@@ -716,7 +716,7 @@ func _test_editor_model_open_and_reset() -> void:
 		"_on_create_parameter_pressed",
 		TwberParameterResource.ValueType.FLOAT,
 	)
-	var parameter_list := rigger.get_node("%ParameterList") as VBoxContainer
+	var parameter_list := rigger.get_panel_control("ParameterList") as VBoxContainer
 	var parameter_card := parameter_list.get_child(0) as PanelContainer
 	var parameter_body := parameter_card.find_child("Body", true, false) as Control
 	var parameter_button := parameter_card.find_child("SelectButton", true, false) as Button
@@ -776,7 +776,7 @@ func _test_editor_model_open_and_reset() -> void:
 		"Rebinding an existing pose after changing its pivot keeps the texture fixed",
 	)
 	var placer := editor.get_node(
-		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer",
+		"Controllers/EditorPlacer",
 	) as EditorPlacer
 	editor_menus.current_tab = placer.get_index()
 	placer.reload_from_preview()
@@ -1051,7 +1051,7 @@ func _test_editor_model_open_and_reset() -> void:
 		Color(1.0, 1.0, 1.0, 0.65),
 	)
 	rigger = editor.get_node(
-		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger",
+		"Controllers/EditorRigger",
 	) as EditorRigger
 	rigger.reload_from_preview(preview_mask as Node2D)
 	rigger.call("_on_create_parameter_pressed", TwberParameterResource.ValueType.FLOAT)
@@ -1110,18 +1110,18 @@ func _test_editor_model_open_and_reset() -> void:
 		"Selecting False updates the preview and unpresses True",
 	)
 	var animator := editor.get_node(
-		"PanelContainer/MarginContainer/VBoxContainer/Menus/EditorAnimator",
+		"Controllers/EditorAnimator",
 	) as EditorAnimator
 	editor_menus.current_tab = animator.get_index()
 	await process_frame
 	var animation_layer := preview_mask as Node2D
 	animator.reload_from_preview(animation_layer)
-	var animator_overlay := animator.get_node("%Overlay") as Control
+	var animator_overlay := animator._overlay
 	_expect(
 		animator_overlay.size.y > 100.0,
 		"Animator preview overlay fills the center workspace",
 	)
-	(animator.get_node("%MoveButton") as Button).button_pressed = true
+	(animator.get_panel_control("MoveButton") as Button).button_pressed = true
 	var animator_drag_start := animation_layer.position
 	var animator_press := InputEventMouseButton.new()
 	animator_press.button_index = MOUSE_BUTTON_LEFT

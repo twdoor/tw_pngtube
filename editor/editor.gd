@@ -25,14 +25,15 @@ enum PendingAction {
 @onready var _edit_menu_button: MenuButton = %EditMenuButton
 @onready var _current_model_label: Label = %CurrentModelLabel
 @onready var _editor_status_label: Label = %EditorStatusLabel
-@onready var _model_root: Node2D = $ModelPreview/Textures
+@onready var _model_root: Node2D = %Workspace.canvas.get_node("Textures")
 @onready var _model_preview: ModelPreview = $ModelPreview
-@onready var _preview_background: ColorRect = $ModelPreview/Background
-@onready var _editor_placer: EditorPlacer = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorPlacer
-@onready var _editor_mesher: EditorMesher = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorMesher
-@onready var _editor_rigger: EditorRigger = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorRigger
-@onready var _editor_animator: EditorAnimator = $PanelContainer/MarginContainer/VBoxContainer/Menus/EditorAnimator
-@onready var _menus: TabContainer = $PanelContainer/MarginContainer/VBoxContainer/Menus
+@onready var _preview_background: ColorRect = %Workspace.canvas.get_node("Background")
+@onready var _editor_placer: EditorPlacer = %EditorPlacer
+@onready var _editor_mesher: EditorMesher = %EditorMesher
+@onready var _editor_rigger: EditorRigger = %EditorRigger
+@onready var _editor_animator: EditorAnimator = %EditorAnimator
+@onready var _mode_bar: TabBar = %ModeBar
+@onready var _controllers: Node = $Controllers
 @onready var _open_model_file_dialog: FileDialog = %OpenModelDialog
 @onready var _save_model_file_dialog: FileDialog = %SaveModelDialog
 @onready var _export_model_file_dialog: FileDialog = %ExportModelDialog
@@ -67,6 +68,13 @@ var _mesh_edit_session: TwberDocumentEditSession
 var _mesh_edit_layer_id := ""
 var _active_tab := 0
 var _recovery_generation := 0
+var _workspace_binding: TwberWorkspaceBinding
+var _previous_window_minimum := Vector2i.ZERO
+var _selected_document_layer_id := ""
+var _changing_mode := false
+var _focus_check_pending := false
+var _record_take_button: Button
+var _cancel_take_button: Button
 
 
 func _ready() -> void:
@@ -77,7 +85,7 @@ func _ready() -> void:
 	_clip_controller = TwberAlphaClipController.attach_to(_model_root)
 	_apply_editor_settings()
 	_set_current_model_path("")
-	_active_tab = _menus.current_tab
+	_active_tab = _mode_bar.current_tab
 	_document.replace_model(TwberModelCodec.from_model_root(_model_root))
 	_document.changed.connect(_on_committed_document_changed)
 	_document.dirty_changed.connect(_on_document_dirty_changed)
@@ -87,8 +95,10 @@ func _ready() -> void:
 	_editor_rigger.pose_draft.changed.connect(_on_pose_draft_changed)
 	_editor_animator.pose_draft.changed.connect(_on_pose_draft_changed)
 	_editor_rigger.execute_parameter_command = _execute_parameter_command
-	_editor_rigger.get_node("%RecordTake").pressed.connect(_toggle_parameter_recording)
-	_editor_rigger.get_node("%CancelTake").pressed.connect(_cancel_parameter_recording)
+	_record_take_button = _editor_rigger.get_panel_control("RecordTake") as Button
+	_cancel_take_button = _editor_rigger.get_panel_control("CancelTake") as Button
+	_record_take_button.pressed.connect(_toggle_parameter_recording)
+	_cancel_take_button.pressed.connect(_cancel_parameter_recording)
 	_editor_rigger.parameter_values_previewed.connect(_sample_parameter_recording)
 	_frame_export_dialog = TwberFrameExportDialog.new()
 	add_child(_frame_export_dialog)
@@ -107,7 +117,7 @@ func _ready() -> void:
 
 	var popup := _file_menu_button.get_popup()
 	popup.id_pressed.connect(_on_file_menu_id_pressed)
-	_menus.tab_changed.connect(_on_tab_changed)
+	_mode_bar.tab_changed.connect(_on_tab_changed)
 	_editor_mesher.execute_mesh_command = _execute_mesh_command
 	_editor_mesher.begin_mesh_gesture = _begin_mesh_gesture
 	_editor_mesher.end_mesh_gesture = _finish_mesh_gesture
@@ -126,10 +136,18 @@ func _ready() -> void:
 	_prepare_model_dialog(_open_model_file_dialog)
 	_prepare_model_dialog(_save_model_file_dialog)
 	_prepare_model_dialog(_export_model_file_dialog)
+	_previous_window_minimum = get_window().min_size
+	($PanelContainer as Control).minimum_size_changed.connect(_sync_workspace_minimum_size)
+	_workspace_binding = TwberWorkspaceBinding.new()
+	_workspace_binding.setup(self)
+	_sync_workspace_minimum_size.call_deferred()
 	_check_for_recovery.call_deferred()
 
 
 func _exit_tree() -> void:
+	if _workspace_binding != null and is_instance_valid(_workspace_binding.workspace):
+		_workspace_binding.workspace.save_layout()
+		get_window().min_size = _previous_window_minimum
 	var tree := get_tree()
 	if tree != null:
 		tree.auto_accept_quit = true
@@ -137,9 +155,7 @@ func _exit_tree() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and is_node_ready():
-		_cancel_mesh_gesture()
-		_cancel_pose_drafts()
-		_cancel_parameter_recording()
+		_schedule_workspace_focus_check()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_node_ready():
 		_request_action(PendingAction.QUIT)
 
@@ -187,7 +203,7 @@ func _new_model() -> void:
 	_set_editor_status("Ready")
 
 	_reload_editors_from_preview()
-	_menus.current_tab = _editor_placer.get_index()
+	_mode_bar.current_tab = _editor_placer.get_index()
 	_suppress_dirty_tracking = false
 	_set_dirty(false)
 	_clear_recovery()
@@ -344,6 +360,8 @@ func _apply_opened_model(
 	if _clip_controller != null:
 		_clip_controller.clear()
 	TwberModelCodec.apply_to_model_root(model, _model_root)
+	_center_workspace_canvas()
+	_selected_document_layer_id = ""
 	_optimize_editor_rendering(
 			path.get_extension().to_lower() != TwberModelCodec.TWBER_EXTENSION,
 	)
@@ -501,22 +519,32 @@ func _apply_editor_settings() -> void:
 	_editor_rigger.set_editor_settings(_editor_settings)
 	_editor_animator.set_editor_settings(_editor_settings)
 	_optimize_editor_rendering(false)
-	if _editor_rigger.visible:
+	if _editor_rigger.tool_active:
 		_editor_rigger.preview_parameters()
 
 
 func _on_tab_changed(tab_index: int) -> void:
+	if _busy:
+		_mode_bar.set_block_signals(true)
+		_mode_bar.current_tab = _active_tab
+		_mode_bar.set_block_signals(false)
+		return
+	var shared_selection := _active_selection_id()
+	_changing_mode = true
 	_cancel_parameter_recording()
 	_cancel_pose_drafts()
 	_finish_mesh_gesture()
 	_editor_placer.finish_transform_drag()
 	if _finish_pending_authoring() != OK:
-		_menus.set_block_signals(true)
-		_menus.current_tab = _active_tab
-		_menus.set_block_signals(false)
+		_mode_bar.set_block_signals(true)
+		_mode_bar.current_tab = _active_tab
+		_mode_bar.set_block_signals(false)
+		_changing_mode = false
 		return
 	_active_tab = tab_index
-	var tab := _menus.get_child(tab_index)
+	for tool: TwberEditorTool in [_editor_placer, _editor_mesher, _editor_rigger, _editor_animator]:
+		tool.set_tool_active(tool.get_index() == tab_index)
+	var tab := _controllers.get_child(tab_index)
 	if tab != _editor_rigger:
 		_editor_rigger.restore_parameter_preview_base()
 	if tab != _editor_animator:
@@ -530,6 +558,10 @@ func _on_tab_changed(tab_index: int) -> void:
 		_editor_rigger.reload_from_preview()
 	elif tab == _editor_animator:
 		_editor_animator.reload_from_preview()
+	_select_workspace_layer(shared_selection)
+	_changing_mode = false
+	if _workspace_binding != null:
+		_workspace_binding.set_mode(tab_index)
 
 
 func _on_model_preview_view_changed() -> void:
@@ -1138,10 +1170,16 @@ func _set_busy(busy: bool, status: String) -> void:
 	_busy = busy
 	_file_menu_button.disabled = busy
 	_edit_menu_button.disabled = busy
-	_menus.mouse_behavior_recursive = (
+	_mode_bar.mouse_behavior_recursive = (
 		Control.MOUSE_BEHAVIOR_DISABLED if busy else Control.MOUSE_BEHAVIOR_ENABLED
 	)
-	_menus.modulate.a = 0.65 if busy else 1.0
+	_mode_bar.modulate.a = 0.65 if busy else 1.0
+	if _workspace_binding != null:
+		_workspace_binding.workspace.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_DISABLED if busy else Control.MOUSE_BEHAVIOR_ENABLED
+		_workspace_binding.modes.mouse_filter = Control.MOUSE_FILTER_IGNORE if busy else Control.MOUSE_FILTER_STOP
+		_workspace_binding.workspace.modulate.a = 0.65 if busy else 1.0
+		for panel: TwberDockPanel in _workspace_binding.workspace.panels.values():
+			panel.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_DISABLED if busy else Control.MOUSE_BEHAVIOR_ENABLED
 	_set_editor_status(status)
 
 
@@ -1231,7 +1269,7 @@ func _finish_parameter_recording() -> Error:
 	_refresh_recording_controls()
 	var error := _execute_timeline_command(TwberImportParameterTake.new(take))
 	if error == OK:
-		_menus.current_tab = _editor_animator.get_index()
+		_mode_bar.current_tab = _editor_animator.get_index()
 		_set_editor_status("Recorded take — play it or export PNG frames in Animate")
 	return error
 
@@ -1245,8 +1283,8 @@ func _cancel_parameter_recording() -> void:
 
 
 func _refresh_recording_controls() -> void:
-	_editor_rigger.get_node("%RecordTake").text = "Finish take" if _parameter_take != null else "Record parameters"
-	_editor_rigger.get_node("%CancelTake").disabled = _parameter_take == null
+	_record_take_button.text = "Finish take" if _parameter_take != null else "Record parameters"
+	_cancel_take_button.disabled = _parameter_take == null
 	_refresh_history_menu()
 
 
@@ -1254,3 +1292,74 @@ func _show_frame_export(animation_id: String) -> void:
 	if _busy or _finish_pending_authoring() != OK:
 		return
 	_frame_export_dialog.show_for(_document.snapshot().to_model_resource(), animation_id)
+
+
+func _on_workspace_selection(id: String, mode: int) -> void:
+	if mode == _active_tab and not _changing_mode and not _suppress_dirty_tracking:
+		_selected_document_layer_id = id
+
+
+func _active_selection_id() -> String:
+	if _active_tab == 0:
+		return _editor_placer.get_selected_document_layer_id()
+	var tool := _controllers.get_child(_active_tab) as EditorModelTree
+	return String(tool._selected_node.get_meta(TwberModelCodec.LAYER_ID_META, "")) if is_instance_valid(tool._selected_node) else _selected_document_layer_id
+
+
+func _select_workspace_layer(id: String) -> void:
+	_selected_document_layer_id = id
+	if _active_tab == 0:
+		_editor_placer.select_document_layer(id)
+	else:
+		var tool := _controllers.get_child(_active_tab) as EditorModelTree
+		tool._select_node(TwberParameterMapper.get_layer_nodes_by_id(_model_root).get(id) as Node2D)
+
+
+func _watch_workspace_window(window: Window) -> void:
+	window.focus_exited.connect(_schedule_workspace_focus_check)
+	window.set_meta("twber_editor", self)
+	window.set_script(preload("res://editor/workspace/twber_workspace_window.gd"))
+
+
+func _schedule_workspace_focus_check() -> void:
+	if _focus_check_pending:
+		return
+	_focus_check_pending = true
+	_check_workspace_focus.call_deferred()
+
+
+func _check_workspace_focus() -> void:
+	await get_tree().process_frame
+	_focus_check_pending = false
+	if get_tree().root.has_focus():
+		return
+	for child: Node in find_children("*", "Window", true, false):
+		if (child as Window).visible and (child as Window).has_focus():
+			return
+	_cancel_external_focus_edits()
+
+
+func _cancel_external_focus_edits() -> void:
+	_editor_placer.cancel_transform_drag()
+	_cancel_mesh_gesture()
+	_cancel_pose_drafts()
+	_cancel_parameter_recording()
+
+
+func _initialize_canvas_camera() -> void:
+	if _workspace_binding == null:
+		return
+	_default_model_root_position = _workspace_binding.workspace.canvas.size * 0.5
+	if _model_root.get_child_count() == 0:
+		_center_workspace_canvas()
+
+
+func _center_workspace_canvas() -> void:
+	if _workspace_binding != null:
+		_model_root.position = _workspace_binding.workspace.canvas.size * 0.5
+		_on_model_preview_view_changed()
+
+
+func _sync_workspace_minimum_size() -> void:
+	if is_inside_tree():
+		get_window().min_size = _previous_window_minimum.max(Vector2i(($PanelContainer as Control).get_combined_minimum_size().ceil()))

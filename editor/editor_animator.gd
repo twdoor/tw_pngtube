@@ -1,7 +1,8 @@
 class_name EditorAnimator extends EditorModelTree
 
 signal export_frames_requested(animation_id: String)
-var _authored_sprite_timing := Button.new()
+@onready var _export_frames: Button = get_panel_control("ExportFrames")
+@onready var _authored_sprite_timing: Button = get_panel_control("AuthoredSpriteTiming")
 var _sprite_playing_before_preview: Dictionary = {}
 
 var execute_timeline_command: Callable
@@ -23,38 +24,38 @@ const MIN_SCALE_DISTANCE := 0.001
 
 enum ToolMode { POINTER, MOVE, ROTATE, SCALE, PIVOT, DEFORM, RECTANGLE, LASSO, RESET_VERTEX }
 
-@onready var _pointer_button: Button = %PointerButton
-@onready var _move_button: Button = %MoveButton
-@onready var _rotate_button: Button = %RotateButton
-@onready var _scale_button: Button = %ScaleButton
-@onready var _pivot_button: Button = %PivotButton
-@onready var _deform_button: Button = %DeformButton
-@onready var _rectangle_select_button: Button = %RectangleSelectButton
-@onready var _lasso_select_button: Button = %LassoSelectButton
-@onready var _reset_vertex_button: Button = %ResetVertexButton
-@onready var _reset_layer_button: Button = %ResetLayerButton
-@onready var _inspector: PanelContainer = %Inspector
-@onready var _selected_layer_label: Label = %SelectedLayerLabel
-@onready var _transform_label: Label = %TransformLabel
-@onready var _timeline: Control = %Timeline
-@onready var _add_point_button: Button = %AddPointButton
-@onready var _delete_point_button: Button = %DeletePointButton
-@onready var _play_button: Button = %PlayButton
-@onready var _time_label: Label = %TimeLabel
-@onready var _fps_spin_box: SpinBox = %FpsSpinBox
-@onready var _animation_list: ItemList = %AnimationList
-@onready var _new_animation_button: Button = %NewAnimationButton
-@onready var _delete_animation_button: Button = %DeleteAnimationButton
-@onready var _name_edit: LineEdit = %NameEdit
-@onready var _duration_spin_box: SpinBox = %DurationSpinBox
-@onready var _loop_check_box: CheckBox = %LoopCheckBox
-@onready var _track_parameter: OptionButton = %TrackParameter
-@onready var _track_x: SpinBox = %TrackX
-@onready var _track_y: SpinBox = %TrackY
-@onready var _track_hold: CheckBox = %TrackHold
-@onready var _key_parameter: Button = %KeyParameter
-@onready var _remove_parameter_key: Button = %RemoveParameterKey
-@onready var _priority: SpinBox = %Priority
+@onready var _pointer_button: Button = get_panel_control("PointerButton")
+@onready var _move_button: Button = get_panel_control("MoveButton")
+@onready var _rotate_button: Button = get_panel_control("RotateButton")
+@onready var _scale_button: Button = get_panel_control("ScaleButton")
+@onready var _pivot_button: Button = get_panel_control("PivotButton")
+@onready var _deform_button: Button = get_panel_control("DeformButton")
+@onready var _rectangle_select_button: Button = get_panel_control("RectangleSelectButton")
+@onready var _lasso_select_button: Button = get_panel_control("LassoSelectButton")
+@onready var _reset_vertex_button: Button = get_panel_control("ResetVertexButton")
+@onready var _reset_layer_button: Button = get_panel_control("ResetLayerButton")
+@onready var _inspector: VBoxContainer = get_panel_control("Inspector")
+@onready var _selected_layer_label: Label = get_panel_control("SelectedLayerLabel")
+@onready var _transform_label: Label = get_panel_control("TransformLabel")
+@onready var _timeline: Control = get_panel_control("Timeline")
+@onready var _add_point_button: Button = get_panel_control("AddPointButton")
+@onready var _delete_point_button: Button = get_panel_control("DeletePointButton")
+@onready var _play_button: Button = get_panel_control("PlayButton")
+@onready var _time_label: Label = get_panel_control("TimeLabel")
+@onready var _fps_spin_box: SpinBox = get_panel_control("FpsSpinBox")
+@onready var _animation_list: ItemList = get_panel_control("AnimationList")
+@onready var _new_animation_button: Button = get_panel_control("NewAnimationButton")
+@onready var _delete_animation_button: Button = get_panel_control("DeleteAnimationButton")
+@onready var _name_edit: LineEdit = get_panel_control("NameEdit")
+@onready var _duration_spin_box: SpinBox = get_panel_control("DurationSpinBox")
+@onready var _loop_check_box: CheckBox = get_panel_control("LoopCheckBox")
+@onready var _track_parameter: OptionButton = get_panel_control("TrackParameter")
+@onready var _track_x: SpinBox = get_panel_control("TrackX")
+@onready var _track_y: SpinBox = get_panel_control("TrackY")
+@onready var _track_hold: CheckBox = get_panel_control("TrackHold")
+@onready var _key_parameter: Button = get_panel_control("KeyParameter")
+@onready var _remove_parameter_key: Button = get_panel_control("RemoveParameterKey")
+@onready var _priority: SpinBox = get_panel_control("Priority")
 
 
 var _selected_animation_id := ""
@@ -84,16 +85,12 @@ var _lasso_points := PackedVector2Array()
 
 
 func _ready() -> void:
-	_authored_sprite_timing.text = "Use authored sprite timing"
-	_authored_sprite_timing.tooltip_text = "Remove recorded sprite phase markers so animation and speed edits control timing. This can be undone."
-	%ExportFrames.get_parent().add_child(_authored_sprite_timing)
 	_authored_sprite_timing.pressed.connect(func() -> void:
 		_submit_timeline_command(TwberEditTimeline.new(TwberEditTimeline.Operation.CLEAR_SPRITE_TIMING, _selected_animation_id))
 	)
-	%ExportFrames.pressed.connect(func() -> void: export_frames_requested.emit(_selected_animation_id))
+	_export_frames.pressed.connect(func() -> void: export_frames_requested.emit(_selected_animation_id))
 	_pointer_button.button_pressed = true
 	_initialize_model_tree()
-	_overlay = %Overlay
 	_overlay.draw.connect(_draw_overlay)
 	_overlay.gui_input.connect(_on_overlay_gui_input)
 	_timeline.draw.connect(_draw_timeline)
@@ -165,7 +162,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not visible or not event.pressed or event.echo:
+	if not tool_active or not event.pressed or event.echo:
 		return
 	match event.keycode:
 		KEY_Q: _pointer_button.button_pressed = true
@@ -208,7 +205,7 @@ func sync_document(model: TwberModelResource) -> void:
 	_set_animations(model.timeline_animations)
 	_configure_evaluation(model)
 	_refresh_parameter_track()
-	if visible:
+	if tool_active:
 		_apply_animation_at_playhead()
 
 
@@ -228,7 +225,7 @@ func _restore_base_pose() -> void:
 
 func _apply_animation_at_playhead() -> void:
 	cancel_pose_draft()
-	if not visible:
+	if not tool_active:
 		return
 	if not _preview_active:
 		_capture_base_pose()
@@ -359,7 +356,7 @@ func _refresh_animation_list() -> void:
 	_priority.editable = selected != null
 	_loop_check_box.disabled = selected == null
 	_delete_animation_button.disabled = selected == null
-	%ExportFrames.disabled = selected == null
+	_export_frames.disabled = selected == null
 	_add_point_button.disabled = selected == null or _selected_node == null
 	if selected != null:
 		_name_edit.text = selected.name
@@ -528,7 +525,7 @@ func _has_point_at_playhead() -> bool:
 
 
 func _on_overlay_gui_input(event: InputEvent) -> void:
-	if not visible or _selected_node == null:
+	if not tool_active or _selected_node == null:
 		return
 	var canvas_position := _overlay_local_to_viewport(event.position)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -696,7 +693,7 @@ func _reset_vertex_at(canvas_position: Vector2) -> void:
 
 
 func _draw_overlay() -> void:
-	if not visible or _selected_node == null:
+	if not tool_active or _selected_node == null:
 		return
 	var origin := _canvas_to_editor_position(_get_node_canvas_origin(_selected_node))
 	_overlay.draw_circle(origin, 5.0, ACCENT)

@@ -1,0 +1,140 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_2ael8"]
+[node name="ParametersContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/workspace_mode = 2
+
+[node name="CreateParams" type="HFlowContainer" parent="."]
+layout_mode = 2
+alignment = 2
+
+[node name="BoolButton" type="Button" parent="CreateParams"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Create bool parameter"
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "b"
+icon_alignment = 1
+expand_icon = true
+
+[node name="IntButton" type="Button" parent="CreateParams"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Create integer parameter"
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "i"
+icon_alignment = 1
+expand_icon = true
+
+[node name="FloatButton" type="Button" parent="CreateParams"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Create float parameter"
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "f"
+icon_alignment = 1
+expand_icon = true
+
+[node name="VectorButton" type="Button" parent="CreateParams"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+custom_maximum_size = Vector2(-1, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Create 2D vector parameter"
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "v"
+icon_alignment = 1
+expand_icon = true
+
+[node name="ParameterScroll" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ParameterList" type="VBoxContainer" parent="ParameterScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LayerOptions" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="BindPositionButton" type="Button" parent="LayerOptions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Bind the pose draft at this parameter position. Escape discards the draft."
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "Bind"
+
+[node name="RemovePositionButton" type="Button" parent="LayerOptions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Remove the selected layer's state from the current parameter position"
+theme_override_fonts/font = ExtResource("2_2ael8")
+text = "Remove"
+
+[node name="AnimationBindingPanel" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Title" type="Label" parent="AnimationBindingPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.7, 1)
+theme_override_fonts/font = ExtResource("2_2ael8")
+theme_override_font_sizes/font_size = 10
+text = "ANIMATION TRIGGER"
+
+[node name="ModelAnimationsOptionButton" type="OptionButton" parent="AnimationBindingPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Buttons" type="HBoxContainer" parent="AnimationBindingPanel"]
+layout_mode = 2
+
+[node name="BindAnimationButton" type="Button" parent="AnimationBindingPanel/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Run this animation when the selected bool or int has its current value"
+text = "Bind animation"
+
+[node name="RemoveAnimationBindingButton" type="Button" parent="AnimationBindingPanel/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Remove this animation trigger at the current value"
+text = "Remove"
+
+[node name="TakeButtons" type="HFlowContainer" parent="."]
+layout_mode = 2
+
+[node name="RecordTake" type="Button" parent="TakeButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Record parameters"
+tooltip_text = "Record parameter control changes into a new animation take. Finish keeps it; Escape discards it."
+
+[node name="CancelTake" type="Button" parent="TakeButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel take"
+disabled = true

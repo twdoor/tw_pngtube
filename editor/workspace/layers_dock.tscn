@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://c62nyb7ty26qh"]
+
+[ext_resource type="PackedScene" path="res://editor/workspace/dock_panel.tscn" id="dock"]
+[ext_resource type="PackedScene" path="res://editor/panels/placer_layers.tscn" id="mode0"]
+[ext_resource type="PackedScene" path="res://editor/panels/mesher_layers.tscn" id="mode1"]
+[ext_resource type="PackedScene" path="res://editor/panels/rigger_layers.tscn" id="mode2"]
+[ext_resource type="PackedScene" path="res://editor/panels/animator_layers.tscn" id="mode3"]
+
+[node name="Layers" unique_id=385021100 instance=ExtResource("dock")]
+custom_minimum_size = Vector2(120, 90)
+panel_id = "layers"
+panel_title = "Layers"
+
+[node name="Body" parent="Content" index="1"]
+alignment = 1
+
+[node name="Place" parent="Content/Body" index="0" unique_id=2014679665 instance=ExtResource("mode0")]
+
+[node name="Mesh" parent="Content/Body" index="1" unique_id=1008693060 instance=ExtResource("mode1")]
+visible = false
+
+[node name="Rig" parent="Content/Body" index="2" unique_id=2060688294 instance=ExtResource("mode2")]
+visible = false
+
+[node name="Animate" parent="Content/Body" index="3" unique_id=997679232 instance=ExtResource("mode3")]
+visible = false

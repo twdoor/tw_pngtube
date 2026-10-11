@@ -197,7 +197,7 @@ func _test_editor_and_runtime() -> void:
 	await process_frame
 	editor._apply_opened_model(model, "")
 	var animator := editor._editor_animator
-	editor._menus.current_tab = animator.get_index()
+	editor._mode_bar.current_tab = animator.get_index()
 	animator._playhead = 0.5
 	animator._apply_animation_at_playhead()
 	var node := editor._model_root.get_child(0) as Node2D

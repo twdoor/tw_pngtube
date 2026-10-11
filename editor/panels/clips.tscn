@@ -1,0 +1,121 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[node name="ClipsContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/workspace_mode = 3
+
+[node name="Header" type="Label" parent="."]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+text = "Animations"
+
+[node name="AnimationList" type="ItemList" parent="."]
+custom_minimum_size = Vector2(0, 80)
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_fonts/font = ExtResource("2_font")
+
+[node name="ListButtons" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="NewAnimationButton" type="Button" parent="ListButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "+ New"
+
+[node name="DeleteAnimationButton" type="Button" parent="ListButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Delete"
+
+[node name="NameEdit" type="LineEdit" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Animation name"
+
+[node name="SettingsRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="DurationSpinBox" type="SpinBox" parent="SettingsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.05
+max_value = 3600.0
+step = 0.05
+value = 1.0
+suffix = " sec"
+
+[node name="LoopCheckBox" type="CheckBox" parent="SettingsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Loop"
+
+[node name="ParameterTrackLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Parameter track"
+
+[node name="TrackParameter" type="OptionButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Animate a rig control. Layer-pose keys override the properties they key."
+
+[node name="TrackValues" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TrackX" type="SpinBox" parent="TrackValues"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Changing this value creates or updates a parameter key at the playhead."
+
+[node name="TrackY" type="SpinBox" parent="TrackValues"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Changing Y creates or updates a parameter key at the playhead."
+
+[node name="TrackHold" type="CheckBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Hold until next key"
+tooltip_text = "Otherwise interpolate linearly. Bool and Int parameters always hold."
+
+[node name="TrackButtons" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="KeyParameter" type="Button" parent="TrackButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Key parameter"
+
+[node name="RemoveParameterKey" type="Button" parent="TrackButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Remove key"
+
+[node name="Priority" type="SpinBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = -100.0
+max_value = 100.0
+prefix = "Priority "
+tooltip_text = "When clips overlap, higher priority wins. Equal priorities are ordered by stable clip ID."
+
+[node name="ExportFrames" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Export PNG frames…"
+tooltip_text = "Export this clip at exact frame times with a transparent background."
+[node name="AuthoredSpriteTiming" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Use authored sprite timing"
+tooltip_text = "Remove recorded sprite phase markers so animation and speed edits control timing. This can be undone."

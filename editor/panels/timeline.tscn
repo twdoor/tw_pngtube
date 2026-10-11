@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="FontFile" uid="uid://jo7a134qrgad" path="res://shared/assets/JetBrainsMono-Medium.ttf" id="2_font"]
+[ext_resource type="Texture2D" uid="uid://d1lvdtk0va1eh" path="res://shared/assets/icons/plus.svg" id="10_plus"]
+[node name="TimelineContent" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/workspace_mode = 3
+
+[node name="TimelineToolbar" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="AddPointButton" type="Button" parent="TimelineToolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 30)
+layout_mode = 2
+tooltip_text = "Record the pose draft at the playhead. Escape discards the draft."
+icon = ExtResource("10_plus")
+
+[node name="DeletePointButton" type="Button" parent="TimelineToolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 30)
+layout_mode = 2
+tooltip_text = "Delete the selected layer's point at the playhead"
+text = "−"
+
+[node name="PlayButton" type="Button" parent="TimelineToolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(54, 30)
+layout_mode = 2
+text = "Play"
+
+[node name="TimeLabel" type="Label" parent="TimelineToolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+text = "0.00 / 1.00s"
+vertical_alignment = 1
+
+[node name="ToolbarSpacer" type="Control" parent="TimelineToolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FpsSpinBox" type="SpinBox" parent="TimelineToolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 120.0
+value = 30.0
+suffix = " fps"
+
+[node name="Timeline" type="Control" parent="."]
+size_flags_vertical = 3
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+
